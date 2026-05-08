@@ -20,10 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Filter, Download, Upload, Users } from "lucide-react";
+import { Plus, Search, MessageCircle, Upload, Users, Vote } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ContactsTable from "@/components/contacts/ContactsTable";
 import ContactForm from "@/components/contacts/ContactForm";
+import TSEImportModal from "@/components/integrations/TSEImportModal";
+import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
@@ -32,6 +34,9 @@ export default function Contacts() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [deleteContact, setDeleteContact] = useState(null);
+  const [tseModalOpen, setTseModalOpen] = useState(false);
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState([]);
 
   const queryClient = useQueryClient();
 
@@ -121,16 +126,34 @@ export default function Contacts() {
             Gerencie sua base de contatos políticos
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingContact(null);
-            setFormOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Contato
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setTseModalOpen(true)}
+            className="border-blue-200 text-blue-700 hover:bg-blue-50"
+          >
+            <Vote className="w-4 h-4 mr-2" />
+            Importar TSE
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setWhatsappModalOpen(true)}
+            className="border-green-200 text-green-700 hover:bg-green-50"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingContact(null);
+              setFormOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Contato
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -220,6 +243,20 @@ export default function Contacts() {
         contact={editingContact}
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* TSE Import Modal */}
+      <TSEImportModal
+        open={tseModalOpen}
+        onOpenChange={setTseModalOpen}
+        onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
+      />
+
+      {/* WhatsApp Modal */}
+      <WhatsAppModal
+        open={whatsappModalOpen}
+        onOpenChange={setWhatsappModalOpen}
+        selectedContacts={selectedContacts}
       />
 
       {/* Delete Dialog */}

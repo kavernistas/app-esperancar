@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaflet";
-import { Map, Filter, Users, Vote, MapPin, TrendingUp, Thermometer } from "lucide-react";
+import { Filter, Users, Vote, MapPin, TrendingUp, Thermometer, FileDown, Loader2, MessageCircle } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 
 const heatColors = {
   cold: "#3b82f6",
@@ -33,6 +34,26 @@ export default function ElectoralMap() {
   const [yearFilter, setYearFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    const response = await base44.functions.invoke("exportMapPDF", {
+      yearFilter,
+      positionFilter,
+      candidateName: "Candidato",
+    });
+    setExportingPDF(false);
+    if (response.data?.pdf_base64) {
+      const link = document.createElement("a");
+      link.href = response.data.pdf_base64;
+      link.download = response.data.filename || "mapa-eleitoral.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   const { data: electoralData = [], isLoading } = useQuery({
     queryKey: ["electoralData"],
@@ -120,6 +141,26 @@ export default function ElectoralMap() {
           <p className="text-slate-500 mt-1">
             Visualize a distribuição de votos por região
           </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setWhatsappOpen(true)}
+            className="border-green-200 text-green-700 hover:bg-green-50"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            WhatsApp
+          </Button>
+          <Button
+            onClick={handleExportPDF}
+            disabled={exportingPDF}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {exportingPDF
+              ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              : <FileDown className="w-4 h-4 mr-2" />}
+            Exportar PDF
+          </Button>
         </div>
       </div>
 
@@ -352,6 +393,8 @@ export default function ElectoralMap() {
           )}
         </div>
       </div>
+      {/* WhatsApp Modal */}
+      <WhatsAppModal open={whatsappOpen} onOpenChange={setWhatsappOpen} selectedContacts={[]} />
     </div>
   );
 }

@@ -20,10 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, UserCheck, TrendingUp, Target, Award } from "lucide-react";
+import { Plus, Search, UserCheck, TrendingUp, Target, Award, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import LeaderCard from "@/components/leaders/LeaderCard";
 import LeaderForm from "@/components/leaders/LeaderForm";
+import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 
 export default function Leaders() {
   const [search, setSearch] = useState("");
@@ -32,6 +33,7 @@ export default function Leaders() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingLeader, setEditingLeader] = useState(null);
   const [deleteLeader, setDeleteLeader] = useState(null);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -143,6 +145,14 @@ export default function Leaders() {
           <Plus className="w-4 h-4 mr-2" />
           Nova Liderança
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setWhatsappOpen(true)}
+          className="border-green-200 text-green-700 hover:bg-green-50"
+        >
+          <MessageCircle className="w-4 h-4 mr-2" />
+          WhatsApp
+        </Button>
       </div>
 
       {/* Stats */}
@@ -241,6 +251,9 @@ export default function Leaders() {
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
       />
+
+      {/* WhatsApp Modal */}
+      <WhatsAppModal open={whatsappOpen} onOpenChange={setWhatsappOpen} selectedContacts={[]} />
 
       {/* Delete Dialog */}
       <AlertDialog open={!!deleteLeader} onOpenChange={() => setDeleteLeader(null)}>
