@@ -6,6 +6,7 @@ import ElectoralMap from './pages/ElectoralMap';
 import StrategicPlanning from './pages/StrategicPlanning';
 import Reports from './pages/Reports';
 import Campaigns from './pages/Campaigns';
+import ElectoralConsult from './pages/ElectoralConsult';
 import __Layout from './Layout.jsx';
 
 
@@ -18,6 +19,7 @@ export const PAGES = {
     "StrategicPlanning": StrategicPlanning,
     "Reports": Reports,
     "Campaigns": Campaigns,
+    "ElectoralConsult": ElectoralConsult,
 }
 
 export const pagesConfig = {

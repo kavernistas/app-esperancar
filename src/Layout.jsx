@@ -11,15 +11,14 @@ import {
   Target,
   BarChart3,
   FileText,
-  Calendar,
-  GraduationCap,
   Settings,
   Menu,
   X,
   ChevronDown,
   LogOut,
   Bell,
-  Search
+  Search,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +57,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
+    { name: "Consulta TSE", page: "ElectoralConsult", icon: Database },
   ];
 
   const handleLogout = () => {
