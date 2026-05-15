@@ -18,7 +18,7 @@ const ESTADOS = [
   "RO","RR","RS","SC","SE","SP","TO",
 ];
 const CARGOS = [
-  { value: "", label: "Todos os cargos" },
+  { value: "all", label: "Todos os cargos" },
   { value: "presidente", label: "Presidente" },
   { value: "governador", label: "Governador" },
   { value: "senador", label: "Senador" },
@@ -37,7 +37,7 @@ const LIMITS = [
 export default function TSEImport() {
   const [ano, setAno] = useState("2024");
   const [uf, setUf] = useState("");
-  const [cargo, setCargo] = useState("");
+  const [cargo, setCargo] = useState("all");
   const [limit, setLimit] = useState("500");
 
   const [previewing, setPreviewing] = useState(false);
@@ -51,7 +51,7 @@ export default function TSEImport() {
     setPreview(null);
     setImportResult(null);
     const res = await base44.functions.invoke("tseImportResults", {
-      ano, uf, cargo, mode: "preview", limit: parseInt(limit),
+      ano, uf, cargo: cargo === "all" ? "" : cargo, mode: "preview", limit: parseInt(limit),
     });
     setPreviewing(false);
     if (res.data?.success) setPreview(res.data);
@@ -62,7 +62,7 @@ export default function TSEImport() {
     setImporting(true);
     setImportResult(null);
     const res = await base44.functions.invoke("tseImportResults", {
-      ano, uf, cargo, mode: "import", limit: parseInt(limit),
+      ano, uf, cargo: cargo === "all" ? "" : cargo, mode: "import", limit: parseInt(limit),
     });
     setImporting(false);
     if (res.data) setImportResult(res.data);
