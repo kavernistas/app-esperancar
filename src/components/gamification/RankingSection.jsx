@@ -60,6 +60,13 @@ export default function RankingSection({ rankings, onFilterChange, filters }) {
                     )}
                     <LevelBadge level={item.current_level} size="sm" />
                   </div>
+                  {item.badges?.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {item.badges.map((b, bi) => (
+                        <span key={bi} title={b} className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">{b}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-sm text-slate-800 flex items-center gap-1 justify-end">

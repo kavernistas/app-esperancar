@@ -21,10 +21,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ClipboardList, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, Search, ClipboardList, Clock, CheckCircle, AlertTriangle, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import DemandCard from "@/components/demands/DemandCard";
 import DemandForm from "@/components/demands/DemandForm";
+
+const exportDemandsCSV = (demands) => {
+  const headers = ["Título","Tipo","Descrição","Solicitante","Telefone","Email","Cidade","Bairro","Prioridade","Status","Responsável","Prazo"];
+  const rows = demands.map(d => [
+    d.title||"", d.type||"", d.description||"", d.requester_name||"", d.requester_phone||"",
+    d.requester_email||"", d.city||"", d.neighborhood||"", d.priority||"", d.status||"",
+    d.responsible||"", d.due_date||""
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
+  const csv = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "demandas.csv"; a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function Demands() {
   const [search, setSearch] = useState("");
@@ -81,6 +95,13 @@ export default function Demands() {
     setFormOpen(true);
   };
 
+  const handleAddComment = async (demandId, text) => {
+    const demand = demands.find(d => d.id === demandId);
+    if (!demand) return;
+    const entry = { date: new Date().toISOString(), action: "comment", user: "Admin", new_value: text };
+    await updateMutation.mutateAsync({ id: demandId, data: { history: [...(demand.history || []), entry] } });
+  };
+
   const handleDelete = (demand) => {
     setDeleteDemand(demand);
   };
@@ -129,6 +150,14 @@ export default function Demands() {
             Gerencie as demandas e atendimentos
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={() => exportDemandsCSV(demands)}
+          className="border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar CSV
+        </Button>
         <Button
           onClick={() => {
             setEditingDemand(null);
@@ -239,11 +268,12 @@ export default function Demands() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDemands.map((demand) => (
             <DemandCard
-              key={demand.id}
-              demand={demand}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+                key={demand.id}
+                demand={demand}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onAddComment={handleAddComment}
+              />
           ))}
         </div>
       )}

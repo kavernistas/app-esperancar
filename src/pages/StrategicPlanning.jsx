@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import PlanningCalendar from "@/components/planning/PlanningCalendar";
 import {
   Plus,
   Target,
@@ -230,6 +231,9 @@ export default function StrategicPlanning() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Calendar */}
+      {actions.length > 0 && <PlanningCalendar actions={actions} />}
 
       {/* Actions Grid */}
       {filteredActions.length === 0 ? (

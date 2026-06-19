@@ -145,7 +145,7 @@ export default function Gamification() {
       });
     }
 
-    await base44.functions.invoke("gamificationEngine", {
+    const engineRes = await base44.functions.invoke("gamificationEngine", {
       action: "mission_completed",
       leader_id: mission.leader_id,
       leader_name: mission.leader_name,
@@ -153,6 +153,17 @@ export default function Gamification() {
       city: mission.city,
       mission_points: mission.points || 30,
     });
+
+    if (engineRes.data?.level_up) {
+      import("react-hot-toast").then(({ toast }) => {
+        toast.success(`🎉 ${mission.leader_name} subiu para ${engineRes.data.current_level}!`, { duration: 5000 });
+      });
+    }
+    if (engineRes.data?.new_badges?.length > 0) {
+      import("react-hot-toast").then(({ toast }) => {
+        engineRes.data.new_badges.forEach(b => toast(`🏅 Conquista: ${b}`, { icon: "🏅", duration: 4000 }));
+      });
+    }
 
     const profs = await base44.entities.GamificationProfile.filter({ leader_id: mission.leader_id });
     if (profs.length > 0) {

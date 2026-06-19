@@ -8,13 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import { 
   MoreVertical, 
   Edit, 
   Trash2, 
   MapPin, 
   User, 
-  Calendar,
+  Calendar as CalIcon,
   Heart,
   GraduationCap,
   Wrench,
@@ -23,10 +26,13 @@ import {
   Briefcase,
   Home,
   Bus,
-  HelpCircle
+  HelpCircle,
+  MessageSquare
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import DemandComments from "./DemandComments";
+import { useState } from "react";
 
 const statusColors = {
   open: "bg-amber-100 text-amber-700 border-amber-200",
@@ -75,11 +81,13 @@ const typeLabels = {
   other: "Outros",
 };
 
-export default function DemandCard({ demand, onEdit, onDelete, onStatusChange }) {
+export default function DemandCard({ demand, onEdit, onDelete, onStatusChange, onAddComment }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   const Icon = typeIcons[demand.type] || HelpCircle;
 
   return (
-    <Card className="group border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+    <>
+    <Card className="group border-0 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer" onClick={() => setDetailOpen(true)}>
       <div className={`h-1 ${priorityColors[demand.priority || "medium"]}`} />
       <CardHeader className="p-4 pb-2">
         <div className="flex items-start justify-between">
@@ -95,17 +103,17 @@ export default function DemandCard({ demand, onEdit, onDelete, onStatusChange })
             </div>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(demand)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(demand); }}>
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(demand)} className="text-red-600">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(demand); }} className="text-red-600">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Excluir
               </DropdownMenuItem>
@@ -135,7 +143,7 @@ export default function DemandCard({ demand, onEdit, onDelete, onStatusChange })
           )}
           {demand.due_date && (
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Calendar className="w-3.5 h-3.5" />
+              <CalIcon className="w-3.5 h-3.5" />
               <span>Prazo: {format(new Date(demand.due_date), "dd/MM/yyyy", { locale: ptBR })}</span>
             </div>
           )}
@@ -151,7 +159,46 @@ export default function DemandCard({ demand, onEdit, onDelete, onStatusChange })
             </span>
           )}
         </div>
+
+        {/* Comment count */}
+        {(demand.history || []).filter(h => h.action === "comment").length > 0 && (
+          <div className="flex items-center gap-1 mt-2 text-xs text-blue-500">
+            <MessageSquare className="w-3 h-3" />
+            {(demand.history || []).filter(h => h.action === "comment").length} comentário(s)
+          </div>
+        )}
       </CardContent>
     </Card>
+
+    {/* Detail Sheet */}
+    <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="text-lg">{demand.title}</SheetTitle>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={statusColors[demand.status || "open"]}>{statusLabels[demand.status || "open"]}</Badge>
+            <Badge variant="outline">{typeLabels[demand.type] || "Outros"}</Badge>
+          </div>
+        </SheetHeader>
+        <div className="space-y-4">
+          {demand.description && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Descrição</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">{demand.description}</p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {demand.requester_name && <div><span className="text-xs text-slate-400">Solicitante</span><p className="font-medium">{demand.requester_name}</p></div>}
+            {demand.requester_phone && <div><span className="text-xs text-slate-400">Telefone</span><p className="font-medium">{demand.requester_phone}</p></div>}
+            {demand.city && <div><span className="text-xs text-slate-400">Cidade</span><p className="font-medium">{demand.city}</p></div>}
+            {demand.neighborhood && <div><span className="text-xs text-slate-400">Bairro</span><p className="font-medium">{demand.neighborhood}</p></div>}
+            {demand.responsible && <div><span className="text-xs text-slate-400">Responsável</span><p className="font-medium">{demand.responsible}</p></div>}
+            {demand.due_date && <div><span className="text-xs text-slate-400">Prazo</span><p className="font-medium">{format(new Date(demand.due_date), "dd/MM/yyyy", { locale: ptBR })}</p></div>}
+          </div>
+          <DemandComments demand={demand} onAddComment={onAddComment} />
+        </div>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }

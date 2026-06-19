@@ -20,11 +20,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, UserCheck, TrendingUp, Target, Award, MessageCircle } from "lucide-react";
+import { Plus, Search, UserCheck, TrendingUp, Target, Award, MessageCircle, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import LeaderCard from "@/components/leaders/LeaderCard";
 import LeaderForm from "@/components/leaders/LeaderForm";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
+
+const exportLeadersCSV = (leaders) => {
+  const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Força Política","Apoiadores","Conversões","Meta Mensal","Status","Segmento"];
+  const rows = leaders.map(l => [
+    l.name||"", l.phone||"", l.email||"", l.city||"", l.neighborhood||"",
+    l.electoral_zone||"", l.political_strength||"", l.supporters_count||0, l.conversions||0,
+    l.monthly_goal||0, l.status||"", l.segment||""
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
+  const csv = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "liderancas.csv"; a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function Leaders() {
   const [search, setSearch] = useState("");
@@ -144,6 +158,14 @@ export default function Leaders() {
         >
           <Plus className="w-4 h-4 mr-2" />
           Nova Liderança
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => exportLeadersCSV(leaders)}
+          className="border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar CSV
         </Button>
         <Button
           variant="outline"
