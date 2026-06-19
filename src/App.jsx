@@ -10,14 +10,11 @@ import PageNotFound from './lib/PageNotFound';
 import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
-import CRMDashboard from './pages/CRMDashboard';
 import PortalLideranca from './pages/PortalLideranca';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
-const { Pages, Layout, mainPage } = pagesConfig;
-const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+const { Pages, Layout } = pagesConfig;
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -26,7 +23,6 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -35,23 +31,21 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
       navigateToLogin();
       return null;
     }
   }
 
-  // Render the main app
   return (
     <Routes>
+      {/* Central de Inteligência as the main unified page */}
       <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
+        <LayoutWrapper currentPageName="InteligenciaEleitoral">
+          <InteligenciaEleitoral />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -68,11 +62,6 @@ const AuthenticatedApp = () => {
       <Route path="/mission/:id" element={
         <LayoutWrapper currentPageName="MissionCenter">
           <MissionDetail />
-        </LayoutWrapper>
-      } />
-      <Route path="/CRMDashboard" element={
-        <LayoutWrapper currentPageName="CRMDashboard">
-          <CRMDashboard />
         </LayoutWrapper>
       } />
       <Route path="/InteligenciaEleitoral" element={

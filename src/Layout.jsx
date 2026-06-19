@@ -50,15 +50,13 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const navigation = [
-    { name: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
-    { name: "Dashboard CRM", page: "CRMDashboard", icon: Target },
+    { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: LayoutDashboard },
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },
     { name: "Demandas", page: "Demands", icon: ClipboardList },
     { name: "Missões", page: "MissionCenter", icon: Target },
     { name: "Gamificação", page: "Gamification", icon: Gamepad2 },
     { name: "Mapa Territorial", page: "ElectoralMap", icon: Map },
-    { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: Map },
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
     { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
