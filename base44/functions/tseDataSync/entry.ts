@@ -14,7 +14,6 @@ const DATASETS_NACIONAIS = new Set([
   'detalhe_apuracao_munzona',
 ]);
 
-const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024;
 const BATCH_SIZE = 1000;
 const MAX_RUNTIME_MS = 50000; // 50s — margem antes do timeout de 60s
 
@@ -87,9 +86,9 @@ async function handleLocalQuery(base44, body) {
   });
 }
 
-// ============ SINCRONIZAÇÃO CDN (arquivos ≤50MB) ============
+// ============ SINCRONIZAÇÃO — DATA WAREHOUSE (sempre assíncrono) ============
 async function handleSync(base44, body) {
-  const { ano, uf, dataset_tipo = 'votacao_secao' } = body;
+  const { ano, uf, dataset_tipo = 'votacao_secao', municipio = '' } = body;
   if (!ano || !uf) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf' }, { status: 400 });
 
   const year = parseInt(ano);
@@ -102,67 +101,41 @@ async function handleSync(base44, body) {
     ? `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}.zip`
     : `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}_${state}.zip`;
 
-  const existing = await base44.asServiceRole.entities.TSESyncStatus.filter({ ano: year, uf: state, tipo_dataset: 'votacao' });
-  if (existing.length > 0 && existing[0].status === 'importando') {
-    return Response.json({ success: false, message: 'Importação já em andamento.' });
-  }
-
-  if (existing.length > 0) {
-    await base44.asServiceRole.entities.TSESyncStatus.update(existing[0].id, { status: 'importando', mensagem_erro: '' });
-  } else {
-    await base44.asServiceRole.entities.TSESyncStatus.create({
-      ano: year, uf: state, tipo_dataset: 'votacao', status: 'importando', fonte_url: cdnUrl,
-    });
-  }
-
+  // Verifica se o arquivo existe e tamanho
   let fileSize = 0;
   try {
     const headRes = await fetch(cdnUrl, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
     if (headRes.ok) fileSize = parseInt(headRes.headers.get('content-length') || '0');
   } catch (_e) {}
 
-  // Atualizar cache de fonte
+  if (fileSize === 0) {
+    const cached = await base44.asServiceRole.entities.TSEDataSourceMap.filter({ ano: year, uf: state, dataset_tipo });
+    const obs = 'URL não encontrada no CDN do TSE.';
+    if (cached.length > 0) {
+      await base44.asServiceRole.entities.TSEDataSourceMap.update(cached[0].id, { status: 'indisponivel', observacao: obs });
+    } else {
+      await base44.asServiceRole.entities.TSEDataSourceMap.create({
+        ano: year, uf: state, dataset_tipo, fonte_url: cdnUrl, formato: 'zip', status: 'indisponivel', observacao: obs,
+      });
+    }
+    return Response.json({ success: false, message: 'URL não encontrada no CDN do TSE.', tse_url: cdnUrl });
+  }
+
+  const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+
+  // Atualiza cache de fonte
   const cachedSources = await base44.asServiceRole.entities.TSEDataSourceMap.filter({ ano: year, uf: state, dataset_tipo });
-  const sourceStatus = fileSize > 0 ? (fileSize <= MAX_DOWNLOAD_SIZE ? 'disponivel' : 'muito_grande') : 'indisponivel';
+  const sourceData = { status: 'disponivel', tamanho_estimado: fileSize, fonte_url: cdnUrl };
   if (cachedSources.length > 0) {
-    await base44.asServiceRole.entities.TSEDataSourceMap.update(cachedSources[0].id, {
-      status: sourceStatus, tamanho_estimado: fileSize, fonte_url: cdnUrl,
-    });
+    await base44.asServiceRole.entities.TSEDataSourceMap.update(cachedSources[0].id, sourceData);
   } else {
     await base44.asServiceRole.entities.TSEDataSourceMap.create({
-      ano: year, uf: state, dataset_tipo, fonte_url: cdnUrl, formato: 'zip',
-      status: sourceStatus, tamanho_estimado: fileSize,
+      ano: year, uf: state, dataset_tipo, fonte_url: cdnUrl, formato: 'zip', ...sourceData,
     });
   }
 
-  if (fileSize === 0 || fileSize > MAX_DOWNLOAD_SIZE) {
-    const sizeMB = fileSize > 0 ? (fileSize/(1024*1024)).toFixed(1) : '?';
-    await updateSyncStatus(base44, year, state, 'nao_importado',
-      fileSize > MAX_DOWNLOAD_SIZE ? `Arquivo de ${sizeMB}MB requer importação assíncrona.` : 'URL não encontrada.');
-    return Response.json({
-      success: true, needs_upload: true, total_importado: 0,
-      message: fileSize > MAX_DOWNLOAD_SIZE
-        ? `Arquivo de ${sizeMB}MB — use a importação assíncrona (upload manual).`
-        : `O TSE disponibiliza este recurso como arquivo ZIP/CSV. Faça upload para importar.`,
-      tse_url: cdnUrl, file_size_mb: sizeMB,
-    });
-  }
-
-  try {
-    const downloadRes = await fetch(cdnUrl, { signal: AbortSignal.timeout(120000) });
-    if (!downloadRes.ok) throw new Error(`CDN HTTP ${downloadRes.status}`);
-    const buffer = await downloadRes.arrayBuffer();
-    const csvText = await extractCSVFromZip(buffer);
-    const total = await parseAndImportCSVStreaming(base44, csvText, year, state, null);
-    await updateSyncStatus(base44, year, state, 'importado', '', total);
-    return Response.json({
-      success: true, total_importado: total, uf: state, ano: year,
-      fonte: 'cdn_tse', message: `${total} registros importados.`,
-    });
-  } catch (error) {
-    await updateSyncStatus(base44, year, state, 'erro', error.message);
-    return Response.json({ success: false, needs_upload: true, error: error.message, tse_url: cdnUrl });
-  }
+  // Delega para importação assíncrona — nunca baixa inline
+  return handleStartImport(base44, { ano, uf, file_url: cdnUrl, dataset_tipo, municipio, source: 'cdn' });
 }
 
 async function updateSyncStatus(base44, year, state, status, mensagemErro, totalLinhas) {
@@ -323,33 +296,46 @@ async function handleDedup(base44, body) {
 // ============ CORE: PROCESSAMENTO EM CHUNKS ============
 async function processImportChunk(base44, job) {
   const startTime = Date.now();
+  const isContinuation = job.linha_offset > 0;
 
   try {
-    // Atualizar status
-    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-      status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
-    });
-
-    // 1. Baixar arquivo
-    const fileRes = await fetch(job.file_url, { signal: AbortSignal.timeout(120000) });
-    if (!fileRes.ok) throw new Error(`Erro ao baixar: HTTP ${fileRes.status}`);
-
-    const buffer = await fileRes.arrayBuffer();
-    const fileUrlLower = job.file_url.toLowerCase();
-    const contentType = fileRes.headers.get('content-type') || '';
-
-    // 2. Extrair CSV
-    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-      status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
-    });
-
     let csvText;
-    if (contentType.includes('zip') || fileUrlLower.endsWith('.zip')) {
-      csvText = await extractCSVFromZip(buffer);
+
+    // Se tem CSV em cache (continuação), busca direto — não re-baixa o ZIP
+    if (isContinuation && job.csv_cache_url) {
+      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+        status: 'importando', etapa: 'importando', ultima_atividade: new Date().toISOString(),
+      });
+      const csvRes = await fetch(job.csv_cache_url, { signal: AbortSignal.timeout(30000) });
+      if (!csvRes.ok) throw new Error(`Erro ao buscar CSV cache: HTTP ${csvRes.status}`);
+      csvText = await csvRes.text();
     } else {
-      csvText = new TextDecoder().decode(new Uint8Array(buffer));
+      // Primeira execução: baixar ZIP, extrair CSV, fazer upload do cache
+      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+        status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
+      });
+
+      const fileRes = await fetch(job.file_url, { signal: AbortSignal.timeout(120000) });
+      if (!fileRes.ok) throw new Error(`Erro ao baixar: HTTP ${fileRes.status}`);
+
+      const buffer = await fileRes.arrayBuffer();
+      const fileUrlLower = job.file_url.toLowerCase();
+      const contentType = fileRes.headers.get('content-type') || '';
+
+      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+        status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
+      });
+
+      const isNacional = DATASETS_NACIONAIS.has(job.dataset_tipo);
+      if (contentType.includes('zip') || fileUrlLower.endsWith('.zip')) {
+        csvText = await extractCSVFromZip(buffer, job.uf, isNacional);
+      } else {
+        csvText = new TextDecoder().decode(new Uint8Array(buffer));
+      }
+      csvText = normalizarEncoding(csvText);
+
+      // CSV extraído — cache não disponível no runtime Deno; upload manual quando necessário
     }
-    csvText = normalizarEncoding(csvText);
 
     // 3. Contar total de linhas (uma vez)
     if (job.total_linhas_arquivo === 0) {
@@ -636,8 +622,7 @@ async function handleResolveSource(base44, body) {
     const headRes = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(10000) });
     if (headRes.ok) {
       sizeBytes = parseInt(headRes.headers.get('content-length') || '0');
-      status = sizeBytes > 0 && sizeBytes <= MAX_DOWNLOAD_SIZE ? 'disponivel'
-        : sizeBytes > MAX_DOWNLOAD_SIZE ? 'muito_grande' : 'indisponivel';
+      status = sizeBytes > 0 ? 'disponivel' : 'indisponivel';
     } else {
       status = 'indisponivel';
     }
@@ -675,23 +660,29 @@ async function handleStatusCheck(base44, body) {
 }
 
 // ============ UTILITÁRIOS ZIP/CSV ============
-function findCSVInZip(buf) {
+function findCDOffset(buf) {
   const data = new Uint8Array(buf);
-  let cdOffset = -1;
-  for (let i = data.length - 4; i >= 0; i--) {
-    if (data[i] === 0x50 && data[i+1] === 0x4b && data[i+2] === 0x01 && data[i+3] === 0x02) {
-      cdOffset = i; break;
+  // Localiza o EOCD (End of Central Directory) — assinatura 0x50 0x4b 0x05 0x06
+  for (let i = data.length - 22; i >= 0; i--) {
+    if (data[i] === 0x50 && data[i+1] === 0x4b && data[i+2] === 0x05 && data[i+3] === 0x06) {
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      return view.getUint32(i + 16, true); // offset do início do central directory
     }
   }
-  if (cdOffset === -1) throw new Error('ZIP inválido — arquivo corrompido.');
+  throw new Error('ZIP inválido — EOCD não encontrado.');
+}
 
+function findCSVInZip(buf) {
+  const data = new Uint8Array(buf);
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+  const cdOffset = findCDOffset(buf);
   let pos = cdOffset;
   const files = [];
 
   while (pos < data.length - 46) {
     const sig = view.getUint32(pos, true);
-    if (sig !== 0x02014b50) break;
+    if (sig !== 0x02014b50) break; // fim do central directory
     const compMethod = view.getUint16(pos + 10, true);
     const fileNameLen = view.getUint16(pos + 28, true);
     const extraLen = view.getUint16(pos + 30, true);
@@ -733,10 +724,23 @@ async function inflateData(compressed) {
   return result;
 }
 
-async function extractCSVFromZip(buffer) {
+async function extractCSVFromZip(buffer, state, isNacional) {
   const files = findCSVInZip(buffer);
   if (files.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
-  const csvFile = files[0];
+
+  let csvFile;
+  if (isNacional && state) {
+    // ZIP nacional contém um CSV por UF + BRASIL — seleciona o da UF pedida
+    const suffix = `_${state}.csv`;
+    csvFile = files.find(f => f.name.endsWith(suffix));
+    // Fallback: BRASIL.csv (agregado nacional)
+    if (!csvFile) csvFile = files.find(f => f.name.includes('_BRASIL.csv'));
+    // Fallback: primeiro CSV
+    if (!csvFile) csvFile = files[0];
+  } else {
+    csvFile = files[0];
+  }
+
   let csvData;
   if (csvFile.method === 'deflate') {
     csvData = await inflateData(csvFile.data);

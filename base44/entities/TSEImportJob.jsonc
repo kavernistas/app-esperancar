@@ -26,7 +26,11 @@
     },
     "file_url": {
       "type": "string",
-      "description": "URL do arquivo (UploadFile)"
+      "description": "URL do arquivo (UploadFile ou CDN TSE)"
+    },
+    "csv_cache_url": {
+      "type": "string",
+      "description": "URL do CSV extra\u00eddo em cache para retomada r\u00e1pida"
     },
     "status": {
       "type": "string",
