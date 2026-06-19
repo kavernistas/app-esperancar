@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Database, Download, Search, BarChart3, TrendingUp, Users, Heart, Trophy,
+  Database, Search, BarChart3, TrendingUp, Users, Heart, Trophy,
   FileText, Building2, MapPin, Filter, Activity
 } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
@@ -47,12 +47,11 @@ export default function ElectoralConsult() {
   const [filters, setFilters] = useState({ ano: "2024", uf: "GO", cargo: "", municipio: "", candidato: "" });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [syncStatuses, setSyncStatuses] = useState([]);
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "sync_status", ano: "", uf: "" });
+      const res = await base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" });
       if (res.data?.success) setSyncStatuses(res.data.statuses || []);
     } catch (e) {
       console.error("Erro ao carregar status:", e);
@@ -60,20 +59,6 @@ export default function ElectoralConsult() {
   }, []);
 
   useEffect(() => { loadSyncStatus(); }, [loadSyncStatus]);
-
-  const handleSync = async (ano, uf, dataset_tipo = "votacao_secao") => {
-    setSyncing(true);
-    let result = null;
-    try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "sync", ano, uf, dataset_tipo });
-      result = res.data;
-      await loadSyncStatus();
-    } catch (e) {
-      console.error("Erro na sincronização:", e);
-    }
-    setSyncing(false);
-    return result;
-  };
 
   const handleSearch = async () => {
     if (!filters.ano || !filters.uf) return;
@@ -119,29 +104,22 @@ export default function ElectoralConsult() {
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold mb-1">Consulta Eleitoral Brasil</h1>
             <p className="text-blue-100 text-sm max-w-xl">
-              Dados oficiais do TSE importados diretamente do CDN ou por upload de arquivo. Consulte apenas bases já sincronizadas.
+              Dados oficiais do TSE processados por serviço externo de ETL. Consulte apenas bases já sincronizadas.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20" onClick={() => document.getElementById("import-section")?.scrollIntoView({ behavior: "smooth" })}>
-              <Download className="w-4 h-4 mr-1.5" />Sincronizar Base
+          <RouterLink to="/DiagnosticoTSE">
+            <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+              <Activity className="w-4 h-4 mr-1.5" />Status da Base
             </Button>
-            <RouterLink to="/DiagnosticoTSE">
-              <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-                <Activity className="w-4 h-4 mr-1.5" />Diagnóstico
-              </Button>
-            </RouterLink>
-          </div>
+          </RouterLink>
         </div>
       </div>
 
       {/* Sync Status Banner */}
-      <SyncStatusBanner syncStatuses={syncStatuses} ano={filters.ano} uf={filters.uf} onSync={handleSync} />
+      <SyncStatusBanner syncStatuses={syncStatuses} ano={filters.ano} uf={filters.uf} />
 
-      {!isSynced && !syncing && (
-        <div id="import-section">
-          <ImportPanel syncStatuses={syncStatuses} onSync={handleSync} syncing={syncing} />
-        </div>
+      {!isSynced && (
+        <ImportPanel syncStatuses={syncStatuses} />
       )}
 
       {/* Filtros de consulta */}
@@ -234,11 +212,13 @@ export default function ElectoralConsult() {
             <h3 className="text-lg font-semibold text-slate-700 mb-2">Base não sincronizada</h3>
             <p className="text-slate-500 text-sm mb-4">
               Dados oficiais ainda não importados para {filters.uf}/{filters.ano}.
-              Use o painel de sincronização acima para importar os dados do TSE e começar a consultar.
+              A importação é feita pelo serviço externo de ETL. Consulte o painel de diagnóstico.
             </p>
-            <Button onClick={() => handleSync(filters.ano, filters.uf)} className="bg-blue-600 hover:bg-blue-700">
-              <Download className="w-4 h-4 mr-1.5" />Importar Dados
-            </Button>
+            <RouterLink to="/DiagnosticoTSE">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Activity className="w-4 h-4 mr-1.5" />Ver Status
+              </Button>
+            </RouterLink>
           </CardContent>
         </Card>
       )}
