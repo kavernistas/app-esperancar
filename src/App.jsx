@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
+import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -67,8 +68,13 @@ const AuthenticatedApp = () => {
           <MissionDetail />
         </LayoutWrapper>
       } />
+      <Route path="/InteligenciaEleitoral" element={
+        <LayoutWrapper currentPageName="InteligenciaEleitoral">
+          <InteligenciaEleitoral />
+        </LayoutWrapper>
+      } />
       <Route path="/DiagnosticoTSE" element={
-        <LayoutWrapper currentPageName="ElectoralConsult">
+        <LayoutWrapper currentPageName="InteligenciaEleitoral">
           <DiagnosticoTSE />
         </LayoutWrapper>
       } />

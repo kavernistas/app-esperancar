@@ -58,7 +58,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
-    { name: "Consulta TSE", page: "ElectoralConsult", icon: Database },
+    { name: "Central de Inteligência Eleitoral", page: "InteligenciaEleitoral", icon: Database },
     { name: "Gamificação", page: "Gamification", icon: Gamepad2 },
     { name: "Central de Missões", page: "MissionCenter", icon: Target },
   ];
