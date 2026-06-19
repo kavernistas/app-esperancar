@@ -16,7 +16,6 @@ const DATASETS_NACIONAIS = new Set([
 
 const BATCH_SIZE = 1000;
 const MAX_RUNTIME_MS = 50000; // 50s — margem antes do timeout de 60s
-
 const CARGO_MAP_CD = {
   '1': 'presidente', '3': 'governador', '5': 'senador',
   '6': 'deputado_federal', '7': 'deputado_estadual',
@@ -293,53 +292,46 @@ async function handleDedup(base44, body) {
   });
 }
 
-// ============ CORE: PROCESSAMENTO EM CHUNKS ============
+// ============ CORE: PROCESSAMENTO EM CHUNKS (STREAMING EM DISCO) ============
 async function processImportChunk(base44, job) {
   const startTime = Date.now();
   const isContinuation = job.linha_offset > 0;
 
+  let zipPath, csvPath;
   try {
-    let csvText;
+    // 1. Baixar ZIP para disco (streaming, sem carregar na memória)
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
+    });
 
-    // Se tem CSV em cache (continuação), busca direto — não re-baixa o ZIP
-    if (isContinuation && job.csv_cache_url) {
-      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-        status: 'importando', etapa: 'importando', ultima_atividade: new Date().toISOString(),
-      });
-      const csvRes = await fetch(job.csv_cache_url, { signal: AbortSignal.timeout(30000) });
-      if (!csvRes.ok) throw new Error(`Erro ao buscar CSV cache: HTTP ${csvRes.status}`);
-      csvText = await csvRes.text();
-    } else {
-      // Primeira execução: baixar ZIP, extrair CSV, fazer upload do cache
-      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-        status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
-      });
+    const fileUrlLower = job.file_url.toLowerCase();
+    const isZip = fileUrlLower.endsWith('.zip');
 
-      const fileRes = await fetch(job.file_url, { signal: AbortSignal.timeout(120000) });
-      if (!fileRes.ok) throw new Error(`Erro ao baixar: HTTP ${fileRes.status}`);
+    zipPath = `/tmp/tse_${job.id}.zip`;
+    csvPath = `/tmp/tse_${job.id}.csv`;
 
-      const buffer = await fileRes.arrayBuffer();
-      const fileUrlLower = job.file_url.toLowerCase();
-      const contentType = fileRes.headers.get('content-type') || '';
-
-      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-        status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
-      });
-
-      const isNacional = DATASETS_NACIONAIS.has(job.dataset_tipo);
-      if (contentType.includes('zip') || fileUrlLower.endsWith('.zip')) {
-        csvText = await extractCSVFromZip(buffer, job.uf, isNacional);
-      } else {
-        csvText = new TextDecoder().decode(new Uint8Array(buffer));
-      }
-      csvText = normalizarEncoding(csvText);
-
-      // CSV extraído — cache não disponível no runtime Deno; upload manual quando necessário
+    if (isZip && !isContinuation) {
+      await streamDownload(job.file_url, zipPath);
     }
 
-    // 3. Contar total de linhas (uma vez)
+    // 2. Extrair CSV do ZIP para disco
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
+    });
+
+    if (isZip && !isContinuation) {
+      const isNacional = DATASETS_NACIONAIS.has(job.dataset_tipo);
+      await extractCSVToFile(zipPath, csvPath, job.uf, isNacional);
+      // Limpa ZIP
+      try { await Deno.remove(zipPath); } catch (_) {}
+    } else if (!isZip && !isContinuation) {
+      // CSV direto: baixar para disco
+      await streamDownload(job.file_url, csvPath);
+    }
+
+    // 3. Contar total de linhas (uma vez, do arquivo em disco)
     if (job.total_linhas_arquivo === 0) {
-      const totalLinhas = countCSVLines(csvText);
+      const totalLinhas = await countFileLines(csvPath);
       await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
         total_linhas_arquivo: totalLinhas,
         ultima_atividade: new Date().toISOString(),
@@ -351,18 +343,22 @@ async function processImportChunk(base44, job) {
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'deduplicando', etapa: 'deduplicando', ultima_atividade: new Date().toISOString(),
     });
-
     const dedupSet = await buildDedupSet(base44, job.ano, job.uf);
 
-    // 5. Importar em streaming
+    // 5. Importar do arquivo em disco (streaming)
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'importando', etapa: 'importando', ultima_atividade: new Date().toISOString(),
     });
 
-    const result = await parseAndImportCSVStreaming(
-      base44, csvText, job.ano, job.uf,
+    const result = await parseAndImportFromFile(
+      base44, csvPath, job.ano, job.uf,
       job.municipio || null, dedupSet, job.linha_offset, startTime, job.id
     );
+
+    // Limpa CSV se concluído
+    if (result.complete) {
+      try { await Deno.remove(csvPath); } catch (_) {}
+    }
 
     // Atualizar job
     const newOffset = job.linha_offset + result.bytesProcessed;
@@ -386,17 +382,13 @@ async function processImportChunk(base44, job) {
       updateData.progresso = 100;
       updateData.fim = new Date().toISOString();
       updateData.etapa = 'finalizando';
-
-      // Atualizar sync status
       await updateSyncStatus(base44, job.ano, job.uf, 'importado', '', newRegistros);
     } else {
       updateData.progresso = job.total_linhas_arquivo > 0
         ? Math.min(99, Math.round((newLinhas / job.total_linhas_arquivo) * 100))
         : 0;
-      // Estimar tempo restante
       if (speed > 0 && job.total_linhas_arquivo > 0) {
-        const remaining = job.total_linhas_arquivo - newLinhas;
-        updateData.tempo_estimado_segundos = Math.round(remaining / speed);
+        updateData.tempo_estimado_segundos = Math.round((job.total_linhas_arquivo - newLinhas) / speed);
       }
     }
 
@@ -424,6 +416,9 @@ async function processImportChunk(base44, job) {
       status: 'erro', erro: error.message, fim: new Date().toISOString(),
       ultima_atividade: new Date().toISOString(),
     });
+    // Limpa arquivos temporários
+    try { if (zipPath) await Deno.remove(zipPath); } catch (_) {}
+    try { if (csvPath) await Deno.remove(csvPath); } catch (_) {}
     return Response.json({
       success: false, job_id: job.id, status: 'erro',
       error: error.message,
@@ -433,126 +428,117 @@ async function processImportChunk(base44, job) {
   }
 }
 
-// ============ STREAMING CSV PARSER ============
-async function parseAndImportCSVStreaming(base44, csvText, year, state, municipio, dedupSet, startOffset, budgetStartMs, jobId) {
-  let bytePos = 0;
-  const len = csvText.length;
+// ============ STREAMING CSV PARSER (LEITURA CHUNKED DO DISCO) ============
+async function parseAndImportFromFile(base44, filePath, year, state, municipio, dedupSet, startOffset, budgetStartMs, jobId) {
+  const file = await Deno.open(filePath, { read: true });
+  try {
+    const fileInfo = await file.stat();
+    const fileSize = fileInfo.size;
 
-  // Pular para o offset salvo
-  if (startOffset > 0) {
-    bytePos = startOffset;
-  }
-
-  // Se for primeira execução, ler cabeçalho
-  let header = null;
-  let delimiter = null;
-  let ufIdx = -1;
-
-  if (bytePos === 0) {
-    let headerEnd = csvText.indexOf('\n', 0);
-    if (headerEnd === -1) throw new Error('CSV vazio.');
-    if (csvText[headerEnd - 1] === '\r') headerEnd--;
-    const headerLine = csvText.slice(0, headerEnd);
-    bytePos = csvText.indexOf('\n', 0) + 1;
-
-    if (!headerLine.trim()) throw new Error('CSV sem cabeçalho.');
-    delimiter = detectarSeparador(headerLine);
-    header = parseCSVLine(headerLine, delimiter);
-    ufIdx = header.findIndex(h => h === 'SG_UF');
+    // Ler cabeçalho (primeiros 8KB)
+    const headBuf = new Uint8Array(8192);
+    await file.read(headBuf);
+    const headText = new TextDecoder().decode(headBuf);
+    const headerEndRaw = headText.indexOf('\n');
+    if (headerEndRaw === -1) throw new Error('CSV sem cabeçalho.');
+    let headerLen = headerEndRaw;
+    if (headText[headerEndRaw - 1] === '\r') headerLen--;
+    const headerLine = headText.slice(0, headerLen);
+    const delimiter = detectarSeparador(headerLine);
+    const header = parseCSVLine(headerLine, delimiter);
+    const ufIdx = header.findIndex(h => h === 'SG_UF');
     if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada.');
-  } else {
-    // Na retomada, precisamos re-parsear o cabeçalho
-    let headerEnd = csvText.indexOf('\n', 0);
-    if (csvText[headerEnd - 1] === '\r') headerEnd--;
-    const headerLine = csvText.slice(0, headerEnd);
-    delimiter = detectarSeparador(headerLine);
-    header = parseCSVLine(headerLine, delimiter);
-    ufIdx = header.findIndex(h => h === 'SG_UF');
-  }
+    const dataStartByte = headerEndRaw + 1;
 
-  let batch = [];
-  let recordsImported = 0;
-  let duplicatesSkipped = 0;
-  let linesProcessed = 0;
-  let bytesProcessed = 0;
-  const startBytePos = bytePos;
-  const municipioUpper = municipio ? municipio.toUpperCase() : null;
-  const municipioIdx = municipio ? header.findIndex(h => h === 'NM_MUNICIPIO') : -1;
+    // Detectar encoding
+    const sample = headText.slice(0, 200);
+    const needsLatin = sample.includes('Ã§') || sample.includes('Ã£') || sample.includes('Ã©') || sample.includes('Ã') || sample.includes('Ã´');
+    const decoder = needsLatin ? new TextDecoder('iso-8859-1') : new TextDecoder();
 
-  while (bytePos < len) {
-    // Verificar budget de tempo
-    const elapsed = Date.now() - budgetStartMs;
-    if (elapsed > MAX_RUNTIME_MS && recordsImported > 0) {
-      bytesProcessed = bytePos - startBytePos;
-      return {
-        complete: false, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed,
-      };
+    // Reposicionar após cabeçalho
+    await file.seek(dataStartByte, Deno.SeekMode.Start);
+
+    if (startOffset > 0) {
+      await file.seek(startOffset, Deno.SeekMode.Start);
     }
 
-    let end = csvText.indexOf('\n', bytePos);
-    if (end === -1) end = len;
-    let line = csvText.slice(bytePos, end);
-    if (line.endsWith('\r')) line = line.slice(0, -1);
-    bytePos = end + 1;
-    linesProcessed++;
+    let bytePos = startOffset > 0 ? startOffset : dataStartByte;
 
-    if (!line.trim()) continue;
+    const municipioUpper = municipio ? municipio.toUpperCase() : null;
+    const municipioIdx = municipio ? header.findIndex(h => h === 'NM_MUNICIPIO') : -1;
 
-    const values = parseCSVLine(line, delimiter);
-    if (values.length < header.length) continue;
-    if (values[ufIdx] !== state) continue;
-    if (municipioUpper && municipioIdx >= 0 && values[municipioIdx].toUpperCase() !== municipioUpper) continue;
+    const chunkSize = 262144; // 256KB chunks
+    let remainder = '';
+    let batch = [];
+    let recordsImported = 0;
+    let duplicatesSkipped = 0;
+    let linesProcessed = 0;
 
-    // Verificar duplicata
-    const dedupKey = buildDedupKey(values, header, year, state);
-    if (dedupSet.has(dedupKey)) {
-      duplicatesSkipped++;
-      continue;
-    }
-    dedupSet.add(dedupKey);
+    const buf = new Uint8Array(chunkSize);
+    while (true) {
+      const elapsed = Date.now() - budgetStartMs;
+      if (elapsed > MAX_RUNTIME_MS && recordsImported > 0) {
+        return { complete: false, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed: bytePos - (startOffset > 0 ? startOffset : dataStartByte) };
+      }
 
-    const record = buildRecordFromCSV(header, values, year, state);
-    batch.push(record);
+      const n = await file.read(buf);
+      if (n === null) break;
 
-    if (batch.length >= BATCH_SIZE) {
-      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-      recordsImported += batch.length;
-      batch = [];
+      const chunk = decoder.decode(buf.slice(0, n));
+      const combined = remainder + chunk;
+      const chunkLines = combined.split('\n');
+      // Último elemento pode estar incompleto
+      remainder = chunkLines.pop() || '';
 
-      // Atualizar progresso no job a cada lote
-      if (jobId) {
-        try {
-          await base44.asServiceRole.entities.TSEImportJob.update(jobId, {
-            linhas_processadas: (await getJobLinhas(base44, jobId)) + linesProcessed,
-            registros_importados: (await getJobRegistros(base44, jobId)) + recordsImported,
-            ultima_atividade: new Date().toISOString(),
-          });
-        } catch (_e) { /* non-critical */ }
+      for (const line of chunkLines) {
+        bytePos += line.length + 1;
+        if (!line.trim()) continue;
+
+        linesProcessed++;
+        const values = parseCSVLine(line, delimiter);
+        if (values.length < header.length) continue;
+        if (values[ufIdx] !== state) continue;
+        if (municipioUpper && municipioIdx >= 0 && values[municipioIdx].toUpperCase() !== municipioUpper) continue;
+
+        const dedupKey = buildDedupKey(values, header, year, state);
+        if (dedupSet.has(dedupKey)) { duplicatesSkipped++; continue; }
+        dedupSet.add(dedupKey);
+
+        batch.push(buildRecordFromCSV(header, values, year, state));
+
+        if (batch.length >= BATCH_SIZE) {
+          await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
+          recordsImported += batch.length;
+          batch = [];
+        }
       }
     }
+
+    // Processar resto
+    if (remainder.trim()) {
+      linesProcessed++;
+      const values = parseCSVLine(remainder, delimiter);
+      if (values.length >= header.length && values[ufIdx] === state &&
+          (!municipioUpper || municipioIdx < 0 || values[municipioIdx].toUpperCase() === municipioUpper)) {
+        const dedupKey = buildDedupKey(values, header, year, state);
+        if (!dedupSet.has(dedupKey)) {
+          dedupSet.add(dedupKey);
+          batch.push(buildRecordFromCSV(header, values, year, state));
+        } else {
+          duplicatesSkipped++;
+        }
+      }
+    }
+
+    if (batch.length > 0) {
+      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
+      recordsImported += batch.length;
+    }
+
+    return { complete: true, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed: fileSize - (startOffset > 0 ? startOffset : dataStartByte) };
+  } finally {
+    try { file.close(); } catch (_) {}
   }
-
-  // Último lote
-  if (batch.length > 0) {
-    await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-    recordsImported += batch.length;
-  }
-
-  bytesProcessed = bytePos - startBytePos;
-
-  return {
-    complete: true, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed,
-  };
-}
-
-async function getJobLinhas(base44, jobId) {
-  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: jobId });
-  return jobs.length > 0 ? jobs[0].linhas_processadas : 0;
-}
-
-async function getJobRegistros(base44, jobId) {
-  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: jobId });
-  return jobs.length > 0 ? jobs[0].registros_importados : 0;
 }
 
 function buildDedupKey(values, header, year, state) {
@@ -584,16 +570,6 @@ async function buildDedupSet(base44, year, state) {
   }
 
   return set;
-}
-
-function countCSVLines(csvText) {
-  let count = 0;
-  for (let i = 0; i < csvText.length; i++) {
-    if (csvText[i] === '\n') count++;
-  }
-  // Não conta a última linha se terminar sem \n
-  if (csvText.length > 0 && csvText[csvText.length - 1] !== '\n') count++;
-  return count;
 }
 
 // ============ RESOLVE SOURCE ============
@@ -659,107 +635,174 @@ async function handleStatusCheck(base44, body) {
   return Response.json({ success: true, statuses });
 }
 
-// ============ UTILITÁRIOS ZIP/CSV ============
-function findCDOffset(buf) {
-  const data = new Uint8Array(buf);
-  // Localiza o EOCD (End of Central Directory) — assinatura 0x50 0x4b 0x05 0x06
-  for (let i = data.length - 22; i >= 0; i--) {
-    if (data[i] === 0x50 && data[i+1] === 0x4b && data[i+2] === 0x05 && data[i+3] === 0x06) {
-      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-      return view.getUint32(i + 16, true); // offset do início do central directory
-    }
-  }
-  throw new Error('ZIP inválido — EOCD não encontrado.');
-}
+// ============ UTILITÁRIOS ZIP/CSV (DISCO) ============
 
-function findCSVInZip(buf) {
-  const data = new Uint8Array(buf);
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-
-  const cdOffset = findCDOffset(buf);
-  let pos = cdOffset;
-  const files = [];
-
-  while (pos < data.length - 46) {
-    const sig = view.getUint32(pos, true);
-    if (sig !== 0x02014b50) break; // fim do central directory
-    const compMethod = view.getUint16(pos + 10, true);
-    const fileNameLen = view.getUint16(pos + 28, true);
-    const extraLen = view.getUint16(pos + 30, true);
-    const commentLen = view.getUint16(pos + 32, true);
-    const localHeaderOff = view.getUint32(pos + 42, true);
-    const compSize = view.getUint32(pos + 20, true);
-    const nameBytes = data.slice(pos + 46, pos + 46 + fileNameLen);
-    const fileName = new TextDecoder().decode(nameBytes);
-
-    if (fileName.toLowerCase().endsWith('.csv')) {
-      const lhPos = localHeaderOff;
-      const lhNameLen = view.getUint16(lhPos + 26, true);
-      const lhExtraLen = view.getUint16(lhPos + 28, true);
-      const dataStart = lhPos + 30 + lhNameLen + lhExtraLen;
-      const compressed = data.slice(dataStart, dataStart + compSize);
-      files.push({ name: fileName, data: compressed, method: compMethod === 8 ? 'deflate' : 'store' });
-    }
-    pos += 46 + fileNameLen + extraLen + commentLen;
-  }
-  return files;
-}
-
-async function inflateData(compressed) {
-  const ds = new DecompressionStream('deflate-raw');
-  const writer = ds.writable.getWriter();
-  const reader = ds.readable.getReader();
-  writer.write(compressed);
-  writer.close();
-  const chunks = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-  }
-  const totalLen = chunks.reduce((s, c) => s + c.length, 0);
-  const result = new Uint8Array(totalLen);
-  let offset = 0;
-  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-  return result;
-}
-
-async function extractCSVFromZip(buffer, state, isNacional) {
-  const files = findCSVInZip(buffer);
-  if (files.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
-
-  let csvFile;
-  if (isNacional && state) {
-    // ZIP nacional contém um CSV por UF + BRASIL — seleciona o da UF pedida
-    const suffix = `_${state}.csv`;
-    csvFile = files.find(f => f.name.endsWith(suffix));
-    // Fallback: BRASIL.csv (agregado nacional)
-    if (!csvFile) csvFile = files.find(f => f.name.includes('_BRASIL.csv'));
-    // Fallback: primeiro CSV
-    if (!csvFile) csvFile = files[0];
-  } else {
-    csvFile = files[0];
-  }
-
-  let csvData;
-  if (csvFile.method === 'deflate') {
-    csvData = await inflateData(csvFile.data);
-  } else {
-    csvData = csvFile.data;
-  }
-  return new TextDecoder().decode(csvData);
-}
-
-function normalizarEncoding(text) {
+// Download com streaming — salva em disco sem carregar na memória
+async function streamDownload(url, destPath) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(300000) });
+  if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
+  const file = await Deno.open(destPath, { write: true, create: true, truncate: true });
   try {
-    if (text.includes('Ã§') || text.includes('Ã£') || text.includes('Ã©') || text.includes('Ã') || text.includes('Ã´')) {
-      const bytes = new Uint8Array(text.length);
-      for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xFF;
-      return new TextDecoder('iso-8859-1').decode(bytes);
+    const reader = res.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      await file.write(value);
     }
-    return text;
-  } catch (_e) {
-    return text;
+  } finally {
+    try { file.close(); } catch (_) {}
+  }
+}
+
+// Extrai CSV de ZIP em disco para arquivo em disco
+async function extractCSVToFile(zipPath, csvPath, state, isNacional) {
+  // Lê os últimos 64KB para encontrar o central directory
+  const zipInfo = await Deno.stat(zipPath);
+  const zipSize = zipInfo.size;
+  const tailSize = Math.min(65536, zipSize);
+  const zipFile = await Deno.open(zipPath, { read: true });
+  let csvEntry = null;
+
+  try {
+    // Buscar EOCD e CD
+    await zipFile.seek(-tailSize, Deno.SeekMode.End);
+    const tailBuf = new Uint8Array(tailSize);
+    await zipFile.read(tailBuf);
+    const view = new DataView(tailBuf.buffer, tailBuf.byteOffset, tailBuf.byteLength);
+
+    // Encontrar EOCD
+    let eocdPos = -1;
+    for (let i = tailBuf.length - 22; i >= 0; i--) {
+      if (tailBuf[i] === 0x50 && tailBuf[i+1] === 0x4b && tailBuf[i+2] === 0x05 && tailBuf[i+3] === 0x06) {
+        eocdPos = i;
+        break;
+      }
+    }
+    if (eocdPos === -1) throw new Error('ZIP inválido — EOCD não encontrado.');
+
+    const cdOffset = view.getUint32(eocdPos + 16, true);
+    const cdSize = view.getUint32(eocdPos + 12, true);
+    // cdOffset é relativo ao início do arquivo, e o tail começa em zipSize-tailSize
+
+    // Mapear cdOffset para posição no tailBuf
+    const cdInTail = cdOffset - (zipSize - tailSize);
+    let candidates = [];
+
+    if (cdInTail >= 0 && cdInTail < tailBuf.length) {
+      // CD está dentro do tail que lemos
+      let pos = cdInTail;
+      while (pos < tailBuf.length - 46) {
+        const sig = view.getUint32(pos, true);
+        if (sig !== 0x02014b50) break;
+        const compMethod = view.getUint16(pos + 10, true);
+        const fileNameLen = view.getUint16(pos + 28, true);
+        const extraLen = view.getUint16(pos + 30, true);
+        const commentLen = view.getUint16(pos + 32, true);
+        const localHeaderOff = view.getUint32(pos + 42, true);
+        const compSize = view.getUint32(pos + 20, true);
+        const nameBytes = tailBuf.slice(pos + 46, pos + 46 + fileNameLen);
+        const fileName = new TextDecoder().decode(nameBytes);
+
+        if (fileName.toLowerCase().endsWith('.csv')) {
+          const lhPos = localHeaderOff;
+          // Precisamos ler o local header para saber nameLen + extraLen
+          const lhBuf = new Uint8Array(30);
+          await zipFile.seek(lhPos, Deno.SeekMode.Start);
+          await zipFile.read(lhBuf);
+          const lhView = new DataView(lhBuf.buffer, lhBuf.byteOffset, lhBuf.byteLength);
+          const lhNameLen = lhView.getUint16(26, true);
+          const lhExtraLen = lhView.getUint16(28, true);
+          const dataStart = lhPos + 30 + lhNameLen + lhExtraLen;
+
+          candidates.push({
+            name: fileName,
+            dataStart,
+            compSize,
+            method: compMethod === 8 ? 'deflate' : 'store',
+          });
+        }
+        pos += 46 + fileNameLen + extraLen + commentLen;
+      }
+    }
+
+    if (candidates.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
+
+    // Selecionar CSV correto
+    if (isNacional && state) {
+      const suffix = `_${state}.csv`;
+      csvEntry = candidates.find(f => f.name.endsWith(suffix));
+      if (!csvEntry) csvEntry = candidates.find(f => f.name.includes('_BRASIL.csv'));
+      if (!csvEntry) csvEntry = candidates[0];
+    } else {
+      csvEntry = candidates[0];
+    }
+
+    // Extrair CSVEntry para csvPath (streaming para disco)
+    const outFile = await Deno.open(csvPath, { write: true, create: true, truncate: true });
+    try {
+      await zipFile.seek(csvEntry.dataStart, Deno.SeekMode.Start);
+
+      if (csvEntry.method === 'deflate') {
+        // Ler todos os dados comprimidos primeiro (tamanho gerenciável)
+        const compData = new Uint8Array(csvEntry.compSize);
+        let readTotal = 0;
+        while (readTotal < csvEntry.compSize) {
+          const n = await zipFile.read(compData.subarray(readTotal));
+          if (n === null) break;
+          readTotal += n;
+        }
+
+        // Descomprimir via streams e escrever no disco
+        const ds = new DecompressionStream('deflate-raw');
+        const writer = ds.writable.getWriter();
+        const reader = ds.readable.getReader();
+        writer.write(compData);
+        writer.close();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await outFile.write(value);
+        }
+      } else {
+        // Store — copiar em chunks direto para disco
+        const chunk = new Uint8Array(65536);
+        let remaining = csvEntry.compSize;
+        while (remaining > 0) {
+          const toRead = Math.min(65536, remaining);
+          const readChunk = new Uint8Array(toRead);
+          const n = await zipFile.read(readChunk);
+          if (n === null) break;
+          await outFile.write(readChunk.subarray(0, n));
+          remaining -= n;
+        }
+      }
+    } finally {
+      try { outFile.close(); } catch (_) {}
+    }
+  } finally {
+    try { zipFile.close(); } catch (_) {}
+  }
+}
+
+// Conta linhas em arquivo sem carregar tudo
+async function countFileLines(filePath) {
+  const file = await Deno.open(filePath, { read: true });
+  try {
+    const buf = new Uint8Array(262144);
+    let count = 0;
+    while (true) {
+      const n = await file.read(buf);
+      if (n === null) break;
+      for (let i = 0; i < n; i++) {
+        if (buf[i] === 10) count++; // \n
+      }
+    }
+    // Se arquivo não terminar com \n, conta a última linha
+    if (count === 0) return 1; // pelo menos o cabeçalho
+    return count;
+  } finally {
+    try { file.close(); } catch (_) {}
   }
 }
 
