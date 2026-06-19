@@ -96,10 +96,13 @@ export default function DiagnosticoTSE() {
         setUploadFile(null);
         await loadSyncStatus();
       } else {
-        setStatusMessage(`❌ ${importRes.data?.error || 'Erro na importação'}`);
+        const msg = importRes.data?.message || importRes.data?.error || 'Erro na importação';
+        setStatusMessage(`❌ ${msg}`);
       }
     } catch (e) {
-      setStatusMessage("❌ Erro ao processar arquivo.");
+      const errData = e?.response?.data;
+      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo. O servidor pode ter excedido o tempo limite.';
+      setStatusMessage(`❌ ${msg}`);
     }
     setImporting(false);
   };

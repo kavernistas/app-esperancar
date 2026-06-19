@@ -127,10 +127,13 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
         setUploadFile(null);
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        setSyncMessage(importRes.data?.error || "Erro na importação. Verifique o formato do arquivo.");
+        const msg = importRes.data?.message || importRes.data?.error || "Erro na importação. Verifique o formato do arquivo.";
+        setSyncMessage(msg);
       }
     } catch (e) {
-      setSyncMessage("Erro ao processar arquivo. Verifique se é um CSV/ZIP válido do TSE.");
+      const errData = e?.response?.data;
+      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo. O servidor pode ter excedido o tempo limite para arquivos grandes.';
+      setSyncMessage(msg);
     }
     setUploading(false);
   };

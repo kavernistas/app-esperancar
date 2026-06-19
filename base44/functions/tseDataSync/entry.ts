@@ -196,6 +196,8 @@ async function updateSyncStatus(base44, year, state, status, mensagemErro, total
 }
 
 // ============ IMPORTAÇÃO POR ARQUIVO (Upload usuário) ============
+const MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024; // 50MB máximo para processamento serverless
+
 async function handleFileImport(base44, body) {
   const { ano, uf, file_url, dataset_tipo = 'votacao_secao' } = body;
   if (!ano || !uf || !file_url) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf, file_url' }, { status: 400 });
@@ -216,6 +218,30 @@ async function handleFileImport(base44, body) {
     });
   }
 
+  // Verificar tamanho do arquivo antes de baixar
+  let fileSize = 0;
+  try {
+    const headRes = await fetch(file_url, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
+    if (headRes.ok) {
+      fileSize = parseInt(headRes.headers.get('content-length') || '0');
+    }
+  } catch (_e) {
+    // Se HEAD falhar, tentamos o GET mesmo assim
+  }
+
+  if (fileSize > MAX_IMPORT_FILE_SIZE) {
+    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
+    await updateSyncStatus(base44, year, state, 'erro',
+      `Arquivo de ${sizeMB}MB excede o limite de 50MB para processamento serverless. Use um arquivo menor ou divida por município.`);
+    return Response.json({
+      success: false,
+      error: `Arquivo muito grande (${sizeMB} MB). O limite é 50 MB para processamento automático.`,
+      message: `Arquivo de ${sizeMB} MB excede o limite de 50 MB. Baixe um arquivo menor ou específico por município no Portal de Dados Abertos do TSE.`,
+      file_size_mb: sizeMB,
+    });
+  }
+
+  // Se o arquivo é pequeno o suficiente, tenta baixar e processar
   try {
     const fileRes = await fetch(file_url, { signal: AbortSignal.timeout(120000) });
     if (!fileRes.ok) throw new Error(`Erro ao baixar arquivo: HTTP ${fileRes.status}`);
@@ -243,8 +269,13 @@ async function handleFileImport(base44, body) {
       fonte: 'arquivo_usuario', message: `Base oficial TSE importada com sucesso. ${total} registros.`,
     });
   } catch (error) {
-    await updateSyncStatus(base44, year, state, 'erro', error.message);
-    return Response.json({ success: false, error: error.message });
+    const errMsg = error.message || 'Erro desconhecido';
+    await updateSyncStatus(base44, year, state, 'erro', errMsg);
+    return Response.json({
+      success: false,
+      error: errMsg,
+      message: `Erro ao processar arquivo: ${errMsg}. Verifique se o formato é um CSV ou ZIP válido do TSE.`
+    });
   }
 }
 
@@ -424,22 +455,41 @@ function detectarSeparador(headerLine) {
 }
 
 async function parseAndImportCSV(base44, csvText, year, state) {
-  const lines = csvText.split('\n').filter(l => l.trim());
-  if (lines.length < 2) throw new Error('CSV vazio ou com apenas cabeçalho.');
+  // Processa linha a linha sem carregar array completo em memória
+  let start = 0;
+  const len = csvText.length;
 
-  const delimiter = detectarSeparador(lines[0]);
-  const header = parseCSVLine(lines[0], delimiter);
+  // Lê cabeçalho (primeira linha)
+  let headerEnd = csvText.indexOf('\n', start);
+  if (headerEnd === -1) throw new Error('CSV vazio — sem cabeçalho.');
+  if (csvText[headerEnd - 1] === '\r') headerEnd--; // Windows \r\n
+  const headerLine = csvText.slice(start, headerEnd);
+  start = csvText.indexOf('\n', start) + 1; // pula \n
 
-  // Encontrar coluna de UF
+  if (!headerLine.trim()) throw new Error('CSV vazio ou com apenas cabeçalho.');
+
+  const delimiter = detectarSeparador(headerLine);
+  const header = parseCSVLine(headerLine, delimiter);
+
   const ufIdx = header.findIndex(h => h === 'SG_UF');
   if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada. Verifique o formato do arquivo TSE.');
 
   let batch = [];
   let total = 0;
   let imported = 0;
+  const BATCH_SIZE = 100;
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i], delimiter);
+  while (start < len) {
+    let end = csvText.indexOf('\n', start);
+    if (end === -1) end = len;
+    let line = csvText.slice(start, end);
+    // Remove \r do Windows
+    if (line.endsWith('\r')) line = line.slice(0, -1);
+    start = end + 1;
+
+    if (!line.trim()) continue;
+
+    const values = parseCSVLine(line, delimiter);
     if (values.length < header.length) continue;
     if (values[ufIdx] !== state) continue;
 
@@ -447,7 +497,7 @@ async function parseAndImportCSV(base44, csvText, year, state) {
     batch.push(record);
     total++;
 
-    if (batch.length >= 100) {
+    if (batch.length >= BATCH_SIZE) {
       await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
       imported += batch.length;
       batch = [];
