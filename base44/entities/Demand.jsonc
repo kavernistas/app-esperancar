@@ -1,0 +1,100 @@
+{
+  "name": "Demand",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da demanda"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "health",
+        "education",
+        "infrastructure",
+        "security",
+        "social",
+        "employment",
+        "housing",
+        "transport",
+        "other"
+      ],
+      "description": "Tipo da demanda"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "requester_name": {
+      "type": "string",
+      "description": "Nome do solicitante"
+    },
+    "requester_phone": {
+      "type": "string"
+    },
+    "requester_email": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved",
+        "pending",
+        "cancelled"
+      ],
+      "default": "open"
+    },
+    "responsible": {
+      "type": "string",
+      "description": "Respons\u00e1vel pelo atendimento"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "closed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Hist\u00f3rico de intera\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "title",
+    "type"
+  ]
+}

@@ -110,8 +110,8 @@ export default function Layout({ children, currentPageName }) {
                 <Target className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">Politique</h1>
-                <p className="text-xs text-slate-400">Gestão Política</p>
+                <h1 className="text-lg font-bold text-white">Esperançar</h1>
+                <p className="text-xs text-slate-400">Plataforma Eleitoral</p>
               </div>
             </div>
             <button

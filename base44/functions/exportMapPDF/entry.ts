@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
       doc.setTextColor(148, 163, 184);
       doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
-      doc.text("Politique — Plataforma de Gestão Política | Documento Confidencial",
+      doc.text("Esperançar — Plataforma Eleitoral | Documento Confidencial",
         marginL, pageH - 5);
       doc.text(`Página ${p} de ${totalPages}`, pageW - marginR, pageH - 5, { align: "right" });
     }

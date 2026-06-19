@@ -1,0 +1,75 @@
+{
+  "name": "Campaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da campanha"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "municipal",
+        "state",
+        "federal"
+      ],
+      "default": "municipal"
+    },
+    "year": {
+      "type": "number"
+    },
+    "position": {
+      "type": "string",
+      "enum": [
+        "mayor",
+        "councilor",
+        "governor",
+        "state_deputy",
+        "federal_deputy",
+        "senator",
+        "president"
+      ]
+    },
+    "candidate_name": {
+      "type": "string"
+    },
+    "party": {
+      "type": "string"
+    },
+    "coalition": {
+      "type": "string"
+    },
+    "vote_goal": {
+      "type": "number",
+      "default": 0
+    },
+    "current_votes_estimate": {
+      "type": "number",
+      "default": 0
+    },
+    "budget": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planning",
+        "active",
+        "finished"
+      ],
+      "default": "planning"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

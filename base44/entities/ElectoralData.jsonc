@@ -1,0 +1,67 @@
+{
+  "name": "ElectoralData",
+  "type": "object",
+  "properties": {
+    "city": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "electoral_zone": {
+      "type": "string"
+    },
+    "electoral_section": {
+      "type": "string"
+    },
+    "voting_location": {
+      "type": "string"
+    },
+    "year": {
+      "type": "number"
+    },
+    "position": {
+      "type": "string",
+      "enum": [
+        "mayor",
+        "councilor",
+        "governor",
+        "state_deputy",
+        "federal_deputy",
+        "senator",
+        "president"
+      ],
+      "description": "Cargo disputado"
+    },
+    "candidate_name": {
+      "type": "string"
+    },
+    "votes": {
+      "type": "number",
+      "default": 0
+    },
+    "total_voters": {
+      "type": "number",
+      "default": 0
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "heat_level": {
+      "type": "string",
+      "enum": [
+        "cold",
+        "warm",
+        "hot"
+      ],
+      "default": "warm"
+    }
+  },
+  "required": [
+    "city",
+    "neighborhood"
+  ]
+}

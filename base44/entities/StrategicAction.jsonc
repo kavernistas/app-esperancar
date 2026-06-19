@@ -1,0 +1,72 @@
+{
+  "name": "StrategicAction",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "event",
+        "campaign",
+        "visit",
+        "meeting",
+        "training",
+        "other"
+      ],
+      "default": "event"
+    },
+    "city": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "responsible": {
+      "type": "string"
+    },
+    "goal": {
+      "type": "string"
+    },
+    "expected_reach": {
+      "type": "number",
+      "default": 0
+    },
+    "actual_reach": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "planned"
+    },
+    "budget": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

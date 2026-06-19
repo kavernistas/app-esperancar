@@ -1,0 +1,85 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Nome completo do contato"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "city": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "neighborhood": {
+      "type": "string",
+      "description": "Bairro"
+    },
+    "electoral_zone": {
+      "type": "string",
+      "description": "Zona eleitoral"
+    },
+    "electoral_section": {
+      "type": "string",
+      "description": "Se\u00e7\u00e3o eleitoral"
+    },
+    "voting_location": {
+      "type": "string",
+      "description": "Local de vota\u00e7\u00e3o"
+    },
+    "position": {
+      "type": "string",
+      "description": "Cargo / Fun\u00e7\u00e3o"
+    },
+    "is_leader": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00c9 lideran\u00e7a?"
+    },
+    "engagement_level": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 50,
+      "description": "N\u00edvel de engajamento (0-100)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Etiquetas para segmenta\u00e7\u00e3o"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Hist\u00f3rico de relacionamento"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitude para geolocaliza\u00e7\u00e3o"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude para geolocaliza\u00e7\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "pending"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "full_name"
+  ]
+}

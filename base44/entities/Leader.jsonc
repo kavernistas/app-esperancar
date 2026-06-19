@@ -1,0 +1,74 @@
+{
+  "name": "Leader",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da lideran\u00e7a"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string",
+      "description": "Regi\u00e3o de atua\u00e7\u00e3o"
+    },
+    "electoral_zone": {
+      "type": "string"
+    },
+    "supporters_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de apoiadores"
+    },
+    "political_strength": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "very_high"
+      ],
+      "default": "medium",
+      "description": "For\u00e7a pol\u00edtica"
+    },
+    "monthly_goal": {
+      "type": "number",
+      "default": 0,
+      "description": "Meta mensal de apoiadores"
+    },
+    "conversions": {
+      "type": "number",
+      "default": 0,
+      "description": "Convers\u00f5es realizadas"
+    },
+    "actions_completed": {
+      "type": "number",
+      "default": 0,
+      "description": "A\u00e7\u00f5es realizadas"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
