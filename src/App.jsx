@@ -11,6 +11,7 @@ import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
 import CRMDashboard from './pages/CRMDashboard';
+import PortalLideranca from './pages/PortalLideranca';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -82,6 +83,11 @@ const AuthenticatedApp = () => {
       <Route path="/DiagnosticoTSE" element={
         <LayoutWrapper currentPageName="InteligenciaEleitoral">
           <DiagnosticoTSE />
+        </LayoutWrapper>
+      } />
+      <Route path="/PortalLideranca" element={
+        <LayoutWrapper currentPageName="PortalLideranca">
+          <PortalLideranca />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

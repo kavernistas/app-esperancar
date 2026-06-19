@@ -61,6 +61,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: Map },
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
+    { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
   ];
 

@@ -6,17 +6,24 @@
       "type": "string",
       "description": "T\u00edtulo da demanda"
     },
+    "protocol": {
+      "type": "string",
+      "description": "N\u00famero de protocolo"
+    },
     "type": {
       "type": "string",
       "enum": [
         "health",
         "education",
         "infrastructure",
-        "security",
-        "social",
-        "employment",
-        "housing",
+        "zeladoria",
+        "iluminacao",
         "transport",
+        "social",
+        "security",
+        "housing",
+        "employment",
+        "documentacao",
         "other"
       ],
       "description": "Tipo da demanda"
@@ -34,6 +41,10 @@
     },
     "requester_email": {
       "type": "string"
+    },
+    "address": {
+      "type": "string",
+      "description": "Endere\u00e7o"
     },
     "city": {
       "type": "string"
@@ -74,6 +85,26 @@
       "type": "string",
       "format": "date"
     },
+    "photo_url": {
+      "type": "string",
+      "description": "URL da foto/anexo"
+    },
+    "supporter_id": {
+      "type": "string",
+      "description": "ID do apoiador vinculado"
+    },
+    "supporter_name": {
+      "type": "string",
+      "description": "Nome do apoiador vinculado"
+    },
+    "created_by_leader_id": {
+      "type": "string",
+      "description": "ID da lideran\u00e7a que cadastrou"
+    },
+    "created_by_leader_name": {
+      "type": "string",
+      "description": "Nome da lideran\u00e7a que cadastrou"
+    },
     "history": {
       "type": "array",
       "items": {
@@ -87,9 +118,13 @@
           },
           "user": {
             "type": "string"
+          },
+          "new_value": {
+            "type": "string"
           }
         }
       },
+      "default": [],
       "description": "Hist\u00f3rico de intera\u00e7\u00f5es"
     }
   },

@@ -22,6 +22,14 @@
       "type": "string",
       "description": "Bairro"
     },
+    "address_street": {
+      "type": "string",
+      "description": "Rua"
+    },
+    "address_number": {
+      "type": "string",
+      "description": "N\u00famero"
+    },
     "electoral_zone": {
       "type": "string",
       "description": "Zona eleitoral"
@@ -37,6 +45,26 @@
     "position": {
       "type": "string",
       "description": "Cargo / Fun\u00e7\u00e3o"
+    },
+    "segment": {
+      "type": "string",
+      "description": "Segmento (jovem, mulher, idoso, trabalhador, etc)"
+    },
+    "support_intent": {
+      "type": "string",
+      "enum": [
+        "apoiador",
+        "indeciso",
+        "contrario",
+        "lideranca_potencial"
+      ],
+      "default": "indeciso",
+      "description": "Inten\u00e7\u00e3o de apoio"
+    },
+    "contact_authorized": {
+      "type": "boolean",
+      "default": true,
+      "description": "Autorizado contato"
     },
     "is_leader": {
       "type": "boolean",
@@ -60,6 +88,33 @@
     "notes": {
       "type": "string",
       "description": "Hist\u00f3rico de relacionamento"
+    },
+    "interactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Hist\u00f3rico de intera\u00e7\u00f5es"
+    },
+    "created_by_leader_id": {
+      "type": "string",
+      "description": "ID da lideran\u00e7a que cadastrou"
+    },
+    "created_by_leader_name": {
+      "type": "string",
+      "description": "Nome da lideran\u00e7a que cadastrou"
     },
     "latitude": {
       "type": "number",
