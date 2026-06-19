@@ -80,7 +80,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'action e leader_id são obrigatórios' }, { status: 400 });
     }
 
-    const pointsToAdd = POINT_RULES[action] || mission_points || 0;
+    // mission_points has priority over the default rule value for mission_completed
+    const pointsToAdd = (action === 'mission_completed' && mission_points) ? mission_points : (POINT_RULES[action] || mission_points || 0);
     const weekStart = getWeekStart();
     const monthStart = getMonthStart();
 

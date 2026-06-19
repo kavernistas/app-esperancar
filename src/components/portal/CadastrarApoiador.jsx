@@ -36,7 +36,7 @@ async function fetchCEP(cep) {
 
 export default function CadastrarApoiador({ onSave, user }) {
   const [form, setForm] = useState({
-    full_name: "", phone: "", cep: "", neighborhood: "", address_street: "", address_number: "",
+    full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "",
     electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso",
     contact_authorized: true, is_leader: false, vote_goal: 0,
     visual_no_carro: false, visual_na_residencia: false,
@@ -50,11 +50,12 @@ export default function CadastrarApoiador({ onSave, user }) {
   const handleChange = (f, v) => setForm(p => ({ ...p, [f]: v }));
   const required = form.full_name.trim() && form.neighborhood.trim();
 
-  const handleCepSearch = async () => {
-    if (!form.cep || form.cep.replace(/\D/g, "").length < 8) return;
+  const handleCepSearch = async (cepValue) => {
+    const cepToSearch = cepValue || form.cep;
+    if (!cepToSearch || cepToSearch.replace(/\D/g, "").length < 8) return;
     setCepLoading(true);
     setCepError("");
-    const result = await fetchCEP(form.cep);
+    const result = await fetchCEP(cepToSearch);
     setCepLoading(false);
     if (result) {
       setForm(p => ({
@@ -73,7 +74,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     const masked = clean.length > 5 ? `${clean.slice(0, 5)}-${clean.slice(5)}` : clean;
     setForm(p => ({ ...p, cep: masked }));
     setCepError("");
-    if (clean.length === 8) handleCepSearch();
+    if (clean.length === 8) handleCepSearch(clean);
   };
 
   const handleSubmit = async (e) => {
@@ -91,7 +92,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      setForm({ full_name: "", phone: "", cep: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, notes: "", latitude: null, longitude: null });
+      setForm({ full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, notes: "", latitude: null, longitude: null });
     }, 1500);
   };
 
