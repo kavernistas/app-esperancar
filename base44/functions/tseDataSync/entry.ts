@@ -311,7 +311,9 @@ async function processImportChunk(base44, job) {
     csvPath = `/tmp/tse_${job.id}.csv`;
 
     if (isZip && !isContinuation) {
+      console.log('[processImportChunk] Baixando ZIP para disco:', zipPath);
       await streamDownload(job.file_url, zipPath);
+      console.log('[processImportChunk] Download concluído.');
     }
 
     // 2. Extrair CSV do ZIP para disco
@@ -639,9 +641,18 @@ async function handleStatusCheck(base44, body) {
 
 // Download com streaming — salva em disco sem carregar na memória
 async function streamDownload(url, destPath) {
-  const res = await fetch(url, { signal: AbortSignal.timeout(300000) });
+  console.log('[streamDownload] Iniciando fetch:', url);
+  let res;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(300000) });
+  } catch (fe) {
+    console.error('[streamDownload] Fetch falhou:', fe.message, fe.name);
+    throw new Error(`Falha na rede ao baixar: ${fe.message}`);
+  }
   if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
+  console.log('[streamDownload] Resposta OK, Content-Length:', res.headers.get('content-length'));
   const file = await Deno.open(destPath, { write: true, create: true, truncate: true });
+  console.log('[streamDownload] Arquivo criado:', destPath);
   try {
     const reader = res.body.getReader();
     while (true) {
