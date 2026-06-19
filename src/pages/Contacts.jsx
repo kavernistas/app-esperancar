@@ -20,13 +20,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, MessageCircle, Upload, Users, Vote } from "lucide-react";
+import { Plus, Search, MessageCircle, Upload, Users, Vote, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ContactsTable from "@/components/contacts/ContactsTable";
 import ContactForm from "@/components/contacts/ContactForm";
 import ContactDetailSheet from "@/components/contacts/ContactDetailSheet";
 import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
+
+const exportContactsCSV = (contacts) => {
+  const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Seção","Local de Votação","Cargo","Engajamento","Status","É Liderança","Tags"];
+  const rows = contacts.map(c => [
+    c.full_name || "", c.phone || "", c.email || "", c.city || "", c.neighborhood || "",
+    c.electoral_zone || "", c.electoral_section || "", c.voting_location || "", c.position || "",
+    c.engagement_level || 0, c.status || "", c.is_leader ? "Sim" : "Não", (c.tags || []).join("; ")
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
+  const csv = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "contatos.csv"; a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
@@ -129,6 +143,14 @@ export default function Contacts() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => exportContactsCSV(contacts)}
+            className="border-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
           <Button
             variant="outline"
             onClick={() => setTseModalOpen(true)}

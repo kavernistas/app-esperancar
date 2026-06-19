@@ -55,13 +55,13 @@ export default function Layout({ children, currentPageName }) {
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },
     { name: "Demandas", page: "Demands", icon: ClipboardList },
-    { name: "Mapa Eleitoral", page: "ElectoralMap", icon: Map },
-    { name: "Planejamento", page: "StrategicPlanning", icon: Target },
-    { name: "Relatórios", page: "Reports", icon: BarChart3 },
-    { name: "Campanhas", page: "Campaigns", icon: FileText },
-    { name: "Central de Inteligência Territorial", page: "InteligenciaEleitoral", icon: Map },
+    { name: "Missões", page: "MissionCenter", icon: Target },
     { name: "Gamificação", page: "Gamification", icon: Gamepad2 },
-    { name: "Central de Missões", page: "MissionCenter", icon: Target },
+    { name: "Mapa Territorial", page: "ElectoralMap", icon: Map },
+    { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: Map },
+    { name: "Planejamento", page: "StrategicPlanning", icon: Target },
+    { name: "Campanhas", page: "Campaigns", icon: FileText },
+    { name: "Relatórios", page: "Reports", icon: BarChart3 },
   ];
 
   const handleLogout = () => {
