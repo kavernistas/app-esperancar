@@ -23,6 +23,7 @@ import ResultsCharts from "@/components/electoral/ResultsCharts";
 import SofiaInsight from "@/components/electoral/SofiaInsight";
 import ExportActions from "@/components/electoral/ExportActions";
 import ComparativoPanel from "@/components/electoral/ComparativoPanel";
+import MapaVotos from "@/components/electoral/MapaVotos";
 
 const ESTADOS = [
   { sigla: "AC", nome: "Acre" },{ sigla: "AL", nome: "Alagoas" },{ sigla: "AM", nome: "Amazonas" },
@@ -637,17 +638,7 @@ export default function InteligenciaEleitoral() {
 
           {/* Sub-aba: MAPAS */}
           {electoralSubtab === "mapas" && (
-            <Card className="border-slate-200">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-6"><Globe className="w-8 h-8 text-blue-600" /><div><h2 className="text-lg font-semibold text-slate-800">Mapas Eleitorais</h2><p className="text-sm text-slate-500">Visualização geoespacial</p></div></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[{ icon: Building2, title: "Por Município", desc: "Agregado por cidade" },{ icon: MapPin, title: "Por Bairro", desc: "Marcadores de calor" },{ icon: Target, title: "Por Zona", desc: "Performance por zona" },{ icon: Filter, title: "Por Seção", desc: "Microtargeting" },{ icon: Activity, title: "Heatmap", desc: "Intensidade de votação" }].map((item, i) => (
-                    <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"><item.icon className="w-6 h-6 text-blue-600 mb-2" /><h4 className="font-semibold text-sm text-slate-800 mb-1">{item.title}</h4><p className="text-xs text-slate-500">{item.desc}</p></div>
-                  ))}
-                </div>
-                <div className="mt-4 flex justify-end"><RouterLink to="/ElectoralMap"><Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50"><Globe className="w-4 h-4 mr-1.5" />Abrir Mapa Completo</Button></RouterLink></div>
-              </CardContent>
-            </Card>
+            <MapaVotos filters={filters} syncStatuses={syncStatuses} />
           )}
 
           {/* Sub-aba: RELATÓRIOS */}
