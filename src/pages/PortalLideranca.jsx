@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Home, UserPlus, Users, ClipboardList, Target, Trophy,
-  Sparkles, BarChart3, Send, Plus, MessageCircle, X
+  Sparkles, BarChart3, Send, Plus, MessageCircle, X, Star
 } from "lucide-react";
 
 export default function PortalLideranca() {
@@ -122,7 +122,41 @@ export default function PortalLideranca() {
   }, [loadData]);
 
   // Handlers
-  const handleSaveSupporter = async (data) => { await base44.entities.Contact.create(data); loadData(); };
+  const handleSaveSupporter = async (data) => {
+    await base44.entities.Contact.create(data);
+    // Trigger gamification for supporter registration
+    try {
+      await base44.functions.invoke("gamificationEngine", {
+        action: "register_supporter",
+        leader_id: user?.id,
+        leader_name: user?.full_name,
+        neighborhood: data.neighborhood,
+        city: data.city,
+      });
+    } catch (e) { /* ignore */ }
+    // Trigger gamification for visuals
+    if (data.visual_no_carro) {
+      try {
+        await base44.functions.invoke("gamificationEngine", {
+          action: "visual_carro",
+          leader_id: user?.id,
+          leader_name: user?.full_name,
+          neighborhood: data.neighborhood,
+        });
+      } catch (e) { /* ignore */ }
+    }
+    if (data.visual_na_residencia) {
+      try {
+        await base44.functions.invoke("gamificationEngine", {
+          action: "visual_residencia",
+          leader_id: user?.id,
+          leader_name: user?.full_name,
+          neighborhood: data.neighborhood,
+        });
+      } catch (e) { /* ignore */ }
+    }
+    loadData();
+  };
   const handleSaveDemand = async (data) => { await base44.entities.Demand.create(data); loadData(); };
   const handleEditContact = (contact) => { setSelectedContact(contact); setEditOpen(true); };
   const handleSaveEdit = async (data) => {
@@ -135,8 +169,48 @@ export default function PortalLideranca() {
     await base44.entities.Contact.update(selectedContact.id, { interactions: [...(selectedContact.interactions || []), entry] });
     setInteractionOpen(false); loadData();
   };
-  const handleConvertLeader = async (contact) => {
-    await base44.entities.Contact.update(contact.id, { is_leader: true, support_intent: "lideranca_potencial" });
+  // Convert to leader dialog
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertContact, setConvertContact] = useState(null);
+  const [convertVoteGoal, setConvertVoteGoal] = useState(0);
+
+  const handleConvertLeader = (contact) => {
+    setConvertContact(contact);
+    setConvertVoteGoal(0);
+    setConvertOpen(true);
+  };
+
+  const handleConfirmConvert = async () => {
+    if (!convertContact) return;
+    await base44.entities.Contact.update(convertContact.id, {
+      is_leader: true,
+      support_intent: "lideranca_potencial",
+      vote_goal: convertVoteGoal || 0,
+      converted_by_leader_id: user?.id,
+      converted_by_leader_name: user?.full_name || user?.email,
+    });
+    // Trigger gamification bonus for the converting leader
+    try {
+      const res = await base44.functions.invoke("gamificationEngine", {
+        action: "leader_converted",
+        leader_id: user?.id,
+        leader_name: user?.full_name,
+        neighborhood: convertContact.neighborhood || user?.neighborhood,
+        city: convertContact.city,
+        converted_leader_id: convertContact.id,
+        converted_leader_name: convertContact.full_name,
+      });
+      if (res.data?.level_up) {
+        import("react-hot-toast").then(({ toast }) => {
+          toast.success(`🎉 Você subiu de nível!`, { duration: 5000 });
+        });
+      } else if (res.data?.points_awarded) {
+        import("react-hot-toast").then(({ toast }) => {
+          toast.success(`⭐ +${res.data.points_awarded} pontos por converter uma liderança!`, { duration: 3000 });
+        });
+      }
+    } catch (e) { /* ignore */ }
+    setConvertOpen(false);
     loadData();
   };
   const handleDemandComment = (demand) => { setCommentDemand(demand); setCommentText(""); setCommentOpen(true); };
@@ -400,6 +474,32 @@ export default function PortalLideranca() {
           <DialogHeader><DialogTitle className="text-sm">Comentar Demanda</DialogTitle></DialogHeader>
           <Textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Seu comentário..." rows={3} />
           <Button onClick={handleSaveComment} className="bg-blue-600">Enviar</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Leader Dialog */}
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle className="text-sm">Converter em Liderança</DialogTitle></DialogHeader>
+          <p className="text-xs text-slate-500">Convertendo: <strong>{convertContact?.full_name}</strong></p>
+          <div className="space-y-2 mt-2">
+            <Label className="text-xs">Meta de Votos</Label>
+            <Input
+              type="number"
+              value={convertVoteGoal || ""}
+              onChange={e => setConvertVoteGoal(parseInt(e.target.value) || 0)}
+              placeholder="Ex: 50"
+              className="h-9 text-sm"
+              min="0"
+            />
+            <p className="text-[10px] text-slate-400">Quantos votos essa liderança se compromete a trazer?</p>
+          </div>
+          <div className="flex gap-2 mt-2">
+            <Button variant="outline" onClick={() => setConvertOpen(false)} className="flex-1">Cancelar</Button>
+            <Button onClick={handleConfirmConvert} className="flex-1 bg-amber-600 hover:bg-amber-700">
+              <Star className="w-4 h-4 mr-1" /> Converter
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

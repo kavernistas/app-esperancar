@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Search, Filter, Phone, MapPin, Edit, MessageCircle, Send, UserCheck } from "lucide-react";
+import { Users, Search, Filter, Phone, MapPin, Edit, MessageCircle, Send, UserCheck, Car, Home, Target, Star } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -112,6 +112,26 @@ export default function MinhaBase({ contacts, onEdit, onAddInteraction, onSendWh
                   {(c.neighborhood || c.address_street) && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" />{[c.address_street, c.address_number, c.neighborhood].filter(Boolean).join(", ")}</div>}
                   {c.electoral_zone && <div className="flex items-center gap-1"><span className="text-[10px]">Zona {c.electoral_zone} | Seção {c.electoral_section || "-"}</span></div>}
                 </div>
+                {c.is_leader && (
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    {c.vote_goal > 0 && (
+                      <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5">
+                        <Target className="w-3 h-3" /> Meta: {c.vote_goal} votos
+                      </span>
+                    )}
+                    {c.converted_by_leader_name && (
+                      <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">
+                        Convertida por: {c.converted_by_leader_name}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {(c.visual_no_carro || c.visual_na_residencia) && (
+                  <div className="flex items-center gap-2 mt-1">
+                    {c.visual_no_carro && <span className="text-[10px] text-blue-600 flex items-center gap-0.5"><Car className="w-3 h-3" /> Carro</span>}
+                    {c.visual_na_residencia && <span className="text-[10px] text-green-600 flex items-center gap-0.5"><Home className="w-3 h-3" /> Residência</span>}
+                  </div>
+                )}
                 {c.notes && <p className="text-[11px] text-slate-400 mt-1 italic line-clamp-1">{c.notes}</p>}
                 
                 {/* Interactions */}

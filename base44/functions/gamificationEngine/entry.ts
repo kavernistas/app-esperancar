@@ -15,6 +15,9 @@ const POINT_RULES = {
   neighborhood_report: 25,
   mission_completed: 30,
   new_leader: 50,
+  leader_converted: 60,
+  visual_carro: 5,
+  visual_residencia: 5,
   weekly_goal_bonus: 100,
 };
 
@@ -27,6 +30,8 @@ const BADGE_RULES = [
   { id: 'campeao_demandas', label: 'Campeão de Demandas', check: (p) => p.demands_resolved >= 20 },
   { id: 'expansor_base', label: 'Expansor de Base', check: (p) => p.supporters_registered >= 50 },
   { id: 'guardiao_territorio', label: 'Guardião do Território', check: (p) => p.missions_completed >= 30 },
+  { id: 'formador_liderancas', label: 'Formador de Lideranças', check: (p) => (p.leaders_converted || 0) >= 3 },
+  { id: 'visual_total', label: 'Visualize', check: (p) => ((p.visual_carros || 0) + (p.visual_residencias || 0)) >= 10 },
 ];
 
 function getLevel(points) {
@@ -69,7 +74,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Não autorizado' }, { status: 401 });
 
     const body = await req.json();
-    const { action, leader_id, leader_name, neighborhood, city, mission_points } = body;
+    const { action, leader_id, leader_name, neighborhood, city, mission_points, converted_leader_id, converted_leader_name, visual_type } = body;
 
     if (!action || !leader_id) {
       return Response.json({ error: 'action e leader_id são obrigatórios' }, { status: 400 });
@@ -97,6 +102,9 @@ Deno.serve(async (req) => {
         missions_pending: 0,
         missions_overdue: 0,
         supporters_registered: 0,
+        leaders_converted: 0,
+        visual_carros: 0,
+        visual_residencias: 0,
         demands_resolved: 0,
         weekly_points: 0,
         monthly_points: 0,
@@ -135,6 +143,15 @@ Deno.serve(async (req) => {
     if (action === 'demand_resolved') {
       updates.demands_resolved = (profile.demands_resolved || 0) + 1;
     }
+    if (action === 'leader_converted') {
+      updates.leaders_converted = (profile.leaders_converted || 0) + 1;
+    }
+    if (action === 'visual_carro') {
+      updates.visual_carros = (profile.visual_carros || 0) + 1;
+    }
+    if (action === 'visual_residencia') {
+      updates.visual_residencias = (profile.visual_residencias || 0) + 1;
+    }
 
     // Verificar nível
     const currentLevel = getLevel(updates.total_points);
@@ -159,6 +176,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       profile_id: updated.id,
+      points_awarded: pointsToAdd,
       points_added: pointsToAdd,
       total_points: updates.total_points,
       current_level: currentLevel.label,

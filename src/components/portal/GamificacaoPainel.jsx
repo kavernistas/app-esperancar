@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Star, TrendingUp, Award, Target, Users } from "lucide-react";
+import { Trophy, Star, TrendingUp, Award, Target, Users, Car, Home, UserCheck } from "lucide-react";
 import LevelBadge from "@/components/gamification/LevelBadge";
 
 export default function GamificacaoPainel({ profile, ranking }) {
@@ -80,6 +80,27 @@ export default function GamificacaoPainel({ profile, ranking }) {
             <TrendingUp className="w-5 h-5 text-purple-500 mx-auto mb-1" />
             <p className="text-lg font-bold text-slate-800">{profile.weekly_points || 0}</p>
             <p className="text-[10px] text-slate-500">Pontos/Semana</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200">
+          <CardContent className="p-3 text-center">
+            <UserCheck className="w-5 h-5 text-green-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-slate-800">{profile.leaders_converted || 0}</p>
+            <p className="text-[10px] text-slate-500">Lideranças Convertidas</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200">
+          <CardContent className="p-3 text-center">
+            <Car className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-slate-800">{profile.visual_carros || 0}</p>
+            <p className="text-[10px] text-slate-500">Visuais Carro</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200">
+          <CardContent className="p-3 text-center">
+            <Home className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+            <p className="text-lg font-bold text-slate-800">{profile.visual_residencias || 0}</p>
+            <p className="text-[10px] text-slate-500">Visuais Residência</p>
           </CardContent>
         </Card>
       </div>
