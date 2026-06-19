@@ -24,6 +24,7 @@ import { Plus, Search, MessageCircle, Upload, Users, Vote } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ContactsTable from "@/components/contacts/ContactsTable";
 import ContactForm from "@/components/contacts/ContactForm";
+import ContactDetailSheet from "@/components/contacts/ContactDetailSheet";
 import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 
@@ -37,6 +38,7 @@ export default function Contacts() {
   const [tseModalOpen, setTseModalOpen] = useState(false);
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState([]);
+  const [viewingContact, setViewingContact] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -234,6 +236,7 @@ export default function Contacts() {
         contacts={filteredContacts}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onView={setViewingContact}
       />
 
       {/* Form */}
@@ -250,6 +253,13 @@ export default function Contacts() {
         open={tseModalOpen}
         onOpenChange={setTseModalOpen}
         onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
+      />
+
+      {/* Contact Detail Sheet */}
+      <ContactDetailSheet
+        contact={viewingContact}
+        open={!!viewingContact}
+        onOpenChange={(open) => { if (!open) setViewingContact(null); }}
       />
 
       {/* WhatsApp Modal */}

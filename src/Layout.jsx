@@ -51,6 +51,7 @@ export default function Layout({ children, currentPageName }) {
 
   const navigation = [
     { name: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
+    { name: "Dashboard CRM", page: "CRMDashboard", icon: Target },
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },
     { name: "Demandas", page: "Demands", icon: ClipboardList },

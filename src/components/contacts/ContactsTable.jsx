@@ -31,7 +31,7 @@ const statusLabels = {
   pending: "Pendente",
 };
 
-export default function ContactsTable({ contacts, onEdit, onDelete }) {
+export default function ContactsTable({ contacts, onEdit, onDelete, onView }) {
   return (
     <div className="border rounded-lg bg-white overflow-hidden">
       <Table>
@@ -54,7 +54,7 @@ export default function ContactsTable({ contacts, onEdit, onDelete }) {
             </TableRow>
           ) : (
             contacts.map((contact) => (
-              <TableRow key={contact.id} className="hover:bg-slate-50/50">
+            <TableRow key={contact.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => onView?.(contact)}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-10 h-10">

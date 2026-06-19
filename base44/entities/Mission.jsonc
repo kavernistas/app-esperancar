@@ -152,6 +152,14 @@
       },
       "default": []
     },
+    "participant_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs dos contatos participantes desta miss\u00e3o"
+    },
     "recurrence": {
       "type": "object",
       "properties": {

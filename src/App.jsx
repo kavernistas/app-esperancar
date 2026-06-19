@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
+import CRMDashboard from './pages/CRMDashboard';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -66,6 +67,11 @@ const AuthenticatedApp = () => {
       <Route path="/mission/:id" element={
         <LayoutWrapper currentPageName="MissionCenter">
           <MissionDetail />
+        </LayoutWrapper>
+      } />
+      <Route path="/CRMDashboard" element={
+        <LayoutWrapper currentPageName="CRMDashboard">
+          <CRMDashboard />
         </LayoutWrapper>
       } />
       <Route path="/InteligenciaEleitoral" element={
