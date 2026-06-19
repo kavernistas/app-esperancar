@@ -18,7 +18,6 @@ import {
   LogOut,
   Bell,
   Search,
-  Database,
   Gamepad2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -70,21 +69,13 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50">
       <style>{`
-        :root {
-          --primary: 222.2 47.4% 11.2%;
-          --primary-foreground: 210 40% 98%;
-          --accent: 217.2 91.2% 59.8%;
-        }
-        
         .sidebar-gradient {
           background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
         }
-        
         .nav-item-active {
           background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%);
           border-left: 3px solid #3b82f6;
         }
-        
         .header-blur {
           backdrop-filter: blur(12px);
           background: rgba(255, 255, 255, 0.8);

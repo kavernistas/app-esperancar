@@ -28,7 +28,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Dashboard",
+    mainPage: "InteligenciaEleitoral",
     Pages: PAGES,
     Layout: __Layout,
 };
