@@ -651,6 +651,8 @@ async function streamDownload(url, destPath) {
   }
   if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
   console.log('[streamDownload] Resposta OK, Content-Length:', res.headers.get('content-length'));
+  // Garante que o diretório pai existe
+  try { await Deno.mkdir('/tmp', { recursive: true }); } catch (_) {}
   const file = await Deno.open(destPath, { write: true, create: true, truncate: true });
   console.log('[streamDownload] Arquivo criado:', destPath);
   try {
