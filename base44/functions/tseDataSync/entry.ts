@@ -14,8 +14,8 @@ const DATASETS_NACIONAIS = new Set([
   'detalhe_apuracao_munzona',
 ]);
 
-const BATCH_SIZE = 1000;
-const MAX_RUNTIME_MS = 50000; // 50s — margem antes do timeout de 60s
+const BATCH_SIZE = 3000;
+const MAX_RUNTIME_MS = 55000; // 55s — margem de 5s antes do timeout de 60s
 const CARGO_MAP_CD = {
   '1': 'presidente', '3': 'governador', '5': 'senador',
   '6': 'deputado_federal', '7': 'deputado_estadual',
