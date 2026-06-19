@@ -58,24 +58,32 @@ Deno.serve(async (req) => {
 
     if (cached.length > 0 && cached[0].status !== 'nao_verificado') {
       const c = cached[0];
-      const podeBaixar = c.status === 'disponivel' && c.tamanho_estimado > 0 && c.tamanho_estimado <= MAX_DOWNLOAD_SIZE;
-      const exigeUpload = c.status === 'muito_grande' || c.status === 'indisponivel';
 
-      return Response.json({
-        success: true,
-        ano: year,
-        uf: state,
-        dataset_tipo,
-        fonte_url: c.fonte_url,
-        formato: c.formato,
-        tamanho_estimado: c.tamanho_estimado,
-        status: c.status,
-        pode_baixar_direto: podeBaixar,
-        exige_upload_manual: exigeUpload,
-        observacao: c.observacao,
-        nacional: isNacional,
-        cached: true,
-      });
+      // Se URL em cache difere da URL correta, invalida e re-verifica
+      if (c.fonte_url !== url) {
+        await base44.asServiceRole.entities.TSEDataSourceMap.update(c.id, {
+          status: 'nao_verificado', fonte_url: url,
+        });
+      } else {
+        const podeBaixar = c.status === 'disponivel' && c.tamanho_estimado > 0 && c.tamanho_estimado <= MAX_DOWNLOAD_SIZE;
+        const exigeUpload = c.status === 'muito_grande' || c.status === 'indisponivel';
+
+        return Response.json({
+          success: true,
+          ano: year,
+          uf: state,
+          dataset_tipo,
+          fonte_url: c.fonte_url,
+          formato: c.formato,
+          tamanho_estimado: c.tamanho_estimado,
+          status: c.status,
+          pode_baixar_direto: podeBaixar,
+          exige_upload_manual: exigeUpload,
+          observacao: c.observacao,
+          nacional: isNacional,
+          cached: true,
+        });
+      }
     }
 
     // Verificar disponibilidade no CDN (HEAD request)

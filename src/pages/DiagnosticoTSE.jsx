@@ -34,6 +34,7 @@ export default function DiagnosticoTSE() {
   const [uploadFile, setUploadFile] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [cdHttpStatus, setCdHttpStatus] = useState(null);
+  const [nacional, setNacional] = useState(false);
   const [lastJobId, setLastJobId] = useState(null);
 
   const loadSyncStatus = useCallback(async () => {
@@ -66,10 +67,13 @@ export default function DiagnosticoTSE() {
 
       if (res.data?.success) {
         setSourceResult(res.data.fonte);
+        setNacional(!!res.data.nacional);
         if (res.data.fonte.status === 'disponivel') {
           setCdHttpStatus(200);
         } else if (res.data.fonte.status === 'muito_grande') {
           setCdHttpStatus(200);
+        } else if (res.data.fonte.status === 'indisponivel' && res.data.nacional) {
+          setCdHttpStatus('nacional_invalido');
         } else {
           setCdHttpStatus(404);
         }
@@ -242,9 +246,10 @@ export default function DiagnosticoTSE() {
               </div>
               <div>
                 <p className="text-xs text-slate-500">Status HTTP CDN</p>
-                <p className={`font-semibold mt-1 ${cdHttpStatus === 200 ? 'text-emerald-600' : cdHttpStatus === 404 ? 'text-red-600' : 'text-amber-600'}`}>
+                <p className={`font-semibold mt-1 ${cdHttpStatus === 200 ? 'text-emerald-600' : cdHttpStatus === 404 ? 'text-red-600' : cdHttpStatus === 'nacional_invalido' ? 'text-amber-600' : 'text-amber-600'}`}>
                   {cdHttpStatus === 200 ? '200 — Disponível' :
                    cdHttpStatus === 404 ? '404 — Não encontrado' :
+                   cdHttpStatus === 'nacional_invalido' ? 'Dataset nacional — validar URL oficial' :
                    cdHttpStatus === 0 ? 'Erro de conexão' : `HTTP ${cdHttpStatus}`}
                 </p>
               </div>
@@ -273,6 +278,20 @@ export default function DiagnosticoTSE() {
                   sourceResult.status === 'indisponivel' ? '❌ Indisponível' : sourceResult.status}</p>
               </div>
             </div>
+
+            {nacional && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Dataset Nacional</p>
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      Este arquivo é nacional (todas as UFs em um único ZIP). O filtro UF/Município será aplicado após a importação ou no processamento em lote.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {sourceResult.observacao && (
               <div className="mt-3 p-2 bg-slate-50 rounded text-xs text-slate-600">
@@ -330,10 +349,17 @@ export default function DiagnosticoTSE() {
                   <div>
                     <p className="text-sm font-medium text-amber-800">Upload manual necessário</p>
                     <p className="text-xs text-amber-600">
-                      {tamanhoMB
-                        ? `Arquivo de ${tamanhoMB} MB — processamento assíncrono em streaming. Para estados grandes, filtre por município.`
-                        : 'Fonte indisponível para download automático.'}
+                      {nacional
+                        ? `Arquivo nacional de ${tamanhoMB || '?'} MB — baixe o ZIP único e faça upload. O filtro UF/Município será aplicado durante a importação.`
+                        : tamanhoMB
+                          ? `Arquivo de ${tamanhoMB} MB — processamento assíncrono em streaming. Para estados grandes, filtre por município.`
+                          : 'Fonte indisponível para download automático.'}
                     </p>
+                    {municipio && nacional && (
+                      <p className="text-xs text-amber-700 mt-1 font-medium">
+                        ⚠️ Dataset nacional não possui URL por município. O filtro "{municipio}" será aplicado no processamento do arquivo nacional.
+                      </p>
+                    )}
                   </div>
                 </div>
                 {sourceResult.fonte_url && (

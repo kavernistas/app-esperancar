@@ -30,6 +30,7 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
   const [uploading, setUploading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [sourceInfo, setSourceInfo] = useState(null);
+  const [nacional, setNacional] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncResult, setSyncResult] = useState(null);
   const [lastJobId, setLastJobId] = useState(null);
@@ -71,9 +72,11 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
       });
       if (res.data?.success) {
         setSourceInfo(res.data.fonte);
+        setNacional(!!res.data.nacional);
         const fonte = res.data.fonte;
         if (fonte.status === 'disponivel') {
-          setSyncMessage(`Arquivo encontrado no CDN do TSE. Pronto para sincronizar${fonte.tamanho_estimado ? ` (${(fonte.tamanho_estimado/(1024*1024)).toFixed(1)} MB)` : ''}.`);
+          const nacionalMsg = res.data.nacional ? ' (arquivo nacional — filtro UF aplicado na importação)' : '';
+          setSyncMessage(`Arquivo encontrado no CDN do TSE${nacionalMsg}${fonte.tamanho_estimado ? ` (${(fonte.tamanho_estimado/(1024*1024)).toFixed(1)} MB)` : ''}.`);
         } else if (fonte.status === 'muito_grande') {
           setSyncMessage(`Arquivo de ${(fonte.tamanho_estimado/(1024*1024)).toFixed(1)} MB — acima do limite para download automático. Faça upload manual.`);
         } else {
@@ -228,14 +231,22 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
                  sourceInfo.status === 'muito_grande' ? <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" /> :
                  <Info className="w-4 h-4 text-red-600 mt-0.5" />}
                 <div className="flex-1">
-                  <p className="font-medium text-slate-700">
-                    {sourceInfo.status === 'disponivel' ? 'Fonte disponível no CDN do TSE' :
-                     sourceInfo.status === 'muito_grande' ? 'Arquivo grande — requer upload manual' :
-                     'Fonte indisponível no CDN'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-slate-700">
+                      {sourceInfo.status === 'disponivel' ? 'Fonte disponível no CDN do TSE' :
+                       sourceInfo.status === 'muito_grande' ? 'Arquivo grande — requer upload manual' :
+                       'Fonte indisponível no CDN'}
+                    </p>
+                    {nacional && (
+                      <Badge className="text-[10px] bg-blue-100 text-blue-700 border-blue-200"><MapPin className="w-2.5 h-2.5 mr-0.5" />Nacional</Badge>
+                    )}
+                  </div>
                   <p className="text-slate-500 mt-0.5 break-all">{sourceInfo.fonte_url}</p>
                   {sourceInfo.tamanho_estimado > 0 && (
                     <p className="text-slate-400 mt-0.5">Tamanho: {(sourceInfo.tamanho_estimado/(1024*1024)).toFixed(1)} MB</p>
+                  )}
+                  {nacional && (
+                    <p className="text-blue-600 mt-1">Este arquivo é nacional. O filtro UF/Município será aplicado após a importação ou no processamento em lote.</p>
                   )}
                 </div>
               </div>
@@ -254,12 +265,16 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
                 <div>
                   <p className="text-sm font-medium text-amber-800">Importação manual necessária</p>
                   <p className="text-xs text-amber-600 mt-1">
-                    {sourceInfo?.status === 'muito_grande'
-                      ? `O arquivo do TSE tem ${(sourceInfo.tamanho_estimado/(1024*1024)).toFixed(0)} MB — uso de importação assíncrona com streaming. Para estados grandes, filtre por município.`
-                      : 'O arquivo oficial não pôde ser baixado automaticamente do CDN do TSE.'}
+                    {nacional
+                      ? `Arquivo nacional de ${sourceInfo?.tamanho_estimado ? (sourceInfo.tamanho_estimado/(1024*1024)).toFixed(0) : '?'} MB. O filtro UF/Município será aplicado durante a importação.`
+                      : sourceInfo?.status === 'muito_grande'
+                        ? `O arquivo do TSE tem ${(sourceInfo.tamanho_estimado/(1024*1024)).toFixed(0)} MB — uso de importação assíncrona com streaming. Para estados grandes, filtre por município.`
+                        : 'O arquivo oficial não pôde ser baixado automaticamente do CDN do TSE.'}
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
-                    Acesse o Portal de Dados Abertos do TSE, baixe o CSV/ZIP e faça upload aqui.
+                    {nacional
+                      ? 'Baixe o ZIP nacional único no Portal de Dados Abertos do TSE e faça upload aqui.'
+                      : 'Acesse o Portal de Dados Abertos do TSE, baixe o CSV/ZIP e faça upload aqui.'}
                   </p>
                 </div>
               </div>
