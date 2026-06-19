@@ -8,6 +8,8 @@ import Reports from './pages/Reports';
 import Campaigns from './pages/Campaigns';
 import ElectoralConsult from './pages/ElectoralConsult';
 import Gamification from './pages/Gamification';
+import MissionCenter from './pages/MissionCenter';
+import MissionDetail from './pages/MissionDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +24,7 @@ export const PAGES = {
     "Campaigns": Campaigns,
     "ElectoralConsult": ElectoralConsult,
     "Gamification": Gamification,
+    "MissionCenter": MissionCenter,
 }
 
 export const pagesConfig = {

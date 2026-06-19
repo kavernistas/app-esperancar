@@ -60,6 +60,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Campanhas", page: "Campaigns", icon: FileText },
     { name: "Consulta TSE", page: "ElectoralConsult", icon: Database },
     { name: "Gamificação", page: "Gamification", icon: Gamepad2 },
+    { name: "Central de Missões", page: "MissionCenter", icon: Target },
   ];
 
   const handleLogout = () => {
