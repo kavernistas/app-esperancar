@@ -126,13 +126,25 @@ export default function PortalLideranca() {
     await base44.entities.Contact.create(data);
     // Trigger gamification for supporter registration
     try {
-      await base44.functions.invoke("gamificationEngine", {
+      const res = await base44.functions.invoke("gamificationEngine", {
         action: "register_supporter",
         leader_id: user?.id,
         leader_name: user?.full_name,
         neighborhood: data.neighborhood,
         city: data.city,
       });
+      if (res.data?.points_awarded) {
+        import("react-hot-toast").then(({ toast }) => {
+          toast.success(`⭐ +${res.data.points_awarded} pontos por cadastrar apoiador!`, { duration: 3000 });
+        });
+      }
+      if (res.data?.hierarchy_bonuses?.length > 0) {
+        import("react-hot-toast").then(({ toast }) => {
+          res.data.hierarchy_bonuses.forEach(b => {
+            toast(`🔗 +${b.points_awarded} pts para ${b.ancestor_name || 'sua liderança superior'} (bônus hierarquia)`, { duration: 3500 });
+          });
+        });
+      }
     } catch (e) { /* ignore */ }
     // Trigger gamification for visuals
     if (data.visual_no_carro) {
@@ -207,6 +219,13 @@ export default function PortalLideranca() {
       } else if (res.data?.points_awarded) {
         import("react-hot-toast").then(({ toast }) => {
           toast.success(`⭐ +${res.data.points_awarded} pontos por converter uma liderança!`, { duration: 3000 });
+        });
+      }
+      if (res.data?.hierarchy_bonuses?.length > 0) {
+        import("react-hot-toast").then(({ toast }) => {
+          res.data.hierarchy_bonuses.forEach(b => {
+            toast(`🔗 +${b.points_awarded} pts para ${b.ancestor_name || 'sua liderança superior'} (bônus hierarquia)`, { duration: 3500 });
+          });
         });
       }
     } catch (e) { /* ignore */ }

@@ -34,6 +34,11 @@ const BADGE_RULES = [
   { id: 'visual_total', label: 'Visualize', check: (p) => ((p.visual_carros || 0) + (p.visual_residencias || 0)) >= 10 },
 ];
 
+// Ações que disparam bônus em cascata na hierarquia
+const CASCADE_ACTIONS = ['register_supporter', 'leader_converted'];
+// Taxas de bônus: parente imediato 30%, avô 15%, bisavô 10%
+const HIERARCHY_RATES = [0.30, 0.15, 0.10];
+
 function getLevel(points) {
   for (let i = LEVELS.length - 1; i >= 0; i--) {
     if (points >= LEVELS[i].min) return LEVELS[i];
@@ -67,6 +72,82 @@ function getMonthStart() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+/**
+ * Concede pontos a um perfil (cria se não existir) e retorna o resultado.
+ */
+async function awardPoints(base44, leaderId, leaderName, points, weekStart, monthStart) {
+  let profiles = await base44.entities.GamificationProfile.filter({ leader_id: leaderId });
+  let profile = profiles[0];
+
+  if (!profile) {
+    profile = await base44.entities.GamificationProfile.create({
+      leader_id: leaderId,
+      leader_name: leaderName || '',
+      neighborhood: '',
+      city: '',
+      total_points: 0,
+      current_level: 'semente',
+      badges: [],
+      missions_completed: 0,
+      missions_pending: 0,
+      missions_overdue: 0,
+      supporters_registered: 0,
+      leaders_converted: 0,
+      visual_carros: 0,
+      visual_residencias: 0,
+      demands_resolved: 0,
+      weekly_points: 0,
+      monthly_points: 0,
+      week_start: weekStart,
+      month_start: monthStart,
+    });
+  }
+
+  let weeklyPoints = profile.weekly_points || 0;
+  let monthlyPoints = profile.monthly_points || 0;
+  if (profile.week_start !== weekStart) weeklyPoints = 0;
+  if (profile.month_start !== monthStart) monthlyPoints = 0;
+
+  const updates = {
+    total_points: (profile.total_points || 0) + points,
+    weekly_points: weeklyPoints + points,
+    monthly_points: monthlyPoints + points,
+    last_activity_at: new Date().toISOString(),
+    week_start: weekStart,
+    month_start: monthStart,
+  };
+
+  const currentLevel = getLevel(updates.total_points);
+  updates.current_level = currentLevel.name;
+  if (currentLevel.name !== profile.current_level) {
+    updates.last_level_up_at = new Date().toISOString();
+  }
+
+  const updated = await base44.entities.GamificationProfile.update(profile.id, updates);
+
+  const newBadges = evaluateBadges(updated);
+  if (newBadges.length > 0) {
+    const allBadges = [...(updated.badges || []), ...newBadges];
+    await base44.entities.GamificationProfile.update(profile.id, { badges: allBadges });
+  }
+
+  const nextLevel = getNextLevel(updates.total_points);
+  return {
+    leader_id: leaderId,
+    leader_name: leaderName,
+    points_awarded: points,
+    total_points: updates.total_points,
+    current_level: currentLevel.label,
+    level_up: currentLevel.name !== profile.current_level,
+    new_badges: newBadges.map(id => BADGE_RULES.find(b => b.id === id)?.label || id),
+    next_level: nextLevel ? nextLevel.label : null,
+    points_to_next: nextLevel ? nextLevel.min - updates.total_points : 0,
+    progress_percent: nextLevel
+      ? Math.round(((updates.total_points - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100)
+      : 100,
+  };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -80,15 +161,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'action e leader_id são obrigatórios' }, { status: 400 });
     }
 
-    // mission_points has priority over the default rule value for mission_completed
+    // mission_points tem prioridade sobre o valor fixo da regra para mission_completed
     const pointsToAdd = (action === 'mission_completed' && mission_points) ? mission_points : (POINT_RULES[action] || mission_points || 0);
     const weekStart = getWeekStart();
     const monthStart = getMonthStart();
 
-    // Buscar ou criar perfil
+    // --- Ação principal ---
     let profiles = await base44.entities.GamificationProfile.filter({ leader_id });
     let profile = profiles[0];
-    let isNew = false;
 
     if (!profile) {
       profile = await base44.entities.GamificationProfile.create({
@@ -112,20 +192,13 @@ Deno.serve(async (req) => {
         week_start: weekStart,
         month_start: monthStart,
       });
-      isNew = true;
     }
 
-    // Resetar semanal/mensal se necessário
     let weeklyPoints = profile.weekly_points || 0;
     let monthlyPoints = profile.monthly_points || 0;
-    if (profile.week_start !== weekStart) {
-      weeklyPoints = 0;
-    }
-    if (profile.month_start !== monthStart) {
-      monthlyPoints = 0;
-    }
+    if (profile.week_start !== weekStart) weeklyPoints = 0;
+    if (profile.month_start !== monthStart) monthlyPoints = 0;
 
-    // Atualizar contadores
     const updates = {
       total_points: (profile.total_points || 0) + pointsToAdd,
       weekly_points: weeklyPoints + pointsToAdd,
@@ -135,40 +208,76 @@ Deno.serve(async (req) => {
       month_start: monthStart,
     };
 
-    if (action === 'mission_completed') {
-      updates.missions_completed = (profile.missions_completed || 0) + 1;
-    }
-    if (action === 'register_supporter') {
-      updates.supporters_registered = (profile.supporters_registered || 0) + 1;
-    }
-    if (action === 'demand_resolved') {
-      updates.demands_resolved = (profile.demands_resolved || 0) + 1;
-    }
-    if (action === 'leader_converted') {
-      updates.leaders_converted = (profile.leaders_converted || 0) + 1;
-    }
-    if (action === 'visual_carro') {
-      updates.visual_carros = (profile.visual_carros || 0) + 1;
-    }
-    if (action === 'visual_residencia') {
-      updates.visual_residencias = (profile.visual_residencias || 0) + 1;
-    }
+    if (action === 'mission_completed') updates.missions_completed = (profile.missions_completed || 0) + 1;
+    if (action === 'register_supporter') updates.supporters_registered = (profile.supporters_registered || 0) + 1;
+    if (action === 'demand_resolved') updates.demands_resolved = (profile.demands_resolved || 0) + 1;
+    if (action === 'leader_converted') updates.leaders_converted = (profile.leaders_converted || 0) + 1;
+    if (action === 'visual_carro') updates.visual_carros = (profile.visual_carros || 0) + 1;
+    if (action === 'visual_residencia') updates.visual_residencias = (profile.visual_residencias || 0) + 1;
 
-    // Verificar nível
     const currentLevel = getLevel(updates.total_points);
     updates.current_level = currentLevel.name;
     if (currentLevel.name !== profile.current_level) {
       updates.last_level_up_at = new Date().toISOString();
     }
 
-    // Atualizar perfil
     const updated = await base44.entities.GamificationProfile.update(profile.id, updates);
 
-    // Verificar badges
     const newBadges = evaluateBadges(updated);
     if (newBadges.length > 0) {
       const allBadges = [...(updated.badges || []), ...newBadges];
       await base44.entities.GamificationProfile.update(profile.id, { badges: allBadges });
+    }
+
+    // --- Bônus em cascata na hierarquia ---
+    const hierarchyBonuses = [];
+    if (CASCADE_ACTIONS.includes(action) && leader_name && pointsToAdd > 0) {
+      // Buscar o registro de Contact que representa esta liderança para achar quem a converteu
+      const selfContacts = await base44.entities.Contact.filter(
+        { is_leader: true, full_name: leader_name },
+        '-created_date',
+        1
+      );
+
+      let ancestorId = selfContacts.length > 0 ? selfContacts[0].converted_by_leader_id : null;
+      let ancestorName = selfContacts.length > 0 ? selfContacts[0].converted_by_leader_name : null;
+
+      for (let level = 0; level < HIERARCHY_RATES.length && ancestorId; level++) {
+        const bonusPoints = Math.round(pointsToAdd * HIERARCHY_RATES[level]);
+        if (bonusPoints <= 0) break;
+
+        const cascadeResult = await awardPoints(
+          base44,
+          ancestorId,
+          ancestorName || 'Liderança superior',
+          bonusPoints,
+          weekStart,
+          monthStart
+        );
+        hierarchyBonuses.push({
+          level: level + 1,
+          ancestor_id: ancestorId,
+          ancestor_name: ancestorName,
+          ...cascadeResult,
+        });
+
+        // Subir mais um nível: achar o Contact do ancestral para ver quem o converteu
+        if (ancestorName) {
+          const parentContacts = await base44.entities.Contact.filter(
+            { is_leader: true, full_name: ancestorName },
+            '-created_date',
+            1
+          );
+          if (parentContacts.length > 0 && parentContacts[0].converted_by_leader_id) {
+            ancestorId = parentContacts[0].converted_by_leader_id;
+            ancestorName = parentContacts[0].converted_by_leader_name;
+          } else {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
     }
 
     const nextLevel = getNextLevel(updates.total_points);
@@ -188,6 +297,7 @@ Deno.serve(async (req) => {
       progress_percent: nextLevel
         ? Math.round(((updates.total_points - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100)
         : 100,
+      hierarchy_bonuses: hierarchyBonuses,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
   const [priority, setPriority] = useState("medium");
   const [deadline, setDeadline] = useState("");
   const [points, setPoints] = useState(30);
+  const pointsManuallyEdited = useRef(false);
 
   // Assignment
   const [assignmentType, setAssignmentType] = useState("individual");
@@ -129,11 +130,13 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
     setRecurrence(""); setSendWhatsapp(false); setWhatsappMessage("");
     setSendReminder(false); setReminderDays(1); setSendOverdue(false); setSendCongrats(false);
     setChecklist([]); setNewCheckItem(""); setShowPreview(false);
+    pointsManuallyEdited.current = false;
   };
 
   useEffect(() => { if (open) reset(); }, [open]);
 
   useEffect(() => {
+    if (pointsManuallyEdited.current) return;
     const sel = MISSION_TYPES.find((t) => t.value === type);
     if (sel) setPoints(sel.points);
   }, [type]);
@@ -244,7 +247,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
             </div>
             <div>
               <Label>Pontos</Label>
-              <Input type="number" value={points} onChange={(e) => setPoints(Number(e.target.value) || 30)} className="text-sm" />
+              <Input type="number" value={points} onChange={(e) => { pointsManuallyEdited.current = true; setPoints(Number(e.target.value) || 30); }} className="text-sm" />
             </div>
           </div>
 
