@@ -73,6 +73,9 @@ export default function Gamification() {
   };
 
   const handleCreateMission = async (data, recipients = []) => {
+    const createdMissions = [];
+    const notifyRecipients = [];
+
     if (data.is_group_mission && recipients.length > 1) {
       // Criar missão principal
       const parent = await base44.entities.Mission.create({
@@ -82,6 +85,7 @@ export default function Gamification() {
         total_recipients: recipients.length,
         neighborhood: data.assignment_filters?.neighborhoods?.[0] || "",
       });
+      createdMissions.push(parent);
 
       // Criar subtarefas individuais
       const subMissions = recipients.map((leader) => ({
@@ -112,10 +116,16 @@ export default function Gamification() {
             missions_pending: (profs[0].missions_pending || 0) + 1,
           });
         }
+        // Collect for WhatsApp notification
+        const leaderContact = leaders.find(l => l.id === leader.id);
+        if (leaderContact?.phone) {
+          notifyRecipients.push({ phone: leaderContact.phone, name: leader.name, missionId: parent.id });
+        }
       }
     } else {
       // Missão individual
-      await base44.entities.Mission.create(data);
+      const created = await base44.entities.Mission.create(data);
+      createdMissions.push(created);
       if (data.leader_id) {
         const profs = await base44.entities.GamificationProfile.filter({ leader_id: data.leader_id });
         if (profs.length > 0) {
@@ -123,7 +133,39 @@ export default function Gamification() {
             missions_pending: (profs[0].missions_pending || 0) + 1,
           });
         }
+        // Collect for WhatsApp notification
+        const leaderContact = leaders.find(l => l.id === data.leader_id);
+        if (leaderContact?.phone) {
+          notifyRecipients.push({ phone: leaderContact.phone, name: data.leader_name, missionId: created.id });
+        }
       }
+    }
+
+    // ── Enviar notificações WhatsApp automáticas ──
+    if (data.whatsapp_config?.send_immediately && notifyRecipients.length > 0) {
+      const msg = (data.whatsapp_config?.custom_message || '')
+        .replace('{{nome}}', '{{nome}}')
+        .replace('{{titulo}}', data.title)
+        .replace('{{bairro}}', data.neighborhood || recipients[0]?.neighborhood || '')
+        .replace('{{segmento}}', data.segment || '')
+        .replace('{{prazo}}', data.deadline ? new Date(data.deadline + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem prazo')
+        .replace('{{pontos}}', String(data.points || 30))
+        .replace('{{link_missao}}', '');
+
+      const finalMessage = msg || `Olá {{nome}}! 🌟 Nova missão no Esperançar:\n📌 ${data.title}\n📍 ${data.neighborhood || ''}\n⏰ ${data.deadline ? new Date(data.deadline + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem prazo'}\n⭐ ${data.points || 30} pontos`;
+
+      // Fire-and-forget — não bloqueia a UI
+      base44.functions.invoke("whatsappSend", {
+        recipients: notifyRecipients.map(r => ({ phone: r.phone, name: r.name })),
+        message: finalMessage,
+        mode: "send",
+        // Taxa segura para não banir (1.5s entre msgs, lotes de 8, pausa 45s)
+        delayMs: 1500,
+        batchSize: 8,
+        batchPauseMs: 45000,
+        maxPerHour: 30,
+        maxPerDay: 200,
+      }).catch(e => console.error("Erro ao enviar WhatsApp automático:", e));
     }
 
     setFormOpen(false);

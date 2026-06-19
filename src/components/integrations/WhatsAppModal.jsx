@@ -143,6 +143,12 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
       filters,
       instanceUrl: instanceUrl || undefined,
       instanceToken: instanceToken || undefined,
+      // Anti-ban rate limiting: 1.5s entre msgs, lotes de 8, pausa 45s
+      delayMs: 1500,
+      batchSize: 8,
+      batchPauseMs: 45000,
+      maxPerHour: 30,
+      maxPerDay: 200,
     });
 
     setLoading(false);
@@ -354,6 +360,14 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
                 <p className="text-xl font-bold text-red-600">{previewData.withoutPhone}</p>
                 <p className="text-xs text-slate-500">Sem Telefone</p>
               </div>
+            </div>
+
+            {/* Rate limit info */}
+            <div className="flex items-center gap-2 p-3 bg-slate-50 border rounded-lg text-xs text-slate-500">
+              <Info className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                <strong>Anti-ban:</strong> intervalo de 1,5s entre mensagens, lotes de 8 com pausa de 45s, máx. 30/hora e 200/dia.
+              </span>
             </div>
 
             {!instanceUrl && (

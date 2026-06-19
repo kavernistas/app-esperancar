@@ -33,11 +33,13 @@ export default function WhatsAppMissionModal({ open, onClose, mission, leader })
   const buildMessage = () => {
     const tpl = TEMPLATES[templateType];
     return tpl
-      .replace("{{nome}}", leader?.name || mission?.leader_name || "Liderança")
-      .replace("{{titulo}}", mission?.title || "")
-      .replace("{{bairro}}", mission?.neighborhood || leader?.neighborhood || "Não informado")
-      .replace("{{prazo}}", mission?.deadline ? moment(mission.deadline).format("DD/MM/YYYY") : "Sem prazo")
-      .replace("{{pontos}}", String(mission?.points || 30));
+      .replace(/{{nome}}/g, leader?.name || mission?.leader_name || "Liderança")
+      .replace(/{{titulo}}/g, mission?.title || "")
+      .replace(/{{bairro}}/g, mission?.neighborhood || leader?.neighborhood || "Não informado")
+      .replace(/{{segmento}}/g, mission?.segment || "")
+      .replace(/{{prazo}}/g, mission?.deadline ? moment(mission.deadline).format("DD/MM/YYYY") : "Sem prazo")
+      .replace(/{{pontos}}/g, String(mission?.points || 30))
+      .replace(/{{link_missao}}/g, '');
   };
 
   React.useEffect(() => {
@@ -52,10 +54,15 @@ export default function WhatsAppMissionModal({ open, onClose, mission, leader })
     setSending(true);
     try {
       await base44.functions.invoke("whatsappSend", {
-        contactIds: [],
+        recipients: [{ phone: leader.phone, name: leader.name || mission?.leader_name }],
         message,
         mode: "send",
-        sendToAll: false,
+        // Taxa conservadora para envio manual (mais rápida que automático)
+        delayMs: 1200,
+        batchSize: 5,
+        batchPauseMs: 30000,
+        maxPerHour: 30,
+        maxPerDay: 200,
       });
       setSent(true);
       if (templateType === "new_mission") {

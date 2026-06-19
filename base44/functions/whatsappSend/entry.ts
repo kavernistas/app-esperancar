@@ -1,21 +1,35 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// ── Rate-limiting & anti-ban config ──
+const DEFAULT_DELAY_MS = 1500;        // between individual messages (was 300)
+const DEFAULT_BATCH_SIZE = 8;         // messages per batch
+const DEFAULT_BATCH_PAUSE_MS = 45000; // pause between batches (45s)
+const DEFAULT_MAX_PER_HOUR = 30;      // hard cap per hour
+const DEFAULT_MAX_PER_DAY = 200;      // hard cap per day
+const JITTER_PCT = 0.30;             // ±30% random jitter on delays
+
+// Simple sent-tracking store (resets on cold-start; good enough for rate limiting)
+// Keyed by phone prefix to avoid storing full numbers in logs
+const sentLog = { hourly: 0, daily: 0, hourStart: Date.now(), dayStart: Date.now() };
+
+function resetCounters() {
+  const now = Date.now();
+  if (now - sentLog.hourStart > 3600000) { sentLog.hourly = 0; sentLog.hourStart = now; }
+  if (now - sentLog.dayStart > 86400000) { sentLog.daily = 0; sentLog.dayStart = now; }
+}
+
+function randomJitter(baseMs) {
+  const range = baseMs * JITTER_PCT;
+  return baseMs + (Math.random() * 2 - 1) * range;
+}
+
 // Format phone to WhatsApp format (55 + DDD + number)
 function formatWhatsAppPhone(phone) {
   if (!phone) return null;
-  // Remove all non-digits
   const digits = phone.replace(/\D/g, '');
-  // If already has country code (55), keep. Otherwise add
-  if (digits.startsWith('55') && digits.length >= 12) {
-    return digits;
-  }
-  if (digits.length === 11) {
-    return `55${digits}`;
-  }
-  if (digits.length === 10) {
-    // Add 9 for mobile
-    return `55${digits.slice(0, 2)}9${digits.slice(2)}`;
-  }
+  if (digits.startsWith('55') && digits.length >= 12) return digits;
+  if (digits.length === 11) return `55${digits}`;
+  if (digits.length === 10) return `55${digits.slice(0, 2)}9${digits.slice(2)}`;
   return null;
 }
 
@@ -29,120 +43,192 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { 
-      contactIds = [], 
-      message, 
+    const {
+      contactIds = [],
+      message,
       mode = "test",
       instanceUrl,
       instanceToken,
       sendToAll = false,
-      filters = {}
+      filters = {},
+
+      // ── Rate-limit overrides (optional) ──
+      delayMs = DEFAULT_DELAY_MS,
+      batchSize = DEFAULT_BATCH_SIZE,
+      batchPauseMs = DEFAULT_BATCH_PAUSE_MS,
+      maxPerHour = DEFAULT_MAX_PER_HOUR,
+      maxPerDay = DEFAULT_MAX_PER_DAY,
+
+      // ── Direct recipients (alternative to contactIds) ──
+      // [{ phone, name }] — used for mission notifications
+      recipients = [],
     } = body;
 
     if (!message || message.trim() === '') {
       return Response.json({ error: 'Mensagem é obrigatória' }, { status: 400 });
     }
 
-    // Fetch contacts to send to
-    let contacts = [];
+    // Determine target phone list
+    let targets = []; // { phone, name, rawPhone }
 
-    if (sendToAll) {
-      // Fetch all active contacts
-      contacts = await base44.entities.Contact.filter({ status: "active" }, "-created_date", 500);
-      // Apply extra filters if provided
-      if (filters.is_leader !== undefined) {
-        contacts = contacts.filter(c => c.is_leader === filters.is_leader);
+    if (recipients.length > 0) {
+      // Direct recipients mode
+      for (const r of recipients) {
+        const formatted = formatWhatsAppPhone(r.phone);
+        if (formatted) {
+          targets.push({ phone: formatted, name: r.name || 'Liderança', rawPhone: r.phone });
+        }
       }
-      if (filters.neighborhood) {
-        contacts = contacts.filter(c => c.neighborhood === filters.neighborhood);
+    } else {
+      // Contact-based mode
+      let contacts = [];
+
+      if (sendToAll) {
+        contacts = await base44.entities.Contact.filter({ status: "active" }, "-created_date", 500);
+        if (filters.is_leader !== undefined) {
+          contacts = contacts.filter(c => c.is_leader === filters.is_leader);
+        }
+        if (filters.neighborhood) {
+          contacts = contacts.filter(c => c.neighborhood === filters.neighborhood);
+        }
+        if (filters.city) {
+          contacts = contacts.filter(c => c.city === filters.city);
+        }
+      } else if (contactIds.length > 0) {
+        const allContacts = await base44.entities.Contact.list("-created_date", 500);
+        contacts = allContacts.filter(c => contactIds.includes(c.id));
       }
-      if (filters.city) {
-        contacts = contacts.filter(c => c.city === filters.city);
+
+      for (const c of contacts) {
+        const formatted = formatWhatsAppPhone(c.phone);
+        if (formatted) {
+          targets.push({ phone: formatted, name: c.full_name || 'Contato', rawPhone: c.phone });
+        }
       }
-    } else if (contactIds.length > 0) {
-      // Fetch specific contacts
-      const allContacts = await base44.entities.Contact.list("-created_date", 500);
-      contacts = allContacts.filter(c => contactIds.includes(c.id));
     }
 
-    // Filter only contacts with valid phones
-    const contactsWithPhone = contacts.filter(c => {
-      const formatted = formatWhatsAppPhone(c.phone);
-      return formatted !== null;
-    });
-
-    if (contactsWithPhone.length === 0) {
+    if (targets.length === 0) {
       return Response.json({
         success: false,
-        error: 'Nenhum contato com telefone válido encontrado',
-        total: contacts.length,
-        withPhone: 0
+        error: 'Nenhum destinatário com telefone válido encontrado',
+        total: 0,
+        withPhone: 0,
       });
     }
 
+    // ── Preview mode ──
     if (mode === "preview") {
-      // Just preview - don't send
       return Response.json({
         success: true,
         mode: "preview",
-        total: contacts.length,
-        withPhone: contactsWithPhone.length,
-        withoutPhone: contacts.length - contactsWithPhone.length,
-        preview: contactsWithPhone.slice(0, 5).map(c => ({
-          name: c.full_name,
-          phone: c.phone,
-          whatsapp_number: formatWhatsAppPhone(c.phone),
-          message_preview: message.replace('{{nome}}', c.full_name).substring(0, 100)
+        total: targets.length,
+        withPhone: targets.length,
+        withoutPhone: 0,
+        rate_limit: { delayMs, batchSize, batchPauseMs, maxPerHour, maxPerDay },
+        preview: targets.slice(0, 5).map(t => ({
+          name: t.name,
+          phone: t.rawPhone,
+          whatsapp_number: t.phone,
+          message_preview: message.replace('{{nome}}', t.name).substring(0, 100),
         })),
-        message_template: message
+        message_template: message,
       });
     }
 
+    // ── Send mode ──
     if (mode === "send") {
-      // Send via Evolution API (WhatsApp)
-      if (!instanceUrl || !instanceToken) {
-        // Simulate send if no credentials
+      resetCounters();
+
+      // Enforce per-day cap
+      const remainingDaily = maxPerDay - sentLog.daily;
+      const remainingHourly = maxPerHour - sentLog.hourly;
+      const allowed = Math.min(remainingDaily, remainingHourly, targets.length);
+
+      if (allowed <= 0) {
         return Response.json({
-          success: true,
-          mode: "simulated",
-          sent: contactsWithPhone.length,
-          failed: 0,
-          total: contacts.length,
-          message: `Mensagem simulada enviada para ${contactsWithPhone.length} contatos`,
-          note: "Configure instanceUrl e instanceToken da Evolution API para envio real"
+          success: false,
+          error: `Limite diário de ${maxPerDay} mensagens atingido. Tente novamente amanhã.`,
+          sent: 0,
+          failed: targets.length,
+          total: targets.length,
+          rate_limit_reached: true,
+          daily_count: sentLog.daily,
+          hourly_count: sentLog.hourly,
         });
       }
 
-      const results = { sent: 0, failed: 0, errors: [] };
+      // Slice to allowed count
+      const toSend = targets.slice(0, allowed);
+      const skipped = allowed < targets.length ? targets.length - allowed : 0;
 
-      for (const contact of contactsWithPhone) {
-        const whatsappNumber = formatWhatsAppPhone(contact.phone);
-        const personalizedMessage = message.replace('{{nome}}', contact.full_name || 'Amigo(a)');
-
-        const sendPayload = {
-          number: whatsappNumber,
-          text: personalizedMessage
-        };
-
-        const res = await fetch(`${instanceUrl}/message/sendText/${instanceToken}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': instanceToken
-          },
-          body: JSON.stringify(sendPayload)
+      if (!instanceUrl || !instanceToken) {
+        // Simulated mode
+        return Response.json({
+          success: true,
+          mode: "simulated",
+          sent: toSend.length,
+          failed: 0,
+          skipped,
+          total: targets.length,
+          message: `Mensagem simulada enviada para ${toSend.length} destinatários`,
+          note: "Configure instanceUrl e instanceToken da Evolution API para envio real",
+          rate_limit: { delayMs, batchSize, batchPauseMs, maxPerHour, maxPerDay },
         });
+      }
 
-        if (res.ok) {
-          results.sent++;
-        } else {
-          results.failed++;
-          const errText = await res.text();
-          results.errors.push({ contact: contact.full_name, error: errText });
+      // ── Real send with rate limiting ──
+      const results = { sent: 0, failed: 0, skipped, errors: [] };
+      const apiUrl = `${instanceUrl}/message/sendText/${instanceToken}`;
+
+      for (let i = 0; i < toSend.length; i++) {
+        const target = toSend[i];
+        const personalizedMessage = message.replace('{{nome}}', target.name);
+        const batchIndex = Math.floor(i / batchSize);
+
+        // Batch pause (not before first batch)
+        if (i > 0 && i % batchSize === 0) {
+          console.log(`⏸ Pausa de ${batchPauseMs}ms entre lotes (${i}/${toSend.length})`);
+          await new Promise(r => setTimeout(r, batchPauseMs));
         }
 
-        // Small delay to avoid rate limiting
-        await new Promise(r => setTimeout(r, 300));
+        // Inter-message delay with jitter
+        if (i > 0 || batchIndex > 0) {
+          const jitteredDelay = randomJitter(delayMs);
+          await new Promise(r => setTimeout(r, jitteredDelay));
+        }
+
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': instanceToken,
+            },
+            body: JSON.stringify({ number: target.phone, text: personalizedMessage }),
+          });
+
+          if (res.ok) {
+            results.sent++;
+            sentLog.daily++;
+            sentLog.hourly++;
+          } else {
+            results.failed++;
+            const errText = await res.text();
+            results.errors.push({ recipient: target.name, error: errText });
+          }
+        } catch (fetchErr) {
+          results.failed++;
+          results.errors.push({ recipient: target.name, error: fetchErr.message });
+        }
+
+        // Respect hourly cap mid-batch
+        if (sentLog.hourly >= maxPerHour) {
+          console.log(`⛔ Limite horário de ${maxPerHour} atingido. Parando.`);
+          if (i + 1 < toSend.length) {
+            results.skipped += (toSend.length - i - 1);
+          }
+          break;
+        }
       }
 
       return Response.json({
@@ -150,9 +236,19 @@ Deno.serve(async (req) => {
         mode: "sent",
         sent: results.sent,
         failed: results.failed,
-        total: contactsWithPhone.length,
+        skipped: results.skipped,
+        total: targets.length,
         errors: results.errors.slice(0, 10),
-        message: `${results.sent} mensagens enviadas, ${results.failed} falhas`
+        message: `${results.sent} mensagens enviadas, ${results.failed} falhas${results.skipped > 0 ? `, ${results.skipped} não enviadas (limite)` : ''}`,
+        rate_limit: {
+          delayMs,
+          batchSize,
+          batchPauseMs,
+          maxPerHour,
+          maxPerDay,
+          daily_count: sentLog.daily,
+          hourly_count: sentLog.hourly,
+        },
       });
     }
 
