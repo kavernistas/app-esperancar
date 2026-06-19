@@ -42,7 +42,6 @@ export default function SearchFilters({ filters, onFiltersChange, onSearch, load
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
-      {/* Main filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ano da Eleição</label>
@@ -106,13 +105,12 @@ export default function SearchFilters({ filters, onFiltersChange, onSearch, load
           >
             {loading
               ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Consultando...</>
-              : <><Search className="w-4 h-4 mr-2" />Consultar API TSE</>
+              : <><Search className="w-4 h-4 mr-2" />Consultar base local</>
             }
           </Button>
         </div>
       </div>
 
-      {/* Advanced filters toggle */}
       <div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}

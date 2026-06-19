@@ -23,25 +23,24 @@ const CustomBarTooltip = ({ active, payload }) => {
 
 export default function ResultsCharts({ data }) {
   const sorted = [...data]
-    .sort((a, b) => (b.qt_votos_nominais || 0) - (a.qt_votos_nominais || 0))
+    .sort((a, b) => (b.votos || 0) - (a.votos || 0))
     .slice(0, 8);
 
   const barData = sorted.map((c) => ({
-    name: (c.nm_candidato || "—").split(" ").slice(0, 2).join(" "),
-    votos: c.qt_votos_nominais || 0,
-    partido: c.sg_partido || "—",
+    name: (c.nome_candidato || "—").split(" ").slice(0, 2).join(" "),
+    votos: c.votos || 0,
+    partido: c.partido || "—",
   }));
 
-  const totalVotes = sorted.reduce((s, c) => s + (c.qt_votos_nominais || 0), 0);
+  const totalVotes = sorted.reduce((s, c) => s + (c.votos || 0), 0);
   const pieData = sorted.map((c) => ({
-    name: (c.nm_candidato || "—").split(" ").slice(0, 2).join(" "),
-    value: c.qt_votos_nominais || 0,
-    pct: totalVotes > 0 ? ((c.qt_votos_nominais || 0) / totalVotes * 100).toFixed(1) : 0,
+    name: (c.nome_candidato || "—").split(" ").slice(0, 2).join(" "),
+    value: c.votos || 0,
+    pct: totalVotes > 0 ? ((c.votos || 0) / totalVotes * 100).toFixed(1) : 0,
   }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Bar chart - comparativo */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -53,17 +52,8 @@ export default function ResultsCharts({ data }) {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={barData} margin={{ top: 5, right: 10, left: 10, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 11, fill: "#64748b" }}
-                angle={-35}
-                textAnchor="end"
-                interval={0}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#64748b" }}
-                tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
-              />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} angle={-35} textAnchor="end" interval={0} />
+              <YAxis tick={{ fontSize: 11, fill: "#64748b" }} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
               <Tooltip content={<CustomBarTooltip />} />
               <Bar dataKey="votos" fill="#0D47A1" radius={[4, 4, 0, 0]}>
                 {barData.map((_, index) => (
@@ -75,7 +65,6 @@ export default function ResultsCharts({ data }) {
         </CardContent>
       </Card>
 
-      {/* Pie chart - distribuição */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -86,23 +75,13 @@ export default function ResultsCharts({ data }) {
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="45%"
-                outerRadius={90}
-                innerRadius={40}
-                dataKey="value"
-                label={({ pct }) => `${pct}%`}
-                labelLine={false}
-              >
+              <Pie data={pieData} cx="50%" cy="45%" outerRadius={90} innerRadius={40} dataKey="value"
+                label={({ pct }) => `${pct}%`} labelLine={false}>
                 {pieData.map((_, index) => (
                   <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={(value, name) => [value.toLocaleString("pt-BR") + " votos", name]}
-              />
+              <Tooltip formatter={(value, name) => [value.toLocaleString("pt-BR") + " votos", name]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>

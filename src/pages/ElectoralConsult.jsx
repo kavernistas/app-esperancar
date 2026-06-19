@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Database, Download, Search, BarChart3, TrendingUp, Users, Heart, Trophy,
-  FileText, Building2, MapPin, Filter
+  FileText, Building2, MapPin, Filter, Activity
 } from "lucide-react";
+import { Link as RouterLink } from "react-router-dom";
 
 import SyncStatusBanner from "@/components/electoral/SyncStatusBanner";
 import ImportPanel from "@/components/electoral/ImportPanel";
@@ -125,6 +126,11 @@ export default function ElectoralConsult() {
             <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20" onClick={() => document.getElementById("import-section")?.scrollIntoView({ behavior: "smooth" })}>
               <Download className="w-4 h-4 mr-1.5" />Sincronizar Base
             </Button>
+            <RouterLink to="/DiagnosticoTSE">
+              <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+                <Activity className="w-4 h-4 mr-1.5" />Diagnóstico
+              </Button>
+            </RouterLink>
           </div>
         </div>
       </div>
@@ -202,7 +208,7 @@ export default function ElectoralConsult() {
             <p className="text-sm text-slate-500">
               <strong className="text-slate-700">{results.total}</strong> registro(s) encontrado(s)
             </p>
-            <ExportActions data={results.data} filters={filters} />
+            <ExportActions data={results.data} filters={filters} isSynced={results.isSynced} />
           </div>
 
           <Tabs defaultValue="ranking">

@@ -4,11 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 export default function FidelityIndicator({ data, ano }) {
-  // Group by zone and calculate concentration (redutos / zonas de risco)
   const byZone = data.reduce((acc, c) => {
-    const key = `${c.nm_municipio || "—"} · Zona ${c.nr_zona || "—"}`;
-    if (!acc[key]) acc[key] = { zone: key, municipio: c.nm_municipio, zona: c.nr_zona, votes: 0, count: 0 };
-    acc[key].votes += c.qt_votos_nominais || 0;
+    const key = `${c.municipio || "—"} · Zona ${c.zona || "—"}`;
+    if (!acc[key]) acc[key] = { zone: key, municipio: c.municipio, zona: c.zona, votes: 0, count: 0 };
+    acc[key].votes += c.votos || 0;
     acc[key].count += 1;
     return acc;
   }, {});
@@ -16,18 +15,16 @@ export default function FidelityIndicator({ data, ano }) {
   const zones = Object.values(byZone).sort((a, b) => b.votes - a.votes);
   const totalVotes = zones.reduce((s, z) => s + z.votes, 0);
 
-  // Classify zones
   const classified = zones.map((z) => {
     const pct = totalVotes > 0 ? (z.votes / totalVotes) * 100 : 0;
     let type = "neutro";
-    if (pct >= 10) type = "reduto"; // Strong base
-    else if (pct < 3 && zones.length > 3) type = "risco"; // Weak zone
+    if (pct >= 10) type = "reduto";
+    else if (pct < 3 && zones.length > 3) type = "risco";
     return { ...z, pct, type };
   });
 
   const redutos = classified.filter((z) => z.type === "reduto");
   const risco = classified.filter((z) => z.type === "risco");
-  const neutros = classified.filter((z) => z.type === "neutro");
 
   const typeConfig = {
     reduto: { label: "Reduto Eleitoral", color: "bg-green-100 text-green-800 border-green-200", icon: Heart, dot: "bg-green-500" },

@@ -8,6 +8,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import MissionDetail from './pages/MissionDetail';
+import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -64,6 +65,11 @@ const AuthenticatedApp = () => {
       <Route path="/mission/:id" element={
         <LayoutWrapper currentPageName="MissionCenter">
           <MissionDetail />
+        </LayoutWrapper>
+      } />
+      <Route path="/DiagnosticoTSE" element={
+        <LayoutWrapper currentPageName="ElectoralConsult">
+          <DiagnosticoTSE />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

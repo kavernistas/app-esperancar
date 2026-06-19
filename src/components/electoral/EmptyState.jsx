@@ -11,7 +11,6 @@ export default function EmptyState() {
 
   return (
     <div className="space-y-8">
-      {/* Hero illustration */}
       <div className="text-center py-12 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Search className="w-10 h-10 text-white" />
@@ -26,17 +25,16 @@ export default function EmptyState() {
         <div className="flex items-center justify-center gap-6 mt-8">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Database className="w-4 h-4 text-blue-600" />
-            <span>API Oficial TSE</span>
+            <span>CDN Oficial TSE</span>
           </div>
           <div className="w-1 h-1 bg-slate-300 rounded-full" />
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <ShieldCheck className="w-4 h-4 text-green-600" />
-            <span>Dados 100% Íntegros</span>
+            <span>Base local sincronizada</span>
           </div>
         </div>
       </div>
 
-      {/* Features grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {features.map((f, i) => (
           <div
@@ -50,14 +48,13 @@ export default function EmptyState() {
         ))}
       </div>
 
-      {/* Trust badge */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex items-start gap-4">
-        <span className="text-3xl flex-shrink-0">⭐</span>
+        <span className="text-3xl flex-shrink-0">📋</span>
         <div>
-          <p className="text-slate-700 text-sm font-medium italic">
-            "Para quem precisa analisar dados das eleições é o melhor aplicativo. Excelente."
+          <p className="text-slate-700 text-sm font-medium">
+            Para consultar os dados oficiais do TSE, sincronize a base primeiro usando o painel de importação.
           </p>
-          <p className="text-slate-500 text-xs mt-1">— Avaliação de usuário</p>
+          <p className="text-slate-500 text-xs mt-1">Os dados são baixados diretamente do CDN oficial do TSE ou importados via arquivo.</p>
         </div>
       </div>
     </div>

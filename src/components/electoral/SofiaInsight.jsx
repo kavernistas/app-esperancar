@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Brain, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function SofiaInsight({ tseData, filters, isSynced }) {
@@ -29,7 +29,6 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
 
   return (
     <Card className="border-0 shadow-sm bg-gradient-to-br from-slate-900 to-blue-950 text-white overflow-hidden relative">
-      {/* Decorative glow */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -48,18 +47,14 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
                 </Badge>
               </CardTitle>
               <p className="text-slate-400 text-xs mt-0.5">
-                Análise automática dos dados do TSE
+                Análise baseada em dados oficiais sincronizados do TSE
               </p>
             </div>
           </div>
 
           {analysis && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpanded(!expanded)}
-              className="text-slate-300 hover:text-white hover:bg-white/10"
-            >
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}
+              className="text-slate-300 hover:text-white hover:bg-white/10">
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
           )}
@@ -67,11 +62,11 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
       </CardHeader>
 
       <CardContent className="relative">
-{!analysis && !loading && isSynced === false && (
+        {!analysis && !loading && isSynced === false && (
           <div className="flex items-center gap-3">
-            <Brain className="w-5 h-5 text-slate-400" />
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
             <p className="text-slate-400 text-sm">
-              Sofia não encontrou dados oficiais sincronizados para esta consulta.
+              Sofia IA desabilitada — não há dados oficiais sincronizados para esta consulta.
             </p>
           </div>
         )}
@@ -79,8 +74,8 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
         {!analysis && !loading && isSynced !== false && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <p className="text-slate-300 text-sm flex-1">
-              Após consultar os dados, peça à Sofia para identificar <strong className="text-white">redutos eleitorais</strong>, 
-              <strong className="text-white"> zonas de risco</strong> e gerar recomendações estratégicas com base nos números do TSE.
+              Peça à Sofia para identificar <strong className="text-white">redutos eleitorais</strong>,
+              <strong className="text-white"> zonas de risco</strong> e gerar recomendações estratégicas com base nos dados oficiais importados.
             </p>
             <Button
               onClick={handleAnalyze}
@@ -111,24 +106,15 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-blue-300 font-semibold uppercase tracking-wide mb-2">
-                    Análise da Sofia
-                  </p>
-                  <p className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap">
-                    {analysis}
-                  </p>
+                  <p className="text-xs text-blue-300 font-semibold uppercase tracking-wide mb-2">Análise da Sofia</p>
+                  <p className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap">{analysis}</p>
                 </div>
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button
-                onClick={handleAnalyze}
-                variant="ghost"
-                size="sm"
-                className="text-slate-400 hover:text-white hover:bg-white/10 text-xs"
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                Nova análise
+              <Button onClick={handleAnalyze} variant="ghost" size="sm"
+                className="text-slate-400 hover:text-white hover:bg-white/10 text-xs">
+                <Sparkles className="w-3 h-3 mr-1" />Nova análise
               </Button>
             </div>
           </div>
