@@ -297,7 +297,7 @@ async function processImportChunk(base44, job) {
   const startTime = Date.now();
   const isContinuation = job.linha_offset > 0;
 
-  let zipPath, csvPath;
+  let zipPath, csvPath, tmpDir;
   try {
     // 1. Baixar ZIP para disco (streaming, sem carregar na memória)
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
@@ -307,8 +307,9 @@ async function processImportChunk(base44, job) {
     const fileUrlLower = job.file_url.toLowerCase();
     const isZip = fileUrlLower.endsWith('.zip');
 
-    zipPath = `/tmp/tse_${job.id}.zip`;
-    csvPath = `/tmp/tse_${job.id}.csv`;
+    const tmpDir = await Deno.makeTempDir({ prefix: 'tse_' });
+    zipPath = `${tmpDir}/data.zip`;
+    csvPath = `${tmpDir}/data.csv`;
 
     if (isZip && !isContinuation) {
       console.log('[processImportChunk] Baixando ZIP para disco:', zipPath);
@@ -419,8 +420,7 @@ async function processImportChunk(base44, job) {
       ultima_atividade: new Date().toISOString(),
     });
     // Limpa arquivos temporários
-    try { if (zipPath) await Deno.remove(zipPath); } catch (_) {}
-    try { if (csvPath) await Deno.remove(csvPath); } catch (_) {}
+    try { if (tmpDir) await Deno.remove(tmpDir, { recursive: true }); } catch (_) {}
     return Response.json({
       success: false, job_id: job.id, status: 'erro',
       error: error.message,
@@ -651,8 +651,6 @@ async function streamDownload(url, destPath) {
   }
   if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
   console.log('[streamDownload] Resposta OK, Content-Length:', res.headers.get('content-length'));
-  // Garante que o diretório pai existe
-  try { await Deno.mkdir('/tmp', { recursive: true }); } catch (_) {}
   const file = await Deno.open(destPath, { write: true, create: true, truncate: true });
   console.log('[streamDownload] Arquivo criado:', destPath);
   try {
