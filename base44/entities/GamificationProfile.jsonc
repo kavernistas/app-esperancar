@@ -1,0 +1,86 @@
+{
+  "name": "GamificationProfile",
+  "type": "object",
+  "properties": {
+    "leader_id": {
+      "type": "string",
+      "description": "ID da lideran\u00e7a"
+    },
+    "leader_name": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "total_points": {
+      "type": "number",
+      "default": 0
+    },
+    "current_level": {
+      "type": "string",
+      "enum": [
+        "semente",
+        "mobilizador",
+        "lideranca_local",
+        "coordenador_territorial",
+        "referencia_esperancar"
+      ],
+      "default": "semente"
+    },
+    "badges": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "missions_completed": {
+      "type": "number",
+      "default": 0
+    },
+    "missions_pending": {
+      "type": "number",
+      "default": 0
+    },
+    "missions_overdue": {
+      "type": "number",
+      "default": 0
+    },
+    "supporters_registered": {
+      "type": "number",
+      "default": 0
+    },
+    "demands_resolved": {
+      "type": "number",
+      "default": 0
+    },
+    "weekly_points": {
+      "type": "number",
+      "default": 0
+    },
+    "monthly_points": {
+      "type": "number",
+      "default": 0
+    },
+    "last_level_up_at": {
+      "type": "string"
+    },
+    "last_activity_at": {
+      "type": "string"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "month_start": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "leader_id"
+  ]
+}

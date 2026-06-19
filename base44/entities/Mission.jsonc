@@ -1,0 +1,104 @@
+{
+  "name": "Mission",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da miss\u00e3o"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "register_supporters",
+        "visit_region",
+        "mobilize_meeting",
+        "collect_demands",
+        "confirm_attendance",
+        "share_content",
+        "organize_local_nucleus",
+        "update_territorial_data",
+        "forward_service",
+        "other"
+      ],
+      "description": "Tipo da miss\u00e3o"
+    },
+    "neighborhood": {
+      "type": "string",
+      "description": "Bairro/regi\u00e3o"
+    },
+    "city": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "leader_id": {
+      "type": "string",
+      "description": "ID da lideran\u00e7a respons\u00e1vel"
+    },
+    "leader_name": {
+      "type": "string",
+      "description": "Nome da lideran\u00e7a"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Prazo da miss\u00e3o"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "points": {
+      "type": "number",
+      "default": 30,
+      "description": "Pontos ao concluir"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "overdue"
+      ],
+      "default": "pending"
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Texto de evid\u00eancia"
+    },
+    "evidence_url": {
+      "type": "string",
+      "description": "Link ou foto da evid\u00eancia"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notified_at": {
+      "type": "string",
+      "description": "Quando foi notificada por WhatsApp"
+    },
+    "reminded_at": {
+      "type": "string",
+      "description": "Quando foi enviado lembrete"
+    },
+    "congratulated_at": {
+      "type": "string",
+      "description": "Quando foi enviada mensagem de parab\u00e9ns"
+    }
+  },
+  "required": [
+    "title",
+    "leader_id"
+  ]
+}
