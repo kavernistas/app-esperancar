@@ -297,121 +297,109 @@ async function processImportChunk(base44, job) {
   const startTime = Date.now();
   const isContinuation = job.linha_offset > 0;
 
-  let zipPath, csvPath, tmpDir;
   try {
-    // 1. Baixar ZIP para disco (streaming, sem carregar na memória)
+    const fileUrlLower = job.file_url.toLowerCase();
+    const isZip = fileUrlLower.endsWith('.zip');
+
+    if (isContinuation) {
+      return Response.json({
+        success: false, job_id: job.id, status: 'erro',
+        error: 'Retomada não suportada após refatoração. Reimporte o arquivo.',
+        message: 'Retomada não suportada. Inicie uma nova importação.',
+        retryable: false,
+      });
+    }
+
+    // 1. Baixar arquivo em memória
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
     });
 
-    const fileUrlLower = job.file_url.toLowerCase();
-    const isZip = fileUrlLower.endsWith('.zip');
-
-    const tmpDir = await Deno.makeTempDir({ prefix: 'tse_' });
-    zipPath = `${tmpDir}/data.zip`;
-    csvPath = `${tmpDir}/data.csv`;
-
-    if (isZip && !isContinuation) {
-      console.log('[processImportChunk] Baixando ZIP para disco:', zipPath);
-      await streamDownload(job.file_url, zipPath);
-      console.log('[processImportChunk] Download concluído.');
+    if (isZip) {
+      console.log('[processImportChunk] Baixando ZIP (memória)...');
     }
+    const fileBytes = await fetchFileToMemory(job.file_url);
 
-    // 2. Extrair CSV do ZIP para disco
+    // Atualizar tamanho
+    const sizeMB = (fileBytes.length / (1024 * 1024)).toFixed(1);
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      tamanho_arquivo_mb: parseFloat(sizeMB),
+      ultima_atividade: new Date().toISOString(),
+    });
+
+    // 2. Extrair CSV em memória
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
     });
 
-    if (isZip && !isContinuation) {
+    let csvText;
+    if (isZip) {
       const isNacional = DATASETS_NACIONAIS.has(job.dataset_tipo);
-      await extractCSVToFile(zipPath, csvPath, job.uf, isNacional);
-      // Limpa ZIP
-      try { await Deno.remove(zipPath); } catch (_) {}
-    } else if (!isZip && !isContinuation) {
-      // CSV direto: baixar para disco
-      await streamDownload(job.file_url, csvPath);
+      csvText = await extractCSVFromZipBytes(fileBytes, job.uf, isNacional);
+    } else {
+      csvText = new TextDecoder('iso-8859-1').decode(fileBytes);
     }
 
-    // 3. Contar total de linhas (uma vez, do arquivo em disco)
-    if (job.total_linhas_arquivo === 0) {
-      const totalLinhas = await countFileLines(csvPath);
-      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
-        total_linhas_arquivo: totalLinhas,
-        ultima_atividade: new Date().toISOString(),
-      });
-      job.total_linhas_arquivo = totalLinhas;
-    }
+    // 3. Contar total de linhas
+    const totalLinhas = csvText.split('\n').length;
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      total_linhas_arquivo: totalLinhas,
+      ultima_atividade: new Date().toISOString(),
+    });
 
-    // 4. Construir set de deduplicação
+    // 4. Deduplicação
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'deduplicando', etapa: 'deduplicando', ultima_atividade: new Date().toISOString(),
     });
     const dedupSet = await buildDedupSet(base44, job.ano, job.uf);
 
-    // 5. Importar do arquivo em disco (streaming)
+    // 5. Importar
     await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
       status: 'importando', etapa: 'importando', ultima_atividade: new Date().toISOString(),
     });
 
-    const result = await parseAndImportFromFile(
-      base44, csvPath, job.ano, job.uf,
-      job.municipio || null, dedupSet, job.linha_offset, startTime, job.id
+    const result = parseAndImportFromText(
+      csvText, job.ano, job.uf, job.municipio || null, dedupSet
     );
 
-    // Limpa CSV se concluído
-    if (result.complete) {
-      try { await Deno.remove(csvPath); } catch (_) {}
-    }
-
-    // Atualizar job
-    const newOffset = job.linha_offset + result.bytesProcessed;
-    const newLinhas = job.linhas_processadas + result.linesProcessed;
-    const newRegistros = job.registros_importados + result.recordsImported;
-    const newDupes = job.registros_duplicados + result.duplicatesSkipped;
-    const elapsed = Date.now() - startTime;
-    const speed = elapsed > 0 ? Math.round(result.recordsImported / (elapsed / 1000)) : 0;
-
-    const updateData = {
-      linha_offset: newOffset,
-      linhas_processadas: newLinhas,
-      registros_importados: newRegistros,
-      registros_duplicados: newDupes,
-      velocidade_registros_segundo: speed,
-      ultima_atividade: new Date().toISOString(),
-    };
-
-    if (result.complete) {
-      updateData.status = 'concluido';
-      updateData.progresso = 100;
-      updateData.fim = new Date().toISOString();
-      updateData.etapa = 'finalizando';
-      await updateSyncStatus(base44, job.ano, job.uf, 'importado', '', newRegistros);
-    } else {
-      updateData.progresso = job.total_linhas_arquivo > 0
-        ? Math.min(99, Math.round((newLinhas / job.total_linhas_arquivo) * 100))
-        : 0;
-      if (speed > 0 && job.total_linhas_arquivo > 0) {
-        updateData.tempo_estimado_segundos = Math.round((job.total_linhas_arquivo - newLinhas) / speed);
+    // 6. Bulk create em lotes
+    let recordsImported = 0;
+    for (let i = 0; i < result.records.length; i += BATCH_SIZE) {
+      const batch = result.records.slice(i, i + BATCH_SIZE);
+      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
+      recordsImported += batch.length;
+      const elapsed = Date.now() - startTime;
+      if (elapsed > MAX_RUNTIME_MS && i + BATCH_SIZE < result.records.length) {
+        // Não conseguimos terminar — falha com informação de retomada
+        await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+          status: 'erro', erro: `Timeout: ${recordsImported}/${result.records.length} importados. Reimporte com arquivo menor.`,
+          registros_importados: recordsImported, registros_duplicados: result.duplicatesSkipped,
+          linhas_processadas: result.linesProcessed, progresso: Math.round((recordsImported / result.records.length) * 100),
+          ultima_atividade: new Date().toISOString(),
+        });
+        return Response.json({
+          success: false, job_id: job.id, status: 'erro',
+          error: 'Timeout durante bulk import.',
+          message: `Timeout: ${recordsImported}/${result.records.length} registros importados. Tente um arquivo menor.`,
+          retryable: true,
+        });
       }
     }
 
-    await base44.asServiceRole.entities.TSEImportJob.update(job.id, updateData);
+    // Concluído
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'concluido', progresso: 100, etapa: 'finalizando',
+      registros_importados: recordsImported, registros_duplicados: result.duplicatesSkipped,
+      linhas_processadas: result.linesProcessed, total_linhas_arquivo: totalLinhas,
+      fim: new Date().toISOString(), ultima_atividade: new Date().toISOString(),
+    });
+    await updateSyncStatus(base44, job.ano, job.uf, 'importado', '', recordsImported);
 
     return Response.json({
-      success: true,
-      job_id: job.id,
-      status: result.complete ? 'concluido' : 'processando',
-      progresso: updateData.progresso,
-      registros_importados: newRegistros,
-      registros_duplicados: newDupes,
-      linhas_processadas: newLinhas,
-      total_linhas: job.total_linhas_arquivo,
-      velocidade: speed,
-      tempo_estimado: updateData.tempo_estimado_segundos || 0,
-      needs_continuation: !result.complete,
-      message: result.complete
-        ? `Importação concluída! ${newRegistros} registros (${newDupes} duplicados ignorados).`
-        : `Processando... ${newLinhas}/${job.total_linhas_arquivo} linhas. Continue chamando continue_import.`,
+      success: true, job_id: job.id, status: 'concluido', progresso: 100,
+      registros_importados: recordsImported, registros_duplicados: result.duplicatesSkipped,
+      linhas_processadas: result.linesProcessed, total_linhas: totalLinhas,
+      message: `Importação concluída! ${recordsImported} registros (${result.duplicatesSkipped} duplicados ignorados).`,
     });
 
   } catch (error) {
@@ -419,128 +407,53 @@ async function processImportChunk(base44, job) {
       status: 'erro', erro: error.message, fim: new Date().toISOString(),
       ultima_atividade: new Date().toISOString(),
     });
-    // Limpa arquivos temporários
-    try { if (tmpDir) await Deno.remove(tmpDir, { recursive: true }); } catch (_) {}
     return Response.json({
       success: false, job_id: job.id, status: 'erro',
       error: error.message,
-      message: `Erro na importação: ${error.message}. Use continue_import para retomar.`,
+      message: `Erro na importação: ${error.message}`,
       retryable: true,
     });
   }
 }
 
-// ============ STREAMING CSV PARSER (LEITURA CHUNKED DO DISCO) ============
-async function parseAndImportFromFile(base44, filePath, year, state, municipio, dedupSet, startOffset, budgetStartMs, jobId) {
-  const file = await Deno.open(filePath, { read: true });
-  try {
-    const fileInfo = await file.stat();
-    const fileSize = fileInfo.size;
+// ============ PARSER CSV EM MEMÓRIA ============
+function parseAndImportFromText(csvText, year, state, municipio, dedupSet) {
+  const lines = csvText.split('\n');
+  if (lines.length < 2) throw new Error('CSV vazio ou sem dados.');
 
-    // Ler cabeçalho (primeiros 8KB)
-    const headBuf = new Uint8Array(8192);
-    await file.read(headBuf);
-    const headText = new TextDecoder().decode(headBuf);
-    const headerEndRaw = headText.indexOf('\n');
-    if (headerEndRaw === -1) throw new Error('CSV sem cabeçalho.');
-    let headerLen = headerEndRaw;
-    if (headText[headerEndRaw - 1] === '\r') headerLen--;
-    const headerLine = headText.slice(0, headerLen);
-    const delimiter = detectarSeparador(headerLine);
-    const header = parseCSVLine(headerLine, delimiter);
-    const ufIdx = header.findIndex(h => h === 'SG_UF');
-    if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada.');
-    const dataStartByte = headerEndRaw + 1;
+  const headerLine = lines[0].trim();
+  const delimiter = detectarSeparador(headerLine);
+  const header = parseCSVLine(headerLine, delimiter);
+  const ufIdx = header.findIndex(h => h === 'SG_UF');
+  if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada.');
 
-    // Detectar encoding
-    const sample = headText.slice(0, 200);
-    const needsLatin = sample.includes('Ã§') || sample.includes('Ã£') || sample.includes('Ã©') || sample.includes('Ã') || sample.includes('Ã´');
-    const decoder = needsLatin ? new TextDecoder('iso-8859-1') : new TextDecoder();
+  const municipioUpper = municipio ? municipio.toUpperCase() : null;
+  const municipioIdx = municipio ? header.findIndex(h => h === 'NM_MUNICIPIO') : -1;
 
-    // Reposicionar após cabeçalho
-    await file.seek(dataStartByte, Deno.SeekMode.Start);
+  let recordsImported = 0;
+  let duplicatesSkipped = 0;
+  let linesProcessed = 0;
+  const records = [];
 
-    if (startOffset > 0) {
-      await file.seek(startOffset, Deno.SeekMode.Start);
-    }
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    linesProcessed++;
 
-    let bytePos = startOffset > 0 ? startOffset : dataStartByte;
+    const values = parseCSVLine(line, delimiter);
+    if (values.length < header.length) continue;
+    if (values[ufIdx] !== state) continue;
+    if (municipioUpper && municipioIdx >= 0 && values[municipioIdx].toUpperCase() !== municipioUpper) continue;
 
-    const municipioUpper = municipio ? municipio.toUpperCase() : null;
-    const municipioIdx = municipio ? header.findIndex(h => h === 'NM_MUNICIPIO') : -1;
+    const dedupKey = buildDedupKey(values, header, year, state);
+    if (dedupSet.has(dedupKey)) { duplicatesSkipped++; continue; }
+    dedupSet.add(dedupKey);
 
-    const chunkSize = 262144; // 256KB chunks
-    let remainder = '';
-    let batch = [];
-    let recordsImported = 0;
-    let duplicatesSkipped = 0;
-    let linesProcessed = 0;
-
-    const buf = new Uint8Array(chunkSize);
-    while (true) {
-      const elapsed = Date.now() - budgetStartMs;
-      if (elapsed > MAX_RUNTIME_MS && recordsImported > 0) {
-        return { complete: false, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed: bytePos - (startOffset > 0 ? startOffset : dataStartByte) };
-      }
-
-      const n = await file.read(buf);
-      if (n === null) break;
-
-      const chunk = decoder.decode(buf.slice(0, n));
-      const combined = remainder + chunk;
-      const chunkLines = combined.split('\n');
-      // Último elemento pode estar incompleto
-      remainder = chunkLines.pop() || '';
-
-      for (const line of chunkLines) {
-        bytePos += line.length + 1;
-        if (!line.trim()) continue;
-
-        linesProcessed++;
-        const values = parseCSVLine(line, delimiter);
-        if (values.length < header.length) continue;
-        if (values[ufIdx] !== state) continue;
-        if (municipioUpper && municipioIdx >= 0 && values[municipioIdx].toUpperCase() !== municipioUpper) continue;
-
-        const dedupKey = buildDedupKey(values, header, year, state);
-        if (dedupSet.has(dedupKey)) { duplicatesSkipped++; continue; }
-        dedupSet.add(dedupKey);
-
-        batch.push(buildRecordFromCSV(header, values, year, state));
-
-        if (batch.length >= BATCH_SIZE) {
-          await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-          recordsImported += batch.length;
-          batch = [];
-        }
-      }
-    }
-
-    // Processar resto
-    if (remainder.trim()) {
-      linesProcessed++;
-      const values = parseCSVLine(remainder, delimiter);
-      if (values.length >= header.length && values[ufIdx] === state &&
-          (!municipioUpper || municipioIdx < 0 || values[municipioIdx].toUpperCase() === municipioUpper)) {
-        const dedupKey = buildDedupKey(values, header, year, state);
-        if (!dedupSet.has(dedupKey)) {
-          dedupSet.add(dedupKey);
-          batch.push(buildRecordFromCSV(header, values, year, state));
-        } else {
-          duplicatesSkipped++;
-        }
-      }
-    }
-
-    if (batch.length > 0) {
-      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-      recordsImported += batch.length;
-    }
-
-    return { complete: true, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed: fileSize - (startOffset > 0 ? startOffset : dataStartByte) };
-  } finally {
-    try { file.close(); } catch (_) {}
+    records.push(buildRecordFromCSV(header, values, year, state));
+    recordsImported++;
   }
+
+  return { records, recordsImported, duplicatesSkipped, linesProcessed };
 }
 
 function buildDedupKey(values, header, year, state) {
@@ -637,184 +550,97 @@ async function handleStatusCheck(base44, body) {
   return Response.json({ success: true, statuses });
 }
 
-// ============ UTILITÁRIOS ZIP/CSV (DISCO) ============
+// ============ UTILITÁRIOS DE DOWNLOAD E ZIP (MEMÓRIA) ============
 
-// Download com streaming — salva em disco sem carregar na memória
-async function streamDownload(url, destPath) {
-  console.log('[streamDownload] Iniciando fetch:', url);
-  let res;
-  try {
-    res = await fetch(url, { signal: AbortSignal.timeout(300000) });
-  } catch (fe) {
-    console.error('[streamDownload] Fetch falhou:', fe.message, fe.name);
-    throw new Error(`Falha na rede ao baixar: ${fe.message}`);
-  }
+async function fetchFileToMemory(url) {
+  console.log('[fetchFileToMemory] Baixando:', url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(300000) });
   if (!res.ok) throw new Error(`Falha no download: HTTP ${res.status}`);
-  console.log('[streamDownload] Resposta OK, Content-Length:', res.headers.get('content-length'));
-  const file = await Deno.open(destPath, { write: true, create: true, truncate: true });
-  console.log('[streamDownload] Arquivo criado:', destPath);
-  try {
-    const reader = res.body.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      await file.write(value);
-    }
-  } finally {
-    try { file.close(); } catch (_) {}
-  }
+  const buf = await res.arrayBuffer();
+  console.log('[fetchFileToMemory] Download concluído:', (buf.byteLength / (1024*1024)).toFixed(1), 'MB');
+  return new Uint8Array(buf);
 }
 
-// Extrai CSV de ZIP em disco para arquivo em disco
-async function extractCSVToFile(zipPath, csvPath, state, isNacional) {
-  // Lê os últimos 64KB para encontrar o central directory
-  const zipInfo = await Deno.stat(zipPath);
-  const zipSize = zipInfo.size;
+// Extrai CSV de ZIP em memória — retorna texto CSV
+async function extractCSVFromZipBytes(zipBytes, state, isNacional) {
+  const view = new DataView(zipBytes.buffer, zipBytes.byteOffset, zipBytes.byteLength);
+  const zipSize = zipBytes.length;
+
+  // Buscar EOCD (últimos 64KB)
   const tailSize = Math.min(65536, zipSize);
-  const zipFile = await Deno.open(zipPath, { read: true });
-  let csvEntry = null;
+  let eocdPos = -1;
+  const searchStart = zipSize - tailSize;
+  for (let i = searchStart; i <= zipSize - 22; i++) {
+    if (zipBytes[i] === 0x50 && zipBytes[i+1] === 0x4b && zipBytes[i+2] === 0x05 && zipBytes[i+3] === 0x06) {
+      eocdPos = i;
+      break;
+    }
+  }
+  if (eocdPos === -1) throw new Error('ZIP inválido — EOCD não encontrado.');
 
-  try {
-    // Buscar EOCD e CD
-    await zipFile.seek(-tailSize, Deno.SeekMode.End);
-    const tailBuf = new Uint8Array(tailSize);
-    await zipFile.read(tailBuf);
-    const view = new DataView(tailBuf.buffer, tailBuf.byteOffset, tailBuf.byteLength);
+  const cdOffset = view.getUint32(eocdPos + 16, true);
+  let candidates = [];
 
-    // Encontrar EOCD
-    let eocdPos = -1;
-    for (let i = tailBuf.length - 22; i >= 0; i--) {
-      if (tailBuf[i] === 0x50 && tailBuf[i+1] === 0x4b && tailBuf[i+2] === 0x05 && tailBuf[i+3] === 0x06) {
-        eocdPos = i;
-        break;
+  let pos = cdOffset;
+  while (pos < zipSize - 46) {
+    const sig = view.getUint32(pos, true);
+    if (sig !== 0x02014b50) break;
+    const compMethod = view.getUint16(pos + 10, true);
+    const fileNameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const localHeaderOff = view.getUint32(pos + 42, true);
+    const compSize = view.getUint32(pos + 20, true);
+    const nameBytes = zipBytes.slice(pos + 46, pos + 46 + fileNameLen);
+    const fileName = new TextDecoder().decode(nameBytes);
+
+    if (fileName.toLowerCase().endsWith('.csv')) {
+      const lhView = new DataView(zipBytes.buffer, zipBytes.byteOffset + localHeaderOff, 30);
+      const lhNameLen = lhView.getUint16(26, true);
+      const lhExtraLen = lhView.getUint16(28, true);
+      const dataStart = localHeaderOff + 30 + lhNameLen + lhExtraLen;
+
+      candidates.push({ name: fileName, dataStart, compSize, method: compMethod === 8 ? 'deflate' : 'store' });
+    }
+    pos += 46 + fileNameLen + extraLen + commentLen;
+  }
+
+  if (candidates.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
+
+  let csvEntry;
+  if (isNacional && state) {
+    const suffix = `_${state}.csv`;
+    csvEntry = candidates.find(f => f.name.endsWith(suffix));
+    if (!csvEntry) csvEntry = candidates.find(f => f.name.includes('_BRASIL.csv'));
+    if (!csvEntry) csvEntry = candidates[0];
+  } else {
+    csvEntry = candidates[0];
+  }
+
+  console.log('[extractCSVFromZipBytes] Entrada:', csvEntry.name, '| método:', csvEntry.method, '| compSize:', csvEntry.compSize);
+
+  const compData = zipBytes.slice(csvEntry.dataStart, csvEntry.dataStart + csvEntry.compSize);
+
+  if (csvEntry.method === 'deflate') {
+    // Descompressão via DecompressionStream
+    const readable = new ReadableStream({
+      start(controller) {
+        controller.enqueue(compData);
+        controller.close();
       }
-    }
-    if (eocdPos === -1) throw new Error('ZIP inválido — EOCD não encontrado.');
-
-    const cdOffset = view.getUint32(eocdPos + 16, true);
-    const cdSize = view.getUint32(eocdPos + 12, true);
-    // cdOffset é relativo ao início do arquivo, e o tail começa em zipSize-tailSize
-
-    // Mapear cdOffset para posição no tailBuf
-    const cdInTail = cdOffset - (zipSize - tailSize);
-    let candidates = [];
-
-    if (cdInTail >= 0 && cdInTail < tailBuf.length) {
-      // CD está dentro do tail que lemos
-      let pos = cdInTail;
-      while (pos < tailBuf.length - 46) {
-        const sig = view.getUint32(pos, true);
-        if (sig !== 0x02014b50) break;
-        const compMethod = view.getUint16(pos + 10, true);
-        const fileNameLen = view.getUint16(pos + 28, true);
-        const extraLen = view.getUint16(pos + 30, true);
-        const commentLen = view.getUint16(pos + 32, true);
-        const localHeaderOff = view.getUint32(pos + 42, true);
-        const compSize = view.getUint32(pos + 20, true);
-        const nameBytes = tailBuf.slice(pos + 46, pos + 46 + fileNameLen);
-        const fileName = new TextDecoder().decode(nameBytes);
-
-        if (fileName.toLowerCase().endsWith('.csv')) {
-          const lhPos = localHeaderOff;
-          // Precisamos ler o local header para saber nameLen + extraLen
-          const lhBuf = new Uint8Array(30);
-          await zipFile.seek(lhPos, Deno.SeekMode.Start);
-          await zipFile.read(lhBuf);
-          const lhView = new DataView(lhBuf.buffer, lhBuf.byteOffset, lhBuf.byteLength);
-          const lhNameLen = lhView.getUint16(26, true);
-          const lhExtraLen = lhView.getUint16(28, true);
-          const dataStart = lhPos + 30 + lhNameLen + lhExtraLen;
-
-          candidates.push({
-            name: fileName,
-            dataStart,
-            compSize,
-            method: compMethod === 8 ? 'deflate' : 'store',
-          });
-        }
-        pos += 46 + fileNameLen + extraLen + commentLen;
-      }
-    }
-
-    if (candidates.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
-
-    // Selecionar CSV correto
-    if (isNacional && state) {
-      const suffix = `_${state}.csv`;
-      csvEntry = candidates.find(f => f.name.endsWith(suffix));
-      if (!csvEntry) csvEntry = candidates.find(f => f.name.includes('_BRASIL.csv'));
-      if (!csvEntry) csvEntry = candidates[0];
-    } else {
-      csvEntry = candidates[0];
-    }
-
-    // Extrair CSVEntry para csvPath (streaming para disco)
-    const outFile = await Deno.open(csvPath, { write: true, create: true, truncate: true });
+    });
+    const ds = new DecompressionStream('deflate-raw');
+    const decompressedStream = readable.pipeThrough(ds);
+    const result = await new Response(decompressedStream).arrayBuffer();
+    const raw = new Uint8Array(result);
     try {
-      await zipFile.seek(csvEntry.dataStart, Deno.SeekMode.Start);
-
-      if (csvEntry.method === 'deflate') {
-        // Ler todos os dados comprimidos primeiro (tamanho gerenciável)
-        const compData = new Uint8Array(csvEntry.compSize);
-        let readTotal = 0;
-        while (readTotal < csvEntry.compSize) {
-          const n = await zipFile.read(compData.subarray(readTotal));
-          if (n === null) break;
-          readTotal += n;
-        }
-
-        // Descomprimir via streams e escrever no disco
-        const ds = new DecompressionStream('deflate-raw');
-        const writer = ds.writable.getWriter();
-        const reader = ds.readable.getReader();
-        writer.write(compData);
-        writer.close();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          await outFile.write(value);
-        }
-      } else {
-        // Store — copiar em chunks direto para disco
-        const chunk = new Uint8Array(65536);
-        let remaining = csvEntry.compSize;
-        while (remaining > 0) {
-          const toRead = Math.min(65536, remaining);
-          const readChunk = new Uint8Array(toRead);
-          const n = await zipFile.read(readChunk);
-          if (n === null) break;
-          await outFile.write(readChunk.subarray(0, n));
-          remaining -= n;
-        }
-      }
-    } finally {
-      try { outFile.close(); } catch (_) {}
+      return new TextDecoder('utf-8', { fatal: true }).decode(raw);
+    } catch (_) {
+      return new TextDecoder('iso-8859-1').decode(raw);
     }
-  } finally {
-    try { zipFile.close(); } catch (_) {}
   }
-}
-
-// Conta linhas em arquivo sem carregar tudo
-async function countFileLines(filePath) {
-  const file = await Deno.open(filePath, { read: true });
-  try {
-    const buf = new Uint8Array(262144);
-    let count = 0;
-    while (true) {
-      const n = await file.read(buf);
-      if (n === null) break;
-      for (let i = 0; i < n; i++) {
-        if (buf[i] === 10) count++; // \n
-      }
-    }
-    // Se arquivo não terminar com \n, conta a última linha
-    if (count === 0) return 1; // pelo menos o cabeçalho
-    return count;
-  } finally {
-    try { file.close(); } catch (_) {}
-  }
+  // Store — sem compressão
+  return new TextDecoder('iso-8859-1').decode(compData);
 }
 
 function parseCSVLine(line, delimiter) {
