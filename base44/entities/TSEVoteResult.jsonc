@@ -1,0 +1,52 @@
+{
+  "name": "TSEVoteResult",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number"
+    },
+    "turno": {
+      "type": "number",
+      "default": 1
+    },
+    "uf": {
+      "type": "string"
+    },
+    "municipio": {
+      "type": "string"
+    },
+    "codigo_municipio": {
+      "type": "string"
+    },
+    "zona": {
+      "type": "string"
+    },
+    "secao": {
+      "type": "string"
+    },
+    "cargo": {
+      "type": "string"
+    },
+    "numero_candidato": {
+      "type": "string"
+    },
+    "nome_candidato": {
+      "type": "string"
+    },
+    "partido": {
+      "type": "string"
+    },
+    "votos": {
+      "type": "number",
+      "default": 0
+    },
+    "local_votacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ano",
+    "uf",
+    "cargo"
+  ]
+}

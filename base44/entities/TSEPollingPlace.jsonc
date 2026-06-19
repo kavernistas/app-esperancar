@@ -1,0 +1,34 @@
+{
+  "name": "TSEPollingPlace",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "municipio": {
+      "type": "string"
+    },
+    "zona": {
+      "type": "string"
+    },
+    "secao": {
+      "type": "string"
+    },
+    "local_votacao": {
+      "type": "string"
+    },
+    "endereco": {
+      "type": "string"
+    },
+    "bairro": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ano",
+    "uf"
+  ]
+}

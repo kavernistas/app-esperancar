@@ -1,0 +1,38 @@
+{
+  "name": "TSECandidate",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "municipio": {
+      "type": "string"
+    },
+    "cargo": {
+      "type": "string"
+    },
+    "numero": {
+      "type": "string"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "partido": {
+      "type": "string"
+    },
+    "situacao": {
+      "type": "string"
+    },
+    "tse_resource_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ano",
+    "uf",
+    "numero"
+  ]
+}

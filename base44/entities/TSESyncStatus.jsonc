@@ -1,0 +1,53 @@
+{
+  "name": "TSESyncStatus",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number",
+      "description": "Ano da elei\u00e7\u00e3o"
+    },
+    "uf": {
+      "type": "string",
+      "description": "UF (sigla 2 letras)"
+    },
+    "tipo_dataset": {
+      "type": "string",
+      "enum": [
+        "candidatos",
+        "votacao",
+        "eleitorado",
+        "locais_votacao"
+      ],
+      "description": "Tipo de dataset"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "nao_importado",
+        "importando",
+        "importado",
+        "erro",
+        "desatualizado"
+      ],
+      "default": "nao_importado"
+    },
+    "total_linhas": {
+      "type": "number",
+      "default": 0
+    },
+    "data_ultima_sincronizacao": {
+      "type": "string"
+    },
+    "fonte_url": {
+      "type": "string"
+    },
+    "mensagem_erro": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ano",
+    "uf",
+    "tipo_dataset"
+  ]
+}

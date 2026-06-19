@@ -1,0 +1,38 @@
+{
+  "name": "TSEElectorateProfile",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number"
+    },
+    "uf": {
+      "type": "string"
+    },
+    "municipio": {
+      "type": "string"
+    },
+    "zona": {
+      "type": "string"
+    },
+    "secao": {
+      "type": "string"
+    },
+    "genero": {
+      "type": "string"
+    },
+    "faixa_etaria": {
+      "type": "string"
+    },
+    "escolaridade": {
+      "type": "string"
+    },
+    "quantidade": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "ano",
+    "uf"
+  ]
+}

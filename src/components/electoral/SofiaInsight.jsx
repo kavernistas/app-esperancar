@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Brain, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-export default function SofiaInsight({ tseData, filters }) {
+export default function SofiaInsight({ tseData, filters, isSynced }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -67,7 +67,16 @@ export default function SofiaInsight({ tseData, filters }) {
       </CardHeader>
 
       <CardContent className="relative">
-        {!analysis && !loading && (
+{!analysis && !loading && isSynced === false && (
+          <div className="flex items-center gap-3">
+            <Brain className="w-5 h-5 text-slate-400" />
+            <p className="text-slate-400 text-sm">
+              Sofia não encontrou dados oficiais sincronizados para esta consulta.
+            </p>
+          </div>
+        )}
+
+        {!analysis && !loading && isSynced !== false && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <p className="text-slate-300 text-sm flex-1">
               Após consultar os dados, peça à Sofia para identificar <strong className="text-white">redutos eleitorais</strong>, 
