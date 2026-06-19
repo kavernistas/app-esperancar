@@ -96,6 +96,8 @@ async function awardPoints(base44, leaderId, leaderName, points, weekStart, mont
       visual_carros: 0,
       visual_residencias: 0,
       demands_resolved: 0,
+      vote_goal: 0,
+      votes_achieved: 0,
       weekly_points: 0,
       monthly_points: 0,
       week_start: weekStart,
@@ -187,6 +189,8 @@ Deno.serve(async (req) => {
         visual_carros: 0,
         visual_residencias: 0,
         demands_resolved: 0,
+        vote_goal: 0,
+        votes_achieved: 0,
         weekly_points: 0,
         monthly_points: 0,
         week_start: weekStart,
@@ -209,11 +213,19 @@ Deno.serve(async (req) => {
     };
 
     if (action === 'mission_completed') updates.missions_completed = (profile.missions_completed || 0) + 1;
-    if (action === 'register_supporter') updates.supporters_registered = (profile.supporters_registered || 0) + 1;
+    if (action === 'register_supporter') {
+      updates.supporters_registered = (profile.supporters_registered || 0) + 1;
+      updates.votes_achieved = (profile.votes_achieved || 0) + 1;
+    }
     if (action === 'demand_resolved') updates.demands_resolved = (profile.demands_resolved || 0) + 1;
     if (action === 'leader_converted') updates.leaders_converted = (profile.leaders_converted || 0) + 1;
     if (action === 'visual_carro') updates.visual_carros = (profile.visual_carros || 0) + 1;
     if (action === 'visual_residencia') updates.visual_residencias = (profile.visual_residencias || 0) + 1;
+
+    // Sync vote_goal from body if provided
+    if (body.vote_goal !== undefined && body.vote_goal > 0) {
+      updates.vote_goal = body.vote_goal;
+    }
 
     const currentLevel = getLevel(updates.total_points);
     updates.current_level = currentLevel.name;

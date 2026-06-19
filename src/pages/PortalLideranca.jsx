@@ -66,12 +66,17 @@ export default function PortalLideranca() {
     if (!leaderId) return;
     setLoading(true);
     try {
-      const [cs, ds, ms, gs, allG] = await Promise.all([
+      const [cs, ds, ms, gs, allG, myContact] = await Promise.all([
         base44.entities.Contact.filter({ created_by_leader_id: leaderId }, "-created_date"),
         base44.entities.Demand.filter({ created_by_leader_id: leaderId }, "-created_date"),
         base44.entities.Mission.filter({ leader_id: leaderId }, "-created_date"),
         base44.entities.GamificationProfile.filter({ leader_id: leaderId }),
         base44.entities.GamificationProfile.list("-total_points", 50),
+        base44.auth.me().then(async (me) => {
+          if (!me) return null;
+          const contacts = await base44.entities.Contact.filter({ is_leader: true, full_name: me.full_name }, "-created_date", 1);
+          return contacts[0] || null;
+        }),
       ]);
 
       setContacts(cs || []);
@@ -105,6 +110,8 @@ export default function PortalLideranca() {
           level_label: levelLabels[profile.current_level] || "Semente",
           next_level: curr.nextLabel,
           progress_percent: progressPercent,
+          vote_goal: myContact?.vote_goal || profile.vote_goal || 0,
+          votes_achieved: profile.votes_achieved || profile.supporters_registered || 0,
         });
         setRanking({ geral: rankIdx >= 0 ? rankIdx + 1 : null, bairro: bairroIdx >= 0 ? bairroIdx + 1 : null });
       }
@@ -132,6 +139,7 @@ export default function PortalLideranca() {
         leader_name: user?.full_name,
         neighborhood: data.neighborhood,
         city: data.city,
+        vote_goal: data.is_leader ? (data.vote_goal || 0) : undefined,
       });
       if (res.data?.points_awarded) {
         import("react-hot-toast").then(({ toast }) => {
@@ -211,6 +219,7 @@ export default function PortalLideranca() {
         city: convertContact.city,
         converted_leader_id: convertContact.id,
         converted_leader_name: convertContact.full_name,
+        vote_goal: convertVoteGoal || 0,
       });
       if (res.data?.level_up) {
         import("react-hot-toast").then(({ toast }) => {

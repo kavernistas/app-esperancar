@@ -55,22 +55,29 @@
     },
     "leaders_converted": {
       "type": "number",
-      "default": 0,
-      "description": "Quantas lideran\u00e7as converteu"
+      "default": 0
     },
     "visual_carros": {
       "type": "number",
-      "default": 0,
-      "description": "Visuais de carro distribu\u00eddos"
+      "default": 0
     },
     "visual_residencias": {
       "type": "number",
-      "default": 0,
-      "description": "Visuais de resid\u00eancia distribu\u00eddos"
+      "default": 0
     },
     "demands_resolved": {
       "type": "number",
       "default": 0
+    },
+    "vote_goal": {
+      "type": "number",
+      "default": 0,
+      "description": "Meta de votos da lideran\u00e7a"
+    },
+    "votes_achieved": {
+      "type": "number",
+      "default": 0,
+      "description": "Votos j\u00e1 contabilizados (apoiadores cadastrados)"
     },
     "weekly_points": {
       "type": "number",

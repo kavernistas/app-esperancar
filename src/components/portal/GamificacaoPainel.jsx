@@ -103,6 +103,29 @@ export default function GamificacaoPainel({ profile, ranking }) {
             <p className="text-[10px] text-slate-500">Visuais Residência</p>
           </CardContent>
         </Card>
+        {(profile.vote_goal > 0 || profile.votes_achieved > 0) && (
+          <Card className="border-slate-200 col-span-2">
+            <CardContent className="p-3">
+              <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                <Target className="w-4 h-4 text-indigo-500" /> Meta de Votos
+              </p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-lg font-bold text-indigo-700">{profile.votes_achieved || 0}</span>
+                <span className="text-xs text-slate-400">de</span>
+                <span className="text-lg font-bold text-slate-700">{profile.vote_goal || 0}</span>
+              </div>
+              <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                  style={{ width: `${profile.vote_goal > 0 ? Math.min(100, Math.round(((profile.votes_achieved || 0) / profile.vote_goal) * 100)) : 0}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 text-center">
+                {profile.vote_goal > 0 ? `${Math.round(((profile.votes_achieved || 0) / profile.vote_goal) * 100)}% da meta` : "Defina uma meta de votos"}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Badges */}

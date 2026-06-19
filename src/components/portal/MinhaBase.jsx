@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Search, Filter, Phone, MapPin, Edit, MessageCircle, Send, UserCheck, Car, Home, Target, Star } from "lucide-react";
+import { Users, Search, Filter, Phone, MapPin, Edit, MessageCircle, Send, UserCheck, Car, Home, Target, Star, Tags } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -31,12 +31,12 @@ export default function MinhaBase({ contacts, onEdit, onAddInteraction, onSendWh
   const [filterPhone, setFilterPhone] = useState("");
 
   const bairros = [...new Set(contacts.map(c => c.neighborhood).filter(Boolean))];
-  const segmentos = [...new Set(contacts.map(c => c.segment).filter(Boolean))];
+  const allTags = [...new Set(contacts.flatMap(c => c.tags || []).filter(Boolean))];
 
   let filtered = contacts || [];
   if (search) filtered = filtered.filter(c => c.full_name?.toLowerCase().includes(search.toLowerCase()));
   if (filterBairro) filtered = filtered.filter(c => c.neighborhood === filterBairro);
-  if (filterSegment) filtered = filtered.filter(c => c.segment === filterSegment);
+  if (filterSegment) filtered = filtered.filter(c => (c.tags || []).includes(filterSegment) || c.segment === filterSegment);
   if (filterIntent) filtered = filtered.filter(c => c.support_intent === filterIntent);
   if (filterPhone === "com") filtered = filtered.filter(c => c.phone);
   if (filterPhone === "sem") filtered = filtered.filter(c => !c.phone);
@@ -54,8 +54,8 @@ export default function MinhaBase({ contacts, onEdit, onAddInteraction, onSendWh
           <SelectContent>{bairros.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={filterSegment} onValueChange={setFilterSegment}>
-          <SelectTrigger className="h-8 text-xs w-auto"><SelectValue placeholder="Segmento" /></SelectTrigger>
-          <SelectContent>{segmentos.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+          <SelectTrigger className="h-8 text-xs w-auto"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
+          <SelectContent>{allTags.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={filterIntent} onValueChange={setFilterIntent}>
           <SelectTrigger className="h-8 text-xs w-auto"><SelectValue placeholder="Intenção" /></SelectTrigger>
@@ -86,11 +86,18 @@ export default function MinhaBase({ contacts, onEdit, onAddInteraction, onSendWh
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-sm text-slate-800">{c.full_name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <Badge className={`text-[10px] ${intentColors[c.support_intent] || intentColors.indeciso}`}>
                         {intentLabels[c.support_intent] || "Indeciso"}
                       </Badge>
-                      {c.segment && <span className="text-[10px] text-slate-500">{c.segment}</span>}
+                      {(c.tags || []).map((t, i) => (
+                        <span key={i} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Tags className="w-2.5 h-2.5" />{t}
+                        </span>
+                      ))}
+                      {(!c.tags || c.tags.length === 0) && c.segment && (
+                        <span className="text-[10px] text-slate-500">{c.segment}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1">

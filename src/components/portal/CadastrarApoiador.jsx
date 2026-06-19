@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Save, Loader2, CheckCircle, Search, MapPin, Car, Home, Target, Star } from "lucide-react";
+import { UserPlus, Save, Loader2, CheckCircle, Search, MapPin, Car, Home, Target, Star, Tags, X } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
 import { base44 } from "@/api/base44Client";
 
@@ -35,11 +35,13 @@ async function fetchCEP(cep) {
 }
 
 export default function CadastrarApoiador({ onSave, user }) {
+  const [tagInput, setTagInput] = useState("");
   const [form, setForm] = useState({
     full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "",
     electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso",
     contact_authorized: true, is_leader: false, vote_goal: 0,
     visual_no_carro: false, visual_na_residencia: false,
+    tags: [],
     notes: "", latitude: null, longitude: null,
   });
   const [saving, setSaving] = useState(false);
@@ -49,6 +51,19 @@ export default function CadastrarApoiador({ onSave, user }) {
 
   const handleChange = (f, v) => setForm(p => ({ ...p, [f]: v }));
   const required = form.full_name.trim() && form.neighborhood.trim();
+
+  const addTag = (tag) => {
+    if (tag && !form.tags.includes(tag)) {
+      setForm(p => ({ ...p, tags: [...p.tags, tag] }));
+      setTagInput("");
+    }
+  };
+  const removeTag = (tag) => {
+    setForm(p => ({ ...p, tags: p.tags.filter(t => t !== tag) }));
+  };
+  const toggleTag = (tag) => {
+    form.tags.includes(tag) ? removeTag(tag) : addTag(tag);
+  };
 
   const handleCepSearch = async (cepValue) => {
     const cepToSearch = cepValue || form.cep;
@@ -84,6 +99,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     await onSave({
       ...form,
       cep: form.cep?.replace(/\D/g, ""),
+      segment: form.tags[0] || "",
       vote_goal: form.is_leader ? (form.vote_goal || 0) : 0,
       created_by_leader_id: user?.id,
       created_by_leader_name: user?.full_name || user?.email,
@@ -92,7 +108,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      setForm({ full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, notes: "", latitude: null, longitude: null });
+      setForm({ full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, tags: [], notes: "", latitude: null, longitude: null });
     }, 1500);
   };
 
@@ -159,22 +175,41 @@ export default function CadastrarApoiador({ onSave, user }) {
             </div>
           </div>
 
-          {/* Segmento + Intenção */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Segmento</Label>
-              <Select value={form.segment} onValueChange={v => handleChange("segment", v)}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{SEGMENTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
+          {/* Etiquetas (Segmento de atuação) */}
+          <div>
+            <Label className="text-xs flex items-center gap-1">
+              <Tags className="w-3 h-3 text-slate-500" />
+              Etiquetas (Segmento de atuação)
+            </Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {SEGMENTS.map(s => {
+                const active = form.tags.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleTag(s)}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                      active
+                        ? "bg-indigo-100 border-indigo-300 text-indigo-700 font-medium"
+                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                    }`}
+                  >
+                    {active && <X className="w-3 h-3 inline mr-0.5 -ml-0.5" />}
+                    {s}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <Label className="text-xs">Intenção de Apoio</Label>
-              <Select value={form.support_intent} onValueChange={v => handleChange("support_intent", v)}>
-                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>{SUPPORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          {/* Intenção de Apoio */}
+          <div>
+            <Label className="text-xs">Intenção de Apoio</Label>
+            <Select value={form.support_intent} onValueChange={v => handleChange("support_intent", v)}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>{SUPPORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            </Select>
           </div>
 
           {/* Eleitoral */}
@@ -190,7 +225,7 @@ export default function CadastrarApoiador({ onSave, user }) {
           </div>
 
           {/* Liderança toggle + Meta de Voto */}
-          <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+          <div className="bg-slate-50 rounded-lg p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Switch checked={form.is_leader} onCheckedChange={v => handleChange("is_leader", v)} />
@@ -199,30 +234,24 @@ export default function CadastrarApoiador({ onSave, user }) {
                   É Liderança
                 </Label>
               </div>
-              {form.is_leader && (
-                <BadgeLideranca />
-              )}
+              {form.is_leader && <BadgeLideranca />}
             </div>
 
-            {form.is_leader && (
-              <>
-                <div>
-                  <Label className="text-xs flex items-center gap-1">
-                    <Target className="w-3 h-3 text-indigo-500" />
-                    Meta de Votos
-                  </Label>
-                  <Input
-                    type="number"
-                    value={form.vote_goal || ""}
-                    onChange={e => handleChange("vote_goal", parseInt(e.target.value) || 0)}
-                    placeholder="Ex: 50"
-                    className="h-9 text-sm mt-0.5"
-                    min="0"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">Quantos votos essa liderança se compromete a trazer?</p>
-                </div>
-              </>
-            )}
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                <Target className="w-3 h-3 text-indigo-500" />
+                Meta de Votos {!form.is_leader && <span className="text-slate-400">(se ativar como liderança)</span>}
+              </Label>
+              <Input
+                type="number"
+                value={form.vote_goal || ""}
+                onChange={e => handleChange("vote_goal", parseInt(e.target.value) || 0)}
+                placeholder="Ex: 50"
+                className="h-9 text-sm mt-0.5"
+                min="0"
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5">Quantos votos essa liderança se compromete a trazer?</p>
+            </div>
           </div>
 
           {/* Visuais */}
