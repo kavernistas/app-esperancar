@@ -60,11 +60,11 @@ export default function ElectoralConsult() {
 
   useEffect(() => { loadSyncStatus(); }, [loadSyncStatus]);
 
-  const handleSync = async (ano, uf) => {
+  const handleSync = async (ano, uf, dataset_tipo = "votacao_secao") => {
     setSyncing(true);
     let result = null;
     try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "sync", ano, uf });
+      const res = await base44.functions.invoke("tseDataSync", { action: "sync", ano, uf, dataset_tipo });
       result = res.data;
       await loadSyncStatus();
     } catch (e) {
@@ -118,7 +118,7 @@ export default function ElectoralConsult() {
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold mb-1">Consulta Eleitoral Brasil</h1>
             <p className="text-blue-100 text-sm max-w-xl">
-              Dados públicos oficiais do TSE, sujeitos ao status de sincronização da base local.
+              Dados oficiais do TSE importados diretamente do CDN ou por upload de arquivo. Consulte apenas bases já sincronizadas.
             </p>
           </div>
           <div className="flex gap-2">
@@ -227,8 +227,8 @@ export default function ElectoralConsult() {
             <Database className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-slate-700 mb-2">Base não sincronizada</h3>
             <p className="text-slate-500 text-sm mb-4">
-              Os dados para {filters.uf}/{filters.ano} ainda não foram importados.
-              Sincronize a base para começar a consultar.
+              Dados oficiais ainda não importados para {filters.uf}/{filters.ano}.
+              Use o painel de sincronização acima para importar os dados do TSE e começar a consultar.
             </p>
             <Button onClick={() => handleSync(filters.ano, filters.uf)} className="bg-blue-600 hover:bg-blue-700">
               <Download className="w-4 h-4 mr-1.5" />Importar Dados

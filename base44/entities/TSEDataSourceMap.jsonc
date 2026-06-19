@@ -1,0 +1,59 @@
+{
+  "name": "TSEDataSourceMap",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number",
+      "description": "Ano da elei\u00e7\u00e3o"
+    },
+    "uf": {
+      "type": "string",
+      "description": "UF (sigla 2 letras)"
+    },
+    "dataset_tipo": {
+      "type": "string",
+      "enum": [
+        "votacao_secao",
+        "votacao_nominal_munzona",
+        "detalhe_apuracao_munzona",
+        "perfil_eleitorado_secao"
+      ],
+      "description": "Tipo de dataset TSE"
+    },
+    "fonte_url": {
+      "type": "string",
+      "description": "URL oficial do arquivo no CDN do TSE"
+    },
+    "formato": {
+      "type": "string",
+      "enum": [
+        "zip",
+        "csv"
+      ],
+      "default": "zip"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "disponivel",
+        "indisponivel",
+        "nao_verificado",
+        "muito_grande"
+      ],
+      "default": "nao_verificado"
+    },
+    "tamanho_estimado": {
+      "type": "number",
+      "default": 0,
+      "description": "Tamanho em bytes"
+    },
+    "observacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ano",
+    "uf",
+    "dataset_tipo"
+  ]
+}
