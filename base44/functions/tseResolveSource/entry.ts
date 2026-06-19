@@ -3,15 +3,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // CDN base do TSE para dados eleitorais
 const TSE_CDN_BASE = 'https://cdn.tse.jus.br/estatistica/sead/odsele';
 
-// Mapeamento de dataset_tipo → caminho no CDN
-const DATASET_PATH = {
-  votacao_secao: 'votacao_secao',
-  votacao_nominal_munzona: 'votacao_nominal_munzona',
-  detalhe_apuracao_munzona: 'detalhe_apuracao_munzona',
-  perfil_eleitorado_secao: 'perfil_eleitorado_secao',
+// Mapeamento dataset_tipo → caminho real no CDN
+const DATASET_CDN_PATH = {
+  votacao_secao:                'votacao_secao',
+  votacao_nominal_munzona:      'votacao_candidato_munzona',
+  detalhe_apuracao_munzona:     'detalhe_votacao_secao',
+  perfil_eleitorado_secao:      'perfil_eleitor_secao',
 };
 
-// Limite para download direto no serverless (50MB)
+// Datasets NACIONAIS — arquivo único para todo o Brasil, sem sufixo _UF
+const DATASETS_NACIONAIS = new Set([
+  'votacao_nominal_munzona',
+  'detalhe_apuracao_munzona',
+]);
+
+// Limite para download direto (50MB)
 const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024;
 
 Deno.serve(async (req) => {
@@ -29,17 +35,21 @@ Deno.serve(async (req) => {
 
     const year = parseInt(ano);
     const state = uf.toUpperCase();
-    const path = DATASET_PATH[dataset_tipo];
+    const cdnPath = DATASET_CDN_PATH[dataset_tipo];
 
-    if (!path) {
+    if (!cdnPath) {
       return Response.json({
         error: 'Dataset inválido',
-        validos: Object.keys(DATASET_PATH),
+        validos: Object.keys(DATASET_CDN_PATH),
       }, { status: 400 });
     }
 
+    const isNacional = DATASETS_NACIONAIS.has(dataset_tipo);
+
     // Construir URL oficial
-    const url = `${TSE_CDN_BASE}/${path}/${path}_${year}_${state}.zip`;
+    const url = isNacional
+      ? `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}.zip`
+      : `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}_${state}.zip`;
 
     // Verificar cache no TSEDataSourceMap
     const cached = await base44.asServiceRole.entities.TSEDataSourceMap.filter({
@@ -63,6 +73,7 @@ Deno.serve(async (req) => {
         pode_baixar_direto: podeBaixar,
         exige_upload_manual: exigeUpload,
         observacao: c.observacao,
+        nacional: isNacional,
         cached: true,
       });
     }
@@ -102,13 +113,23 @@ Deno.serve(async (req) => {
       exigeUpload = true;
     }
 
-    // Salvar/atualizar cache
-    const observacao = headStatus === 'muito_grande'
-      ? `Arquivo de ${(sizeBytes / (1024*1024)).toFixed(1)}MB excede o limite de 50MB para download automático. Baixe manualmente e importe.`
-      : headStatus === 'indisponivel'
-        ? 'URL não encontrada no CDN do TSE. O arquivo pode ter sido movido ou não existir para este ano/UF.'
+    // Observação contextual
+    let observacao;
+    if (headStatus === 'muito_grande') {
+      observacao = isNacional
+        ? `Arquivo nacional de ${(sizeBytes / (1024*1024)).toFixed(1)}MB. O filtro por UF/Município será aplicado na importação.`
+        : `Arquivo de ${(sizeBytes / (1024*1024)).toFixed(1)}MB excede o limite de 50MB para download automático.`;
+    } else if (headStatus === 'indisponivel') {
+      observacao = isNacional
+        ? 'URL montada incorretamente para este tipo de dataset. Corrigindo para fonte nacional oficial do TSE.'
+        : 'URL não encontrada no CDN do TSE. O arquivo pode ter sido movido ou não existir para este ano/UF.';
+    } else {
+      observacao = isNacional
+        ? 'Arquivo nacional disponível no CDN do TSE. O filtro UF/Município será aplicado após a importação ou no processamento em lote.'
         : 'Disponível no CDN do TSE.';
+    }
 
+    // Salvar/atualizar cache
     if (cached.length > 0) {
       await base44.asServiceRole.entities.TSEDataSourceMap.update(cached[0].id, {
         status: headStatus, tamanho_estimado: sizeBytes, fonte_url: url, observacao,
@@ -131,6 +152,7 @@ Deno.serve(async (req) => {
       status: headStatus,
       pode_baixar_direto: podeBaixar,
       exige_upload_manual: exigeUpload,
+      nacional: isNacional,
       observacao,
       cached: false,
     });

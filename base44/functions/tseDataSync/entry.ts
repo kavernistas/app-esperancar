@@ -2,12 +2,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // CDN base do TSE
 const TSE_CDN_BASE = 'https://cdn.tse.jus.br/estatistica/sead/odsele';
-const DATASET_PATH = {
-  votacao_secao: 'votacao_secao',
-  votacao_nominal_munzona: 'votacao_nominal_munzona',
-  detalhe_apuracao_munzona: 'detalhe_apuracao_munzona',
-  perfil_eleitorado_secao: 'perfil_eleitorado_secao',
+const DATASET_CDN_PATH = {
+  votacao_secao:                'votacao_secao',
+  votacao_nominal_munzona:      'votacao_candidato_munzona',
+  detalhe_apuracao_munzona:     'detalhe_votacao_secao',
+  perfil_eleitorado_secao:      'perfil_eleitor_secao',
 };
+
+const DATASETS_NACIONAIS = new Set([
+  'votacao_nominal_munzona',
+  'detalhe_apuracao_munzona',
+]);
+
 const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024;
 const BATCH_SIZE = 1000;
 const MAX_RUNTIME_MS = 50000; // 50s — margem antes do timeout de 60s
@@ -88,10 +94,13 @@ async function handleSync(base44, body) {
 
   const year = parseInt(ano);
   const state = uf.toUpperCase();
-  const path = DATASET_PATH[dataset_tipo];
-  if (!path) return Response.json({ error: 'Dataset inválido' }, { status: 400 });
+  const cdnPath = DATASET_CDN_PATH[dataset_tipo];
+  if (!cdnPath) return Response.json({ error: 'Dataset inválido' }, { status: 400 });
 
-  const cdnUrl = `${TSE_CDN_BASE}/${path}/${path}_${year}_${state}.zip`;
+  const isNacional = DATASETS_NACIONAIS.has(dataset_tipo);
+  const cdnUrl = isNacional
+    ? `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}.zip`
+    : `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}_${state}.zip`;
 
   const existing = await base44.asServiceRole.entities.TSESyncStatus.filter({ ano: year, uf: state, tipo_dataset: 'votacao' });
   if (existing.length > 0 && existing[0].status === 'importando') {
@@ -608,14 +617,17 @@ async function handleResolveSource(base44, body) {
 
   const year = parseInt(ano);
   const state = uf.toUpperCase();
-  const path = DATASET_PATH[dataset_tipo];
-  if (!path) return Response.json({ error: 'Dataset inválido' }, { status: 400 });
+  const cdnPath = DATASET_CDN_PATH[dataset_tipo];
+  if (!cdnPath) return Response.json({ error: 'Dataset inválido' }, { status: 400 });
 
-  const url = `${TSE_CDN_BASE}/${path}/${path}_${year}_${state}.zip`;
+  const isNacional = DATASETS_NACIONAIS.has(dataset_tipo);
+  const url = isNacional
+    ? `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}.zip`
+    : `${TSE_CDN_BASE}/${cdnPath}/${cdnPath}_${year}_${state}.zip`;
 
   const cached = await base44.asServiceRole.entities.TSEDataSourceMap.filter({ ano: year, uf: state, dataset_tipo });
   if (cached.length > 0) {
-    return Response.json({ success: true, fonte: cached[0], cdn_url: url });
+    return Response.json({ success: true, fonte: cached[0], cdn_url: url, nacional: isNacional });
   }
 
   let status = 'nao_verificado';
@@ -633,15 +645,22 @@ async function handleResolveSource(base44, body) {
     status = 'indisponivel';
   }
 
+  const observacao = isNacional
+    ? 'Este arquivo é nacional. O filtro UF/Município será aplicado após a importação ou no processamento em lote.'
+    : (status === 'indisponivel'
+      ? 'URL não encontrada no CDN do TSE.'
+      : null);
+
   await base44.asServiceRole.entities.TSEDataSourceMap.create({
     ano: year, uf: state, dataset_tipo, fonte_url: url, formato: 'zip',
-    status, tamanho_estimado: sizeBytes,
+    status, tamanho_estimado: sizeBytes, observacao: observacao || '',
   });
 
   return Response.json({
     success: true,
-    fonte: { ano: year, uf: state, dataset_tipo, fonte_url: url, formato: 'zip', status, tamanho_estimado: sizeBytes },
+    fonte: { ano: year, uf: state, dataset_tipo, fonte_url: url, formato: 'zip', status, tamanho_estimado: sizeBytes, observacao, nacional: isNacional },
     cdn_url: url,
+    nacional: isNacional,
   });
 }
 
