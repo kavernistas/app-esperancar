@@ -1,0 +1,114 @@
+{
+  "name": "TSEImportJob",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number",
+      "description": "Ano da elei\u00e7\u00e3o"
+    },
+    "uf": {
+      "type": "string",
+      "description": "UF (sigla 2 letras)"
+    },
+    "municipio": {
+      "type": "string",
+      "description": "Munic\u00edpio (vazio = todos)"
+    },
+    "dataset_tipo": {
+      "type": "string",
+      "enum": [
+        "votacao_secao",
+        "votacao_nominal_munzona",
+        "detalhe_apuracao_munzona",
+        "perfil_eleitorado_secao"
+      ],
+      "description": "Tipo de dataset"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL do arquivo (UploadFile)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "baixando",
+        "extraindo",
+        "importando",
+        "deduplicando",
+        "concluido",
+        "erro",
+        "cancelado"
+      ],
+      "default": "pendente"
+    },
+    "progresso": {
+      "type": "number",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "total_linhas_arquivo": {
+      "type": "number",
+      "default": 0
+    },
+    "linhas_processadas": {
+      "type": "number",
+      "default": 0
+    },
+    "registros_importados": {
+      "type": "number",
+      "default": 0
+    },
+    "registros_duplicados": {
+      "type": "number",
+      "default": 0
+    },
+    "linha_offset": {
+      "type": "number",
+      "default": 0,
+      "description": "Offset em bytes para retomada"
+    },
+    "velocidade_registros_segundo": {
+      "type": "number",
+      "default": 0
+    },
+    "tempo_estimado_segundos": {
+      "type": "number",
+      "default": 0
+    },
+    "inicio": {
+      "type": "string"
+    },
+    "fim": {
+      "type": "string"
+    },
+    "ultima_atividade": {
+      "type": "string"
+    },
+    "erro": {
+      "type": "string"
+    },
+    "etapa": {
+      "type": "string",
+      "enum": [
+        "baixando",
+        "extraindo",
+        "importando",
+        "deduplicando",
+        "finalizando"
+      ],
+      "default": "baixando"
+    },
+    "tamanho_arquivo_mb": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "ano",
+    "uf",
+    "dataset_tipo",
+    "file_url"
+  ]
+}

@@ -9,6 +9,8 @@ const DATASET_PATH = {
   perfil_eleitorado_secao: 'perfil_eleitorado_secao',
 };
 const MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024;
+const BATCH_SIZE = 1000;
+const MAX_RUNTIME_MS = 50000; // 50s — margem antes do timeout de 60s
 
 const CARGO_MAP_CD = {
   '1': 'presidente', '3': 'governador', '5': 'senador',
@@ -31,8 +33,13 @@ Deno.serve(async (req) => {
     if (action === 'sync_status') return handleStatusCheck(base44, body);
     if (action === 'import_file') return handleFileImport(base44, body);
     if (action === 'resolve_source') return handleResolveSource(base44, body);
+    if (action === 'start_import') return handleStartImport(base44, body);
+    if (action === 'continue_import') return handleContinueImport(base44, body);
+    if (action === 'job_status') return handleJobStatus(base44, body);
+    if (action === 'cancel_job') return handleCancelJob(base44, body);
+    if (action === 'dedup') return handleDedup(base44, body);
 
-    return Response.json({ error: 'Ação inválida. Use: query, sync, sync_status, import_file, resolve_source' }, { status: 400 });
+    return Response.json({ error: 'Ação inválida.' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
@@ -67,19 +74,14 @@ async function handleLocalQuery(base44, body) {
   }
 
   const results = await base44.asServiceRole.entities.TSEVoteResult.filter(query, '-votos', limit);
-  const totalCount = results.length;
-
   return Response.json({
-    success: true,
-    isSynced: true,
-    data: results,
-    total: totalCount,
+    success: true, isSynced: true, data: results, total: results.length,
     syncInfo: syncStatus[0],
     message: `Base oficial TSE sincronizada localmente para ${state}/${year}.`,
   });
 }
 
-// ============ SINCRONIZAÇÃO (Download CDN TSE) ============
+// ============ SINCRONIZAÇÃO CDN (arquivos ≤50MB) ============
 async function handleSync(base44, body) {
   const { ano, uf, dataset_tipo = 'votacao_secao' } = body;
   if (!ano || !uf) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf' }, { status: 400 });
@@ -87,14 +89,10 @@ async function handleSync(base44, body) {
   const year = parseInt(ano);
   const state = uf.toUpperCase();
   const path = DATASET_PATH[dataset_tipo];
-
-  if (!path) {
-    return Response.json({ error: 'Dataset inválido', validos: Object.keys(DATASET_PATH) }, { status: 400 });
-  }
+  if (!path) return Response.json({ error: 'Dataset inválido' }, { status: 400 });
 
   const cdnUrl = `${TSE_CDN_BASE}/${path}/${path}_${year}_${state}.zip`;
 
-  // Verificar/criar status de sincronização
   const existing = await base44.asServiceRole.entities.TSESyncStatus.filter({ ano: year, uf: state, tipo_dataset: 'votacao' });
   if (existing.length > 0 && existing[0].status === 'importando') {
     return Response.json({ success: false, message: 'Importação já em andamento.' });
@@ -108,78 +106,53 @@ async function handleSync(base44, body) {
     });
   }
 
-  // Verificar tamanho do arquivo
   let fileSize = 0;
   try {
     const headRes = await fetch(cdnUrl, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
-    if (headRes.ok) {
-      const cl = headRes.headers.get('content-length');
-      fileSize = cl ? parseInt(cl) : 0;
-    }
-  } catch (_e) {
-    fileSize = 0;
-  }
+    if (headRes.ok) fileSize = parseInt(headRes.headers.get('content-length') || '0');
+  } catch (_e) {}
 
-  // Atualizar/criar cache de fonte
+  // Atualizar cache de fonte
   const cachedSources = await base44.asServiceRole.entities.TSEDataSourceMap.filter({ ano: year, uf: state, dataset_tipo });
+  const sourceStatus = fileSize > 0 ? (fileSize <= MAX_DOWNLOAD_SIZE ? 'disponivel' : 'muito_grande') : 'indisponivel';
   if (cachedSources.length > 0) {
     await base44.asServiceRole.entities.TSEDataSourceMap.update(cachedSources[0].id, {
-      status: fileSize > 0 ? (fileSize <= MAX_DOWNLOAD_SIZE ? 'disponivel' : 'muito_grande') : 'indisponivel',
-      tamanho_estimado: fileSize,
-      fonte_url: cdnUrl,
+      status: sourceStatus, tamanho_estimado: fileSize, fonte_url: cdnUrl,
     });
   } else {
     await base44.asServiceRole.entities.TSEDataSourceMap.create({
       ano: year, uf: state, dataset_tipo, fonte_url: cdnUrl, formato: 'zip',
-      status: fileSize > 0 ? (fileSize <= MAX_DOWNLOAD_SIZE ? 'disponivel' : 'muito_grande') : 'indisponivel',
-      tamanho_estimado: fileSize,
+      status: sourceStatus, tamanho_estimado: fileSize,
     });
   }
 
-  // Se arquivo muito grande ou indisponível → upload manual
-  if (fileSize === 0) {
-    await updateSyncStatus(base44, year, state, 'nao_importado', 'URL não encontrada no CDN do TSE.');
-    return Response.json({
-      success: true, needs_upload: true, total_importado: 0,
-      message: `O TSE disponibiliza este recurso como arquivo ZIP/CSV. Faça a importação para consultar no app. URL: ${cdnUrl}`,
-      tse_url: cdnUrl,
-    });
-  }
-
-  if (fileSize > MAX_DOWNLOAD_SIZE) {
+  if (fileSize === 0 || fileSize > MAX_DOWNLOAD_SIZE) {
+    const sizeMB = fileSize > 0 ? (fileSize/(1024*1024)).toFixed(1) : '?';
     await updateSyncStatus(base44, year, state, 'nao_importado',
-      `Arquivo de ${(fileSize/(1024*1024)).toFixed(1)}MB excede o limite de 50MB. Baixe manualmente.`);
+      fileSize > MAX_DOWNLOAD_SIZE ? `Arquivo de ${sizeMB}MB requer importação assíncrona.` : 'URL não encontrada.');
     return Response.json({
       success: true, needs_upload: true, total_importado: 0,
-      message: `O TSE disponibiliza este recurso como arquivo ZIP de ${(fileSize/(1024*1024)).toFixed(1)}MB (acima do limite de 50MB). Baixe o arquivo e faça upload manual.`,
-      tse_url: cdnUrl, file_size_mb: (fileSize/(1024*1024)).toFixed(1),
+      message: fileSize > MAX_DOWNLOAD_SIZE
+        ? `Arquivo de ${sizeMB}MB — use a importação assíncrona (upload manual).`
+        : `O TSE disponibiliza este recurso como arquivo ZIP/CSV. Faça upload para importar.`,
+      tse_url: cdnUrl, file_size_mb: sizeMB,
     });
   }
 
-  // Download e importação
-  let totalImported = 0;
   try {
     const downloadRes = await fetch(cdnUrl, { signal: AbortSignal.timeout(120000) });
     if (!downloadRes.ok) throw new Error(`CDN HTTP ${downloadRes.status}`);
-
     const buffer = await downloadRes.arrayBuffer();
     const csvText = await extractCSVFromZip(buffer);
-
-    totalImported = await parseAndImportCSV(base44, csvText, year, state);
-
-    await updateSyncStatus(base44, year, state, 'importado', '', totalImported);
-
+    const total = await parseAndImportCSVStreaming(base44, csvText, year, state, null);
+    await updateSyncStatus(base44, year, state, 'importado', '', total);
     return Response.json({
-      success: true, total_importado: totalImported, uf: state, ano: year,
-      fonte: 'cdn_tse', message: `Base oficial TSE sincronizada localmente. ${totalImported} registros.`,
+      success: true, total_importado: total, uf: state, ano: year,
+      fonte: 'cdn_tse', message: `${total} registros importados.`,
     });
   } catch (error) {
     await updateSyncStatus(base44, year, state, 'erro', error.message);
-    return Response.json({
-      success: false, needs_upload: true, error: error.message,
-      message: 'Erro no download automático. Tente o upload manual do arquivo.',
-      tse_url: cdnUrl,
-    });
+    return Response.json({ success: false, needs_upload: true, error: error.message, tse_url: cdnUrl });
   }
 }
 
@@ -195,60 +168,171 @@ async function updateSyncStatus(base44, year, state, status, mensagemErro, total
   }
 }
 
-// ============ IMPORTAÇÃO POR ARQUIVO (Upload usuário) ============
-const MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024; // 50MB máximo para processamento serverless
-
+// ============ IMPORTAÇÃO POR ARQUIVO (legado — redireciona para start_import) ============
 async function handleFileImport(base44, body) {
-  const { ano, uf, file_url, dataset_tipo = 'votacao_secao' } = body;
+  const { ano, uf, file_url, dataset_tipo = 'votacao_secao', municipio = '' } = body;
+  if (!ano || !uf || !file_url) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf, file_url' }, { status: 400 });
+  // Redireciona para o novo fluxo assíncrono
+  return handleStartImport(base44, { ...body, municipio });
+}
+
+// ============ NOVA IMPORTAÇÃO ASSÍNCRONA ============
+async function handleStartImport(base44, body) {
+  const { ano, uf, file_url, dataset_tipo = 'votacao_secao', municipio = '' } = body;
   if (!ano || !uf || !file_url) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf, file_url' }, { status: 400 });
 
   const year = parseInt(ano);
   const state = uf.toUpperCase();
 
-  const existing = await base44.asServiceRole.entities.TSESyncStatus.filter({ ano: year, uf: state, tipo_dataset: 'votacao' });
-  if (existing.length > 0 && existing[0].status === 'importando') {
-    return Response.json({ success: false, message: 'Importação já em andamento.' });
-  }
-
-  if (existing.length > 0) {
-    await base44.asServiceRole.entities.TSESyncStatus.update(existing[0].id, { status: 'importando', mensagem_erro: '' });
-  } else {
-    await base44.asServiceRole.entities.TSESyncStatus.create({
-      ano: year, uf: state, tipo_dataset: 'votacao', status: 'importando', fonte_url: file_url,
-    });
-  }
-
-  // Verificar tamanho do arquivo antes de baixar
-  let fileSize = 0;
-  try {
-    const headRes = await fetch(file_url, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
-    if (headRes.ok) {
-      fileSize = parseInt(headRes.headers.get('content-length') || '0');
-    }
-  } catch (_e) {
-    // Se HEAD falhar, tentamos o GET mesmo assim
-  }
-
-  if (fileSize > MAX_IMPORT_FILE_SIZE) {
-    const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
-    await updateSyncStatus(base44, year, state, 'erro',
-      `Arquivo de ${sizeMB}MB excede o limite de 50MB para processamento serverless. Use um arquivo menor ou divida por município.`);
+  // Verificar se já existe job em andamento para este ano/UF
+  const existingJobs = await base44.asServiceRole.entities.TSEImportJob.filter({
+    ano: year, uf: state, dataset_tipo,
+    status: ['pendente', 'baixando', 'extraindo', 'importando', 'deduplicando'],
+  });
+  if (existingJobs.length > 0) {
+    const job = existingJobs[0];
     return Response.json({
-      success: false,
-      error: `Arquivo muito grande (${sizeMB} MB). O limite é 50 MB para processamento automático.`,
-      message: `Arquivo de ${sizeMB} MB excede o limite de 50 MB. Baixe um arquivo menor ou específico por município no Portal de Dados Abertos do TSE.`,
-      file_size_mb: sizeMB,
+      success: true, job_id: job.id, status: job.status,
+      progresso: job.progresso, message: 'Importação já em andamento.',
+      needs_continuation: job.status !== 'concluido',
     });
   }
 
-  // Se o arquivo é pequeno o suficiente, tenta baixar e processar
+  // Criar job
+  const job = await base44.asServiceRole.entities.TSEImportJob.create({
+    ano: year, uf: state, municipio, dataset_tipo, file_url,
+    status: 'baixando', etapa: 'baixando', inicio: new Date().toISOString(),
+    ultima_atividade: new Date().toISOString(),
+  });
+
+  // Iniciar processamento
+  return processImportChunk(base44, job);
+}
+
+async function handleContinueImport(base44, body) {
+  const { job_id } = body;
+  if (!job_id) return Response.json({ error: 'job_id obrigatório' }, { status: 400 });
+
+  let job;
   try {
-    const fileRes = await fetch(file_url, { signal: AbortSignal.timeout(120000) });
-    if (!fileRes.ok) throw new Error(`Erro ao baixar arquivo: HTTP ${fileRes.status}`);
+    const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: job_id });
+    if (jobs.length === 0) return Response.json({ error: 'Job não encontrado' }, { status: 404 });
+    job = jobs[0];
+  } catch (_e) {
+    return Response.json({ error: 'Job não encontrado' }, { status: 404 });
+  }
+
+  if (job.status === 'concluido') {
+    return Response.json({ success: true, job_id: job.id, status: 'concluido', message: 'Importação já concluída.' });
+  }
+  if (job.status === 'cancelado') {
+    return Response.json({ success: false, error: 'Job cancelado.' });
+  }
+
+  return processImportChunk(base44, job);
+}
+
+async function handleJobStatus(base44, body) {
+  const { job_id, ano, uf } = body;
+
+  if (job_id) {
+    const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: job_id });
+    if (jobs.length === 0) return Response.json({ error: 'Job não encontrado' }, { status: 404 });
+    return Response.json({ success: true, job: jobs[0] });
+  }
+
+  if (ano && uf) {
+    const year = parseInt(ano);
+    const state = uf.toUpperCase();
+    const jobs = await base44.asServiceRole.entities.TSEImportJob.filter(
+      { ano: year, uf: state }, '-created_date', 10
+    );
+    return Response.json({ success: true, jobs });
+  }
+
+  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({}, '-created_date', 20);
+  return Response.json({ success: true, jobs });
+}
+
+async function handleCancelJob(base44, body) {
+  const { job_id } = body;
+  if (!job_id) return Response.json({ error: 'job_id obrigatório' }, { status: 400 });
+
+  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: job_id });
+  if (jobs.length === 0) return Response.json({ error: 'Job não encontrado' }, { status: 404 });
+
+  await base44.asServiceRole.entities.TSEImportJob.update(job_id, {
+    status: 'cancelado', fim: new Date().toISOString(), erro: 'Cancelado pelo usuário.',
+  });
+  return Response.json({ success: true, message: 'Job cancelado.' });
+}
+
+async function handleDedup(base44, body) {
+  const { ano, uf } = body;
+  if (!ano || !uf) return Response.json({ error: 'Parâmetros obrigatórios: ano, uf' }, { status: 400 });
+
+  const year = parseInt(ano);
+  const state = uf.toUpperCase();
+
+  // Buscar todos os registros do ano/UF
+  const allRecords = await base44.asServiceRole.entities.TSEVoteResult.filter(
+    { ano: year, uf: state }, 'created_date', 5000
+  );
+
+  const seen = new Set();
+  const duplicates = [];
+
+  for (const r of allRecords) {
+    const key = `${r.ano}|${r.uf}|${r.municipio}|${r.zona}|${r.secao}|${r.cargo}|${r.numero_candidato}`;
+    if (seen.has(key)) {
+      duplicates.push(r.id);
+    } else {
+      seen.add(key);
+    }
+  }
+
+  if (duplicates.length > 0) {
+    // Deletar em lotes
+    for (let i = 0; i < duplicates.length; i += 100) {
+      const batch = duplicates.slice(i, i + 100);
+      for (const id of batch) {
+        await base44.asServiceRole.entities.TSEVoteResult.delete(id);
+      }
+    }
+  }
+
+  return Response.json({
+    success: true,
+    total_verificados: allRecords.length,
+    duplicatas_removidas: duplicates.length,
+    message: duplicates.length > 0
+      ? `${duplicates.length} registros duplicados removidos.`
+      : 'Nenhuma duplicata encontrada.',
+  });
+}
+
+// ============ CORE: PROCESSAMENTO EM CHUNKS ============
+async function processImportChunk(base44, job) {
+  const startTime = Date.now();
+
+  try {
+    // Atualizar status
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'baixando', etapa: 'baixando', ultima_atividade: new Date().toISOString(),
+    });
+
+    // 1. Baixar arquivo
+    const fileRes = await fetch(job.file_url, { signal: AbortSignal.timeout(120000) });
+    if (!fileRes.ok) throw new Error(`Erro ao baixar: HTTP ${fileRes.status}`);
 
     const buffer = await fileRes.arrayBuffer();
-    const fileUrlLower = file_url.toLowerCase();
+    const fileUrlLower = job.file_url.toLowerCase();
     const contentType = fileRes.headers.get('content-type') || '';
+
+    // 2. Extrair CSV
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'extraindo', etapa: 'extraindo', ultima_atividade: new Date().toISOString(),
+    });
 
     let csvText;
     if (contentType.includes('zip') || fileUrlLower.endsWith('.zip')) {
@@ -256,27 +340,265 @@ async function handleFileImport(base44, body) {
     } else {
       csvText = new TextDecoder().decode(new Uint8Array(buffer));
     }
-
-    // Detectar encoding (Latin1 → UTF-8)
     csvText = normalizarEncoding(csvText);
 
-    const total = await parseAndImportCSV(base44, csvText, year, state);
+    // 3. Contar total de linhas (uma vez)
+    if (job.total_linhas_arquivo === 0) {
+      const totalLinhas = countCSVLines(csvText);
+      await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+        total_linhas_arquivo: totalLinhas,
+        ultima_atividade: new Date().toISOString(),
+      });
+      job.total_linhas_arquivo = totalLinhas;
+    }
 
-    await updateSyncStatus(base44, year, state, 'importado', '', total);
-
-    return Response.json({
-      success: true, total_importado: total, uf: state, ano: year,
-      fonte: 'arquivo_usuario', message: `Base oficial TSE importada com sucesso. ${total} registros.`,
+    // 4. Construir set de deduplicação
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'deduplicando', etapa: 'deduplicando', ultima_atividade: new Date().toISOString(),
     });
-  } catch (error) {
-    const errMsg = error.message || 'Erro desconhecido';
-    await updateSyncStatus(base44, year, state, 'erro', errMsg);
+
+    const dedupSet = await buildDedupSet(base44, job.ano, job.uf);
+
+    // 5. Importar em streaming
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'importando', etapa: 'importando', ultima_atividade: new Date().toISOString(),
+    });
+
+    const result = await parseAndImportCSVStreaming(
+      base44, csvText, job.ano, job.uf,
+      job.municipio || null, dedupSet, job.linha_offset, startTime, job.id
+    );
+
+    // Atualizar job
+    const newOffset = job.linha_offset + result.bytesProcessed;
+    const newLinhas = job.linhas_processadas + result.linesProcessed;
+    const newRegistros = job.registros_importados + result.recordsImported;
+    const newDupes = job.registros_duplicados + result.duplicatesSkipped;
+    const elapsed = Date.now() - startTime;
+    const speed = elapsed > 0 ? Math.round(result.recordsImported / (elapsed / 1000)) : 0;
+
+    const updateData = {
+      linha_offset: newOffset,
+      linhas_processadas: newLinhas,
+      registros_importados: newRegistros,
+      registros_duplicados: newDupes,
+      velocidade_registros_segundo: speed,
+      ultima_atividade: new Date().toISOString(),
+    };
+
+    if (result.complete) {
+      updateData.status = 'concluido';
+      updateData.progresso = 100;
+      updateData.fim = new Date().toISOString();
+      updateData.etapa = 'finalizando';
+
+      // Atualizar sync status
+      await updateSyncStatus(base44, job.ano, job.uf, 'importado', '', newRegistros);
+    } else {
+      updateData.progresso = job.total_linhas_arquivo > 0
+        ? Math.min(99, Math.round((newLinhas / job.total_linhas_arquivo) * 100))
+        : 0;
+      // Estimar tempo restante
+      if (speed > 0 && job.total_linhas_arquivo > 0) {
+        const remaining = job.total_linhas_arquivo - newLinhas;
+        updateData.tempo_estimado_segundos = Math.round(remaining / speed);
+      }
+    }
+
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, updateData);
+
     return Response.json({
-      success: false,
-      error: errMsg,
-      message: `Erro ao processar arquivo: ${errMsg}. Verifique se o formato é um CSV ou ZIP válido do TSE.`
+      success: true,
+      job_id: job.id,
+      status: result.complete ? 'concluido' : 'processando',
+      progresso: updateData.progresso,
+      registros_importados: newRegistros,
+      registros_duplicados: newDupes,
+      linhas_processadas: newLinhas,
+      total_linhas: job.total_linhas_arquivo,
+      velocidade: speed,
+      tempo_estimado: updateData.tempo_estimado_segundos || 0,
+      needs_continuation: !result.complete,
+      message: result.complete
+        ? `Importação concluída! ${newRegistros} registros (${newDupes} duplicados ignorados).`
+        : `Processando... ${newLinhas}/${job.total_linhas_arquivo} linhas. Continue chamando continue_import.`,
+    });
+
+  } catch (error) {
+    await base44.asServiceRole.entities.TSEImportJob.update(job.id, {
+      status: 'erro', erro: error.message, fim: new Date().toISOString(),
+      ultima_atividade: new Date().toISOString(),
+    });
+    return Response.json({
+      success: false, job_id: job.id, status: 'erro',
+      error: error.message,
+      message: `Erro na importação: ${error.message}. Use continue_import para retomar.`,
+      retryable: true,
     });
   }
+}
+
+// ============ STREAMING CSV PARSER ============
+async function parseAndImportCSVStreaming(base44, csvText, year, state, municipio, dedupSet, startOffset, budgetStartMs, jobId) {
+  let bytePos = 0;
+  const len = csvText.length;
+
+  // Pular para o offset salvo
+  if (startOffset > 0) {
+    bytePos = startOffset;
+  }
+
+  // Se for primeira execução, ler cabeçalho
+  let header = null;
+  let delimiter = null;
+  let ufIdx = -1;
+
+  if (bytePos === 0) {
+    let headerEnd = csvText.indexOf('\n', 0);
+    if (headerEnd === -1) throw new Error('CSV vazio.');
+    if (csvText[headerEnd - 1] === '\r') headerEnd--;
+    const headerLine = csvText.slice(0, headerEnd);
+    bytePos = csvText.indexOf('\n', 0) + 1;
+
+    if (!headerLine.trim()) throw new Error('CSV sem cabeçalho.');
+    delimiter = detectarSeparador(headerLine);
+    header = parseCSVLine(headerLine, delimiter);
+    ufIdx = header.findIndex(h => h === 'SG_UF');
+    if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada.');
+  } else {
+    // Na retomada, precisamos re-parsear o cabeçalho
+    let headerEnd = csvText.indexOf('\n', 0);
+    if (csvText[headerEnd - 1] === '\r') headerEnd--;
+    const headerLine = csvText.slice(0, headerEnd);
+    delimiter = detectarSeparador(headerLine);
+    header = parseCSVLine(headerLine, delimiter);
+    ufIdx = header.findIndex(h => h === 'SG_UF');
+  }
+
+  let batch = [];
+  let recordsImported = 0;
+  let duplicatesSkipped = 0;
+  let linesProcessed = 0;
+  let bytesProcessed = 0;
+  const startBytePos = bytePos;
+  const municipioUpper = municipio ? municipio.toUpperCase() : null;
+  const municipioIdx = municipio ? header.findIndex(h => h === 'NM_MUNICIPIO') : -1;
+
+  while (bytePos < len) {
+    // Verificar budget de tempo
+    const elapsed = Date.now() - budgetStartMs;
+    if (elapsed > MAX_RUNTIME_MS && recordsImported > 0) {
+      bytesProcessed = bytePos - startBytePos;
+      return {
+        complete: false, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed,
+      };
+    }
+
+    let end = csvText.indexOf('\n', bytePos);
+    if (end === -1) end = len;
+    let line = csvText.slice(bytePos, end);
+    if (line.endsWith('\r')) line = line.slice(0, -1);
+    bytePos = end + 1;
+    linesProcessed++;
+
+    if (!line.trim()) continue;
+
+    const values = parseCSVLine(line, delimiter);
+    if (values.length < header.length) continue;
+    if (values[ufIdx] !== state) continue;
+    if (municipioUpper && municipioIdx >= 0 && values[municipioIdx].toUpperCase() !== municipioUpper) continue;
+
+    // Verificar duplicata
+    const dedupKey = buildDedupKey(values, header, year, state);
+    if (dedupSet.has(dedupKey)) {
+      duplicatesSkipped++;
+      continue;
+    }
+    dedupSet.add(dedupKey);
+
+    const record = buildRecordFromCSV(header, values, year, state);
+    batch.push(record);
+
+    if (batch.length >= BATCH_SIZE) {
+      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
+      recordsImported += batch.length;
+      batch = [];
+
+      // Atualizar progresso no job a cada lote
+      if (jobId) {
+        try {
+          await base44.asServiceRole.entities.TSEImportJob.update(jobId, {
+            linhas_processadas: (await getJobLinhas(base44, jobId)) + linesProcessed,
+            registros_importados: (await getJobRegistros(base44, jobId)) + recordsImported,
+            ultima_atividade: new Date().toISOString(),
+          });
+        } catch (_e) { /* non-critical */ }
+      }
+    }
+  }
+
+  // Último lote
+  if (batch.length > 0) {
+    await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
+    recordsImported += batch.length;
+  }
+
+  bytesProcessed = bytePos - startBytePos;
+
+  return {
+    complete: true, recordsImported, duplicatesSkipped, linesProcessed, bytesProcessed,
+  };
+}
+
+async function getJobLinhas(base44, jobId) {
+  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: jobId });
+  return jobs.length > 0 ? jobs[0].linhas_processadas : 0;
+}
+
+async function getJobRegistros(base44, jobId) {
+  const jobs = await base44.asServiceRole.entities.TSEImportJob.filter({ id: jobId });
+  return jobs.length > 0 ? jobs[0].registros_importados : 0;
+}
+
+function buildDedupKey(values, header, year, state) {
+  const get = (name) => {
+    const idx = header.findIndex(h => h === name);
+    return idx >= 0 ? (values[idx] || '') : '';
+  };
+  return `${year}|${state}|${get('NM_MUNICIPIO')}|${get('NR_ZONA')}|${get('NR_SECAO')}|${get('DS_CARGO') || get('CD_CARGO')}|${get('NR_VOTAVEL') || get('NR_CANDIDATO')}`;
+}
+
+async function buildDedupSet(base44, year, state) {
+  const set = new Set();
+  let page = 0;
+  const pageSize = 2000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const records = await base44.asServiceRole.entities.TSEVoteResult.filter(
+      { ano: year, uf: state }, 'id', pageSize
+    );
+    if (records.length === 0) { hasMore = false; break; }
+
+    for (const r of records) {
+      set.add(`${r.ano}|${r.uf}|${r.municipio}|${r.zona}|${r.secao}|${r.cargo}|${r.numero_candidato}`);
+    }
+
+    if (records.length < pageSize) { hasMore = false; }
+    page++;
+  }
+
+  return set;
+}
+
+function countCSVLines(csvText) {
+  let count = 0;
+  for (let i = 0; i < csvText.length; i++) {
+    if (csvText[i] === '\n') count++;
+  }
+  // Não conta a última linha se terminar sem \n
+  if (csvText.length > 0 && csvText[csvText.length - 1] !== '\n') count++;
+  return count;
 }
 
 // ============ RESOLVE SOURCE ============
@@ -333,7 +655,7 @@ async function handleStatusCheck(base44, body) {
   return Response.json({ success: true, statuses });
 }
 
-// ============ ZIP EXTRACTION ============
+// ============ UTILITÁRIOS ZIP/CSV ============
 function findCSVInZip(buf) {
   const data = new Uint8Array(buf);
   let cdOffset = -1;
@@ -342,7 +664,7 @@ function findCSVInZip(buf) {
       cdOffset = i; break;
     }
   }
-  if (cdOffset === -1) throw new Error('ZIP inválido — arquivo corrompido ou formato não suportado.');
+  if (cdOffset === -1) throw new Error('ZIP inválido — arquivo corrompido.');
 
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   let pos = cdOffset;
@@ -351,14 +673,12 @@ function findCSVInZip(buf) {
   while (pos < data.length - 46) {
     const sig = view.getUint32(pos, true);
     if (sig !== 0x02014b50) break;
-
     const compMethod = view.getUint16(pos + 10, true);
     const fileNameLen = view.getUint16(pos + 28, true);
     const extraLen = view.getUint16(pos + 30, true);
     const commentLen = view.getUint16(pos + 32, true);
     const localHeaderOff = view.getUint32(pos + 42, true);
     const compSize = view.getUint32(pos + 20, true);
-
     const nameBytes = data.slice(pos + 46, pos + 46 + fileNameLen);
     const fileName = new TextDecoder().decode(nameBytes);
 
@@ -381,7 +701,6 @@ async function inflateData(compressed) {
   const reader = ds.readable.getReader();
   writer.write(compressed);
   writer.close();
-
   const chunks = [];
   while (true) {
     const { done, value } = await reader.read();
@@ -397,8 +716,7 @@ async function inflateData(compressed) {
 
 async function extractCSVFromZip(buffer) {
   const files = findCSVInZip(buffer);
-  if (files.length === 0) throw new Error('Nenhum arquivo CSV encontrado no ZIP.');
-
+  if (files.length === 0) throw new Error('Nenhum CSV encontrado no ZIP.');
   const csvFile = files[0];
   let csvData;
   if (csvFile.method === 'deflate') {
@@ -409,14 +727,9 @@ async function extractCSVFromZip(buffer) {
   return new TextDecoder().decode(csvData);
 }
 
-// ============ CSV PARSER ============
 function normalizarEncoding(text) {
-  // Tenta detectar se é Latin1 (ISO-8859-1) com caracteres mal decodificados
-  // Se já for UTF-8 válido, retorna como está
   try {
-    // Testa se há caracteres de substituição comuns de Latin1 mal interpretado
     if (text.includes('Ã§') || text.includes('Ã£') || text.includes('Ã©') || text.includes('Ã') || text.includes('Ã´')) {
-      // Provavelmente Latin1 interpretado como UTF-8
       const bytes = new Uint8Array(text.length);
       for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xFF;
       return new TextDecoder('iso-8859-1').decode(bytes);
@@ -431,7 +744,6 @@ function parseCSVLine(line, delimiter) {
   const result = [];
   let current = '';
   let inQuotes = false;
-
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
@@ -454,75 +766,14 @@ function detectarSeparador(headerLine) {
   return semicolons > commas ? ';' : ',';
 }
 
-async function parseAndImportCSV(base44, csvText, year, state) {
-  // Processa linha a linha sem carregar array completo em memória
-  let start = 0;
-  const len = csvText.length;
-
-  // Lê cabeçalho (primeira linha)
-  let headerEnd = csvText.indexOf('\n', start);
-  if (headerEnd === -1) throw new Error('CSV vazio — sem cabeçalho.');
-  if (csvText[headerEnd - 1] === '\r') headerEnd--; // Windows \r\n
-  const headerLine = csvText.slice(start, headerEnd);
-  start = csvText.indexOf('\n', start) + 1; // pula \n
-
-  if (!headerLine.trim()) throw new Error('CSV vazio ou com apenas cabeçalho.');
-
-  const delimiter = detectarSeparador(headerLine);
-  const header = parseCSVLine(headerLine, delimiter);
-
-  const ufIdx = header.findIndex(h => h === 'SG_UF');
-  if (ufIdx === -1) throw new Error('Coluna SG_UF não encontrada. Verifique o formato do arquivo TSE.');
-
-  let batch = [];
-  let total = 0;
-  let imported = 0;
-  const BATCH_SIZE = 100;
-
-  while (start < len) {
-    let end = csvText.indexOf('\n', start);
-    if (end === -1) end = len;
-    let line = csvText.slice(start, end);
-    // Remove \r do Windows
-    if (line.endsWith('\r')) line = line.slice(0, -1);
-    start = end + 1;
-
-    if (!line.trim()) continue;
-
-    const values = parseCSVLine(line, delimiter);
-    if (values.length < header.length) continue;
-    if (values[ufIdx] !== state) continue;
-
-    const record = buildRecordFromCSV(header, values, year, state);
-    batch.push(record);
-    total++;
-
-    if (batch.length >= BATCH_SIZE) {
-      await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-      imported += batch.length;
-      batch = [];
-    }
-  }
-
-  if (batch.length > 0) {
-    await base44.asServiceRole.entities.TSEVoteResult.bulkCreate(batch);
-    imported += batch.length;
-  }
-
-  return imported;
-}
-
 function buildRecordFromCSV(header, values, year, state) {
   const get = (name) => {
     const idx = header.findIndex(h => h === name);
     return idx >= 0 ? (values[idx] || '') : '';
   };
-
   const cargoCd = get('CD_CARGO');
   const cargoName = get('DS_CARGO') || CARGO_MAP_CD[cargoCd] || cargoCd;
-
   const votos = parseInt(get('QT_VOTOS')) || parseInt(get('QT_VOTOS_NOMINAIS')) || 0;
-
   return {
     ano: year,
     turno: parseInt(get('NR_TURNO')) || 1,

@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import ImportProgressPanel from "@/components/electoral/ImportProgressPanel";
 import {
   Database, Download, CheckCircle2, AlertTriangle, XCircle,
-  Upload, FileUp, ExternalLink, Search, RefreshCw, Info
+  Upload, FileUp, ExternalLink, Search, RefreshCw, Info, MapPin
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import moment from "moment";
@@ -23,6 +24,7 @@ const DATASET_TIPOS = [
 export default function ImportPanel({ syncStatuses, onSync, syncing }) {
   const [selectedAno, setSelectedAno] = useState("2024");
   const [selectedUF, setSelectedUF] = useState("GO");
+  const [selectedMunicipio, setSelectedMunicipio] = useState("");
   const [selectedDataset, setSelectedDataset] = useState("votacao_secao");
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +32,7 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
   const [sourceInfo, setSourceInfo] = useState(null);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncResult, setSyncResult] = useState(null);
+  const [lastJobId, setLastJobId] = useState(null);
   const fileInputRef = useRef(null);
 
   const getStatus = (ano, uf) => {
@@ -114,25 +117,26 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
       const fileUrl = uploadRes.file_url;
 
       const importRes = await base44.functions.invoke("tseDataSync", {
-        action: "import_file",
+        action: "start_import",
         ano: selectedAno,
         uf: selectedUF,
+        municipio: selectedMunicipio,
         file_url: fileUrl,
         dataset_tipo: selectedDataset,
       });
 
       if (importRes.data?.success) {
+        setLastJobId(importRes.data.job_id);
         setSyncResult(importRes.data);
-        setSyncMessage(importRes.data.message || `Importado com sucesso! ${importRes.data.total_importado} registros.`);
+        setSyncMessage(importRes.data.message || `Importação iniciada! Acompanhe o progresso abaixo.`);
         setUploadFile(null);
-        setTimeout(() => window.location.reload(), 1500);
       } else {
-        const msg = importRes.data?.message || importRes.data?.error || "Erro na importação. Verifique o formato do arquivo.";
+        const msg = importRes.data?.message || importRes.data?.error || "Erro na importação.";
         setSyncMessage(msg);
       }
     } catch (e) {
       const errData = e?.response?.data;
-      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo. O servidor pode ter excedido o tempo limite para arquivos grandes.';
+      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo.';
       setSyncMessage(msg);
     }
     setUploading(false);
@@ -156,7 +160,7 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
             <Progress value={Math.round((importedCount / totalPossible) * 100)} className="h-1.5 flex-1" />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-slate-600 mb-1 block">Ano</label>
               <select value={selectedAno} onChange={(e) => setSelectedAno(e.target.value)} className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm">
@@ -168,6 +172,11 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
               <select value={selectedUF} onChange={(e) => setSelectedUF(e.target.value)} className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm">
                 {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Município</label>
+              <input type="text" value={selectedMunicipio} onChange={(e) => setSelectedMunicipio(e.target.value)}
+                placeholder="Todos (opcional)" className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 mb-1 block">Dataset</label>
@@ -246,11 +255,11 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
                   <p className="text-sm font-medium text-amber-800">Importação manual necessária</p>
                   <p className="text-xs text-amber-600 mt-1">
                     {sourceInfo?.status === 'muito_grande'
-                      ? `O arquivo oficial do TSE tem ${(sourceInfo.tamanho_estimado/(1024*1024)).toFixed(0)} MB e excede o limite de 50 MB para download automático.`
+                      ? `O arquivo do TSE tem ${(sourceInfo.tamanho_estimado/(1024*1024)).toFixed(0)} MB — uso de importação assíncrona com streaming. Para estados grandes, filtre por município.`
                       : 'O arquivo oficial não pôde ser baixado automaticamente do CDN do TSE.'}
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
-                    Acesse o Portal de Dados Abertos do TSE, baixe o CSV e faça upload aqui.
+                    Acesse o Portal de Dados Abertos do TSE, baixe o CSV/ZIP e faça upload aqui.
                   </p>
                 </div>
               </div>
@@ -285,7 +294,7 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
           )}
 
           {/* Resultado */}
-          {syncResult && !syncResult.needs_upload && syncResult.success && (
+          {syncResult && !syncResult.needs_upload && syncResult.success && syncResult.status === 'concluido' && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -295,6 +304,9 @@ export default function ImportPanel({ syncStatuses, onSync, syncing }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Monitor de importação */}
+      <ImportProgressPanel onComplete={() => window.location.reload()} />
 
       {/* Grid de status */}
       <Card className="border-slate-200">

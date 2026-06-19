@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import ImportProgressPanel from "@/components/electoral/ImportProgressPanel";
 import {
   Database, Search, CheckCircle2, XCircle, AlertTriangle,
   Download, Upload, FileUp, ExternalLink, RefreshCw,
-  Wifi, WifiOff, Clock, Activity, Info, FileText
+  Wifi, WifiOff, Clock, Activity, Info, FileText, MapPin
 } from "lucide-react";
 import moment from "moment";
 
@@ -24,6 +25,7 @@ const DATASET_TIPOS = [
 export default function DiagnosticoTSE() {
   const [ano, setAno] = useState("2024");
   const [uf, setUf] = useState("SP");
+  const [municipio, setMunicipio] = useState("");
   const [dataset, setDataset] = useState("votacao_secao");
   const [sourceResult, setSourceResult] = useState(null);
   const [syncStatuses, setSyncStatuses] = useState([]);
@@ -32,6 +34,7 @@ export default function DiagnosticoTSE() {
   const [uploadFile, setUploadFile] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [cdHttpStatus, setCdHttpStatus] = useState(null);
+  const [lastJobId, setLastJobId] = useState(null);
 
   const loadSyncStatus = useCallback(async () => {
     try {
@@ -85,23 +88,27 @@ export default function DiagnosticoTSE() {
     try {
       const uploadRes = await base44.integrations.Core.UploadFile({ file: uploadFile });
       const importRes = await base44.functions.invoke("tseDataSync", {
-        action: "import_file",
+        action: "start_import",
         ano,
         uf,
+        municipio,
         file_url: uploadRes.file_url,
         dataset_tipo: dataset,
       });
       if (importRes.data?.success) {
-        setStatusMessage(`✅ ${importRes.data.message || 'Importado com sucesso!'}`);
+        setLastJobId(importRes.data.job_id);
+        setStatusMessage(`✅ Importação iniciada! Job #${importRes.data.job_id?.slice(-6)} — acompanhe abaixo.`);
         setUploadFile(null);
-        await loadSyncStatus();
+        if (importRes.data.status === 'concluido') {
+          await loadSyncStatus();
+        }
       } else {
         const msg = importRes.data?.message || importRes.data?.error || 'Erro na importação';
         setStatusMessage(`❌ ${msg}`);
       }
     } catch (e) {
       const errData = e?.response?.data;
-      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo. O servidor pode ter excedido o tempo limite.';
+      const msg = errData?.message || errData?.error || 'Erro ao processar arquivo.';
       setStatusMessage(`❌ ${msg}`);
     }
     setImporting(false);
@@ -135,7 +142,7 @@ export default function DiagnosticoTSE() {
       {/* Filtros */}
       <Card className="border-slate-200">
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Ano</label>
               <select value={ano} onChange={(e) => setAno(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
@@ -147,6 +154,11 @@ export default function DiagnosticoTSE() {
               <select value={uf} onChange={(e) => setUf(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 {ESTADOS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Município (opcional)</label>
+              <input type="text" value={municipio} onChange={(e) => setMunicipio(e.target.value)}
+                placeholder="Ex: SÃO PAULO" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Dataset</label>
@@ -319,7 +331,7 @@ export default function DiagnosticoTSE() {
                     <p className="text-sm font-medium text-amber-800">Upload manual necessário</p>
                     <p className="text-xs text-amber-600">
                       {tamanhoMB
-                        ? `Arquivo de ${tamanhoMB} MB excede o limite de 50 MB para download automático.`
+                        ? `Arquivo de ${tamanhoMB} MB — processamento assíncrono em streaming. Para estados grandes, filtre por município.`
                         : 'Fonte indisponível para download automático.'}
                     </p>
                   </div>
@@ -359,6 +371,9 @@ export default function DiagnosticoTSE() {
           </CardContent>
         </Card>
       )}
+
+      {/* Monitor de Importação */}
+      <ImportProgressPanel onComplete={loadSyncStatus} />
 
       {/* Grid de bases sincronizadas */}
       <Card className="border-slate-200">
