@@ -223,12 +223,15 @@ export default function Demands() {
                 <SelectItem value="all">Todos Tipos</SelectItem>
                 <SelectItem value="health">Saúde</SelectItem>
                 <SelectItem value="education">Educação</SelectItem>
+                <SelectItem value="zeladoria">Zeladoria</SelectItem>
+                <SelectItem value="iluminacao">Iluminação</SelectItem>
                 <SelectItem value="infrastructure">Infraestrutura</SelectItem>
                 <SelectItem value="security">Segurança</SelectItem>
                 <SelectItem value="social">Assistência Social</SelectItem>
                 <SelectItem value="employment">Emprego</SelectItem>
                 <SelectItem value="housing">Habitação</SelectItem>
                 <SelectItem value="transport">Transporte</SelectItem>
+                <SelectItem value="documentacao">Documentação</SelectItem>
                 <SelectItem value="other">Outros</SelectItem>
               </SelectContent>
             </Select>

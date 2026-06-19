@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Save, Loader2, Camera } from "lucide-react";
+import LocationPicker from "@/components/ui/LocationPicker";
 import { base44 } from "@/api/base44Client";
 
 const DEMAND_TYPES = [
@@ -31,6 +32,7 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
   const [form, setForm] = useState({
     title: "", type: "other", description: "", requester_name: "", requester_phone: "",
     address: "", neighborhood: "", priority: "medium", supporter_id: "", photo_url: "",
+    latitude: null, longitude: null,
   });
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +62,7 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
       supporter_name: supporter?.full_name || "",
     });
     setSaving(false);
-    setForm({ title: "", type: "other", description: "", requester_name: "", requester_phone: "", address: "", neighborhood: "", priority: "medium", supporter_id: "", photo_url: "" });
+    setForm({ title: "", type: "other", description: "", requester_name: "", requester_phone: "", address: "", neighborhood: "", priority: "medium", supporter_id: "", photo_url: "", latitude: null, longitude: null });
   };
 
   return (
@@ -129,6 +131,15 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
           <div>
             <Label className="text-xs">Descrição</Label>
             <Textarea value={form.description} onChange={e => handleChange("description", e.target.value)} placeholder="Descreva a demanda..." rows={3} className="text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs">Localização no Mapa</Label>
+            <LocationPicker
+              value={{ latitude: form.latitude, longitude: form.longitude }}
+              onChange={({ latitude, longitude }) => { handleChange("latitude", latitude); handleChange("longitude", longitude); }}
+              height={180}
+              placeholder="Buscar endereço da demanda..."
+            />
           </div>
           <div className="flex items-center gap-3">
             <Label className="text-xs flex items-center gap-1.5 cursor-pointer text-blue-600 hover:text-blue-700">

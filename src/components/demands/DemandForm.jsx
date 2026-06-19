@@ -18,16 +18,20 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Save, Loader2 } from "lucide-react";
+import LocationPicker from "@/components/ui/LocationPicker";
 
 const DEMAND_TYPES = [
   { value: "health", label: "Saúde" },
   { value: "education", label: "Educação" },
+  { value: "zeladoria", label: "Zeladoria" },
+  { value: "iluminacao", label: "Iluminação" },
   { value: "infrastructure", label: "Infraestrutura" },
   { value: "security", label: "Segurança" },
   { value: "social", label: "Assistência Social" },
   { value: "employment", label: "Emprego" },
   { value: "housing", label: "Habitação" },
   { value: "transport", label: "Transporte" },
+  { value: "documentacao", label: "Documentação" },
   { value: "other", label: "Outros" },
 ];
 
@@ -45,11 +49,19 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     status: "open",
     responsible: "",
     due_date: "",
+    latitude: null,
+    longitude: null,
+    address: "",
   });
 
   useEffect(() => {
     if (demand) {
-      setFormData(demand);
+      setFormData({
+        ...demand,
+        latitude: demand.latitude || null,
+        longitude: demand.longitude || null,
+        address: demand.address || "",
+      });
     } else {
       setFormData({
         title: "",
@@ -64,6 +76,9 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         status: "open",
         responsible: "",
         due_date: "",
+        latitude: null,
+        longitude: null,
+        address: "",
       });
     }
   }, [demand, open]);
@@ -207,6 +222,23 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
                   placeholder="Bairro"
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+                placeholder="Endereço completo"
+              />
+            </div>
+            <div>
+              <LocationPicker
+                value={{ latitude: formData.latitude, longitude: formData.longitude }}
+                onChange={({ latitude, longitude }) => { handleChange("latitude", latitude); handleChange("longitude", longitude); }}
+                height={200}
+                placeholder="Buscar endereço da demanda..."
+              />
             </div>
           </div>
 

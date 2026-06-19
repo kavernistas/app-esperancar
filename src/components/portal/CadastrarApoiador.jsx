@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Save, Loader2, CheckCircle } from "lucide-react";
+import LocationPicker from "@/components/ui/LocationPicker";
 
 const SEGMENTS = ["Jovem", "Mulher", "Idoso", "Trabalhador", "Empresário", "Estudante", "Religioso", "Comunitário", "Outros"];
 const SUPPORT_OPTIONS = [
@@ -20,7 +21,7 @@ export default function CadastrarApoiador({ onSave, user }) {
   const [form, setForm] = useState({
     full_name: "", phone: "", neighborhood: "", address_street: "", address_number: "",
     electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso",
-    contact_authorized: true, notes: "",
+    contact_authorized: true, notes: "", latitude: null, longitude: null,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,7 +42,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      setForm({ full_name: "", phone: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, notes: "" });
+      setForm({ full_name: "", phone: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, notes: "", latitude: null, longitude: null });
     }, 1500);
   };
 
@@ -106,6 +107,15 @@ export default function CadastrarApoiador({ onSave, user }) {
           <div>
             <Label className="text-xs">Observações</Label>
             <Textarea value={form.notes} onChange={e => handleChange("notes", e.target.value)} placeholder="Observações relevantes..." rows={2} className="text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs">Localização no Mapa</Label>
+            <LocationPicker
+              value={{ latitude: form.latitude, longitude: form.longitude }}
+              onChange={({ latitude, longitude }) => { handleChange("latitude", latitude); handleChange("longitude", longitude); }}
+              height={180}
+              placeholder="Buscar endereço..."
+            />
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

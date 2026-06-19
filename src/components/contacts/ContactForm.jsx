@@ -20,6 +20,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { X, Save, Loader2 } from "lucide-react";
+import LocationPicker from "@/components/ui/LocationPicker";
 
 export default function ContactForm({ open, onOpenChange, contact, onSave, isLoading }) {
   const [formData, setFormData] = useState({
@@ -37,6 +38,8 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
     tags: [],
     notes: "",
     status: "active",
+    latitude: null,
+    longitude: null,
   });
 
   const [tagInput, setTagInput] = useState("");
@@ -46,6 +49,8 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
       setFormData({
         ...contact,
         tags: contact.tags || [],
+        latitude: contact.latitude || null,
+        longitude: contact.longitude || null,
       });
     } else {
       setFormData({
@@ -63,12 +68,18 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         tags: [],
         notes: "",
         status: "active",
+        latitude: null,
+        longitude: null,
       });
     }
   }, [contact, open]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLocation = ({ latitude, longitude }) => {
+    setFormData(prev => ({ ...prev, latitude, longitude }));
   };
 
   const handleAddTag = (e) => {
@@ -159,6 +170,17 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
                 />
               </div>
             </div>
+          </div>
+
+          {/* Map Picker */}
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm text-slate-700">Marcar no Mapa</h3>
+            <LocationPicker
+              value={{ latitude: formData.latitude, longitude: formData.longitude }}
+              onChange={handleLocation}
+              height={200}
+              placeholder="Buscar endereço..."
+            />
           </div>
 
           {/* Electoral Info */}

@@ -13,10 +13,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaflet";
-import { Filter, Users, Vote, MapPin, TrendingUp, Thermometer, FileDown, Loader2, MessageCircle } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, LayersControl } from "react-leaflet";
+import { Filter, Users, Vote, MapPin, TrendingUp, Thermometer, FileDown, Loader2, MessageCircle, UserCheck, ClipboardList } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
+import L from "leaflet";
+
+// Fix default marker
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+const contactIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+});
+
+const demandIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+});
+
+const demandTypeLabels = {
+  health: "Saúde", education: "Educação", zeladoria: "Zeladoria", iluminacao: "Iluminação",
+  infrastructure: "Infraestrutura", transport: "Transporte", social: "Assistência Social",
+  security: "Segurança", housing: "Moradia", employment: "Emprego", documentacao: "Documentação", other: "Outros",
+};
 
 const heatColors = {
   cold: "#3b82f6",
@@ -65,6 +92,15 @@ export default function ElectoralMap() {
     queryFn: () => base44.entities.Contact.list("-created_date", 1000),
   });
 
+  const { data: demands = [] } = useQuery({
+    queryKey: ["demands"],
+    queryFn: () => base44.entities.Demand.list("-created_date", 1000),
+  });
+
+  // Filter contacts/demands with coordinates
+  const geoContacts = contacts.filter(c => c.latitude && c.longitude);
+  const geoDemands = demands.filter(d => d.latitude && d.longitude);
+
   const filteredData = electoralData.filter((item) => {
     const matchesYear = yearFilter === "all" || item.year?.toString() === yearFilter;
     const matchesPosition = positionFilter === "all" || item.position === positionFilter;
@@ -104,6 +140,8 @@ export default function ElectoralMap() {
   const totalVotes = filteredData.reduce((sum, d) => sum + (d.votes || 0), 0);
   const totalVoters = filteredData.reduce((sum, d) => sum + (d.total_voters || 0), 0);
   const uniqueNeighborhoods = Object.keys(neighborhoodStats).length;
+  const geoContactCount = geoContacts.length;
+  const geoDemandCount = geoDemands.length;
 
   // Get unique years and positions for filters
   const years = [...new Set(electoralData.map(d => d.year).filter(Boolean))].sort((a, b) => b - a);
@@ -189,12 +227,17 @@ export default function ElectoralMap() {
         </div>
         <div className="bg-white rounded-lg p-4 border">
           <div className="flex items-center gap-2 text-slate-500 mb-1">
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-sm">% Conversão</span>
+            <UserCheck className="w-4 h-4" />
+            <span className="text-sm">Contatos no Mapa</span>
           </div>
-          <p className="text-2xl font-bold text-orange-600">
-            {totalVoters > 0 ? ((totalVotes / totalVoters) * 100).toFixed(1) : 0}%
-          </p>
+          <p className="text-2xl font-bold text-blue-600">{geoContactCount}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 border">
+          <div className="flex items-center gap-2 text-slate-500 mb-1">
+            <ClipboardList className="w-4 h-4" />
+            <span className="text-sm">Demandas no Mapa</span>
+          </div>
+          <p className="text-2xl font-bold text-orange-600">{geoDemandCount}</p>
         </div>
       </div>
 
@@ -252,7 +295,7 @@ export default function ElectoralMap() {
                     if (!stat.lat || !stat.lng) return null;
                     return (
                       <CircleMarker
-                        key={index}
+                        key={`elec-${index}`}
                         center={[stat.lat, stat.lng]}
                         radius={Math.max(10, Math.min(30, stat.totalVotes / 100))}
                         fillColor={heatColors[stat.heatLevel || "warm"]}
@@ -276,26 +319,66 @@ export default function ElectoralMap() {
                       </CircleMarker>
                     );
                   })}
+                  {/* Contact Markers */}
+                  {geoContacts.map((c) => (
+                    <Marker
+                      key={`contact-${c.id}`}
+                      position={[c.latitude, c.longitude]}
+                      icon={contactIcon}
+                    >
+                      <Popup>
+                        <div className="p-1 text-xs">
+                          <p className="font-semibold">{c.full_name}</p>
+                          {c.phone && <p>{c.phone}</p>}
+                          {c.neighborhood && <p className="text-slate-400">Bairro: {c.neighborhood}</p>}
+                          <p className="text-blue-600 mt-0.5">Apoiador</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                  {/* Demand Markers */}
+                  {geoDemands.map((d) => (
+                    <Marker
+                      key={`demand-${d.id}`}
+                      position={[d.latitude, d.longitude]}
+                      icon={demandIcon}
+                    >
+                      <Popup>
+                        <div className="p-1 text-xs">
+                          <p className="font-semibold">{d.title}</p>
+                          <p>{demandTypeLabels[d.type] || d.type}</p>
+                          {d.requester_name && <p>Solicitante: {d.requester_name}</p>}
+                          <p className="text-orange-600 mt-0.5 capitalize">Status: {d.status}</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
                 </MapContainer>
               </div>
             </CardContent>
           </Card>
 
           {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-4 bg-white p-3 rounded-lg border">
+          <div className="flex items-center justify-center gap-6 mt-4 bg-white p-3 rounded-lg border flex-wrap">
             <div className="flex items-center gap-2 text-sm">
               <Thermometer className="w-4 h-4 text-slate-500" />
-              <span className="text-slate-500">Temperatura:</span>
+              <span className="text-slate-500 text-xs">Temperatura:</span>
             </div>
             {Object.entries(heatColors).map(([level, color]) => (
-              <div key={level} className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-sm text-slate-600">{heatLabels[level]}</span>
+              <div key={level} className="flex items-center gap-1.5">
+                <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-xs text-slate-600">{heatLabels[level]}</span>
               </div>
             ))}
+            <span className="text-slate-300 mx-1">|</span>
+            <div className="flex items-center gap-1.5">
+              <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png" alt="" className="w-4 h-6 object-contain" />
+              <span className="text-xs text-slate-600">Contatos</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png" alt="" className="w-4 h-6 object-contain" />
+              <span className="text-xs text-slate-600">Demandas</span>
+            </div>
           </div>
         </div>
 
