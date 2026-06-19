@@ -62,13 +62,16 @@ export default function ElectoralConsult() {
 
   const handleSync = async (ano, uf) => {
     setSyncing(true);
+    let result = null;
     try {
-      await base44.functions.invoke("tseDataSync", { action: "sync", ano, uf });
+      const res = await base44.functions.invoke("tseDataSync", { action: "sync", ano, uf });
+      result = res.data;
       await loadSyncStatus();
     } catch (e) {
       console.error("Erro na sincronização:", e);
     }
     setSyncing(false);
+    return result;
   };
 
   const handleSearch = async () => {
