@@ -35,7 +35,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAccessControl, getEffectiveRole } from "@/lib/AccessControl";
+import { useAccessControl } from "@/lib/AccessControl";
 
 
 export default function Layout({ children, currentPageName }) {
@@ -130,7 +130,7 @@ export default function Layout({ children, currentPageName }) {
   // Filtrar navegação por perfil (RBAC)
   const navigation = allNavigation.filter(item => canAccessPage(item.page));
 
-  // Redirecionar lideranças para o portal se tentarem acessar outra página
+  // Redirecionar lideranças para o portal
   useEffect(() => {
     if (isLideranca && currentPageName && currentPageName !== "PortalLideranca" && currentPageName !== "Configuracoes") {
       window.location.href = "/PortalLideranca";
@@ -142,51 +142,110 @@ export default function Layout({ children, currentPageName }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F7F8FA]">
       <style>{`
-        .sidebar-gradient {
-          background: linear-gradient(180deg, #0A2540 0%, #0D3466 100%);
+        :root {
+          --navy: #0A2540;
+          --navy-light: #0D3466;
+          --navy-ghost: rgba(10, 37, 64, 0.04);
+          --navy-hover: rgba(10, 37, 64, 0.06);
+          --lime: #7AC943;
+          --lime-soft: rgba(122, 201, 67, 0.08);
+          --lime-glow: rgba(122, 201, 67, 0.15);
+          --yellow: #FDB913;
+          --sidebar-w: 264px;
         }
-        .nav-item-active {
-          background: linear-gradient(90deg, rgba(122, 201, 67, 0.18) 0%, transparent 100%);
-          border-left: 3px solid #7AC943;
+        .sidebar {
+          background: linear-gradient(180deg, #0A2540 0%, #0D3466 50%, #0A2540 100%);
         }
-        .header-blur {
-          backdrop-filter: blur(12px);
-          background: rgba(255, 255, 255, 0.8);
+        .nav-row {
+          position: relative;
+          border-radius: 12px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-row:hover { background: rgba(255, 255, 255, 0.06); }
+        .nav-row-active {
+          background: linear-gradient(90deg, rgba(122, 201, 67, 0.10) 0%, rgba(122, 201, 67, 0.02) 100%);
+        }
+        .nav-row-active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 8px;
+          bottom: 8px;
+          width: 3px;
+          background: #7AC943;
+          border-radius: 0 3px 3px 0;
+        }
+        .header-glass {
+          backdrop-filter: blur(16px) saturate(180%);
+          background: rgba(255, 255, 255, 0.85);
+          border-bottom: 1px solid rgba(10, 37, 64, 0.06);
+        }
+        .search-field {
+          background: rgba(10, 37, 64, 0.03);
+          border: 1px solid transparent;
+          border-radius: 12px;
+          transition: all 0.2s ease;
+        }
+        .search-field:focus-within {
+          background: #fff;
+          border-color: rgba(122, 201, 67, 0.4);
+          box-shadow: 0 0 0 3px rgba(122, 201, 67, 0.08);
+        }
+        .notif-badge {
+          animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+        }
+        .user-avatar-ring {
+          box-shadow: 0 0 0 2px rgba(122, 201, 67, 0.15);
+        }
+        .mobile-menu-btn:active { transform: scale(0.92); }
+        @media (max-width: 1023px) {
+          .sidebar-overlay { animation: fadeIn 0.15s ease-out; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
 
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-[#0A2540]/60 backdrop-blur-sm z-40 lg:hidden sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 sidebar-gradient transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full sidebar transition-transform duration-300 ease-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ width: 'var(--sidebar-w)' }}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.07]">
             <div className="flex items-center gap-3">
-              <img
-                src="https://media.base44.com/images/public/6927a32c597892cda17b4136/9f3f423e6_ChatGPTImage19dejunde202620_51_17.png"
-                alt="Esperançar"
-                className="w-10 h-10 rounded-lg object-contain bg-white p-0.5"
-              />
+              <div className="w-10 h-10 rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-sm">
+                <img
+                  src="https://media.base44.com/images/public/6927a32c597892cda17b4136/9f3f423e6_ChatGPTImage19dejunde202620_51_17.png"
+                  alt="Esperançar"
+                  className="w-8 h-8 object-contain rounded-lg"
+                />
+              </div>
               <div>
-                <h1 className="text-lg font-bold text-white">Esperançar</h1>
-                <p className="text-xs text-[#7AC943]">PLATAFORMA ESTRATÉGICA POLÍTICA</p>
+                <h1 className="text-[15px] font-bold text-white tracking-tight leading-tight">Esperançar</h1>
+                <p className="text-[10px] font-semibold text-[#7AC943] tracking-widest uppercase">Plataforma Política</p>
               </div>
             </div>
             <button
-              className="lg:hidden text-white"
+              className="lg:hidden text-white/70 hover:text-white transition-colors"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="w-5 h-5" />
@@ -194,22 +253,22 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = currentPageName === item.page;
               return (
                 <Link
                   key={item.page}
                   to={createPageUrl(item.page)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`nav-row flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium ${
                     isActive
-                      ? "nav-item-active text-white"
-                      : "text-slate-400 hover:text-white hover:bg-white/5"
+                      ? "nav-row-active text-white"
+                      : "text-slate-400"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? "text-[#7AC943]" : ""}`} />
-                  {item.name}
+                  <item.icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#7AC943]" : "text-slate-500"}`} />
+                  <span className="truncate">{item.name}</span>
                 </Link>
               );
             })}
@@ -217,18 +276,18 @@ export default function Layout({ children, currentPageName }) {
 
           {/* User section */}
           {user && (
-            <div className="p-4 border-t border-white/10">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Avatar className="w-9 h-9">
-                  <AvatarFallback className="bg-blue-500 text-white text-sm">
+            <div className="px-3 py-3 border-t border-white/[0.07]">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04]">
+                <Avatar className="w-9 h-9 user-avatar-ring">
+                  <AvatarFallback className="bg-gradient-to-br from-[#7AC943] to-[#5DA830] text-white text-xs font-bold">
                     {user.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-[13px] font-medium text-white truncate leading-tight">
                     {user.full_name || "Usuário"}
                   </p>
-                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                 </div>
               </div>
             </div>
@@ -237,77 +296,90 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className="lg:pl-[264px]">
         {/* Header */}
-        <header className="sticky top-0 z-30 header-blur border-b border-slate-200">
-          <div className="flex items-center justify-between px-4 lg:px-8 h-16">
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 header-glass">
+          <div className="flex items-center justify-between h-[60px] px-4 lg:px-6">
+            <div className="flex items-center gap-3">
               <button
-                className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+                className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-[#0A2540]/5 active:scale-95 transition-all mobile-menu-btn"
                 onClick={() => setSidebarOpen(true)}
               >
-                <Menu className="w-5 h-5 text-slate-600" />
+                <Menu className="w-5 h-5 text-[#0A2540]/70" />
               </button>
               
-              <div className="hidden md:flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 w-80">
-                <Search className="w-4 h-4 text-slate-400" />
+              <div className="hidden md:flex items-center gap-2 search-field px-3.5 py-2 w-72">
+                <Search className="w-[15px] h-[15px] text-slate-400 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder="Buscar contatos, demandas..."
-                  className="bg-transparent border-none outline-none text-sm flex-1 text-slate-600 placeholder:text-slate-400"
+                  className="bg-transparent border-none outline-none text-[13px] flex-1 text-[#0A2540] placeholder:text-slate-400"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
               {/* Notifications Bell */}
               <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="w-5 h-5 text-slate-600" />
+                  <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-[#0A2540]/5">
+                    <Bell className="w-[18px] h-[18px] text-slate-500" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                      <span className="notif-badge absolute top-1 right-1.5 min-w-[17px] h-[17px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 max-h-[420px] overflow-y-auto">
-                  <div className="flex items-center justify-between px-3 py-2 border-b">
-                    <p className="font-semibold text-sm text-slate-700">Notificações</p>
+                <DropdownMenuContent align="end" className="w-[360px] max-h-[440px] overflow-y-auto rounded-2xl border-slate-200/80 shadow-xl shadow-slate-200/20">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                    <p className="font-semibold text-[14px] text-[#0A2540]">Notificações</p>
                     {unreadCount > 0 && (
-                      <button onClick={handleMarkAllRead} className="text-xs text-[#7AC943] hover:underline flex items-center gap-1">
+                      <button onClick={handleMarkAllRead} className="text-[12px] font-medium text-[#7AC943] hover:text-[#5DA830] transition-colors flex items-center gap-1.5">
                         <CheckCheck className="w-3.5 h-3.5" /> Marcar todas lidas
                       </button>
                     )}
                   </div>
                   {notifications.length === 0 ? (
-                    <div className="px-3 py-8 text-center">
-                      <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">Nenhuma notificação</p>
+                    <div className="px-4 py-10 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                        <Bell className="w-5 h-5 text-slate-300" />
+                      </div>
+                      <p className="text-[13px] text-slate-400 font-medium">Nenhuma notificação</p>
+                      <p className="text-[11px] text-slate-400 mt-1">Você será notificado aqui sobre demandas, missões e alertas.</p>
                     </div>
                   ) : (
                     notifications.map((n) => (
                       <div
                         key={n.id}
-                        className={`flex gap-3 px-3 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition ${!n.read ? 'bg-blue-50/50' : ''}`}
+                        className={`flex gap-3 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors ${
+                          !n.read ? 'bg-[#7AC943]/[0.04] hover:bg-[#7AC943]/[0.08]' : 'hover:bg-slate-50'
+                        }`}
                         onClick={() => {
                           handleMarkAsRead(n);
                           if (n.link) window.location.href = n.link;
                         }}
                       >
                         <div className="flex-shrink-0 mt-0.5">
-                          {getNotifIcon(n.type)}
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                            n.type === 'demand_overdue' ? 'bg-red-50' :
+                            n.type === 'mission_overdue' ? 'bg-amber-50' :
+                            n.type === 'mission_assigned' ? 'bg-blue-50' :
+                            n.type === 'level_up' ? 'bg-[#7AC943]/10' :
+                            'bg-slate-100'
+                          }`}>
+                            {getNotifIcon(n.type)}
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{n.title}</p>
-                          <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{n.message}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />{timeAgo(n.created_date)}
-                            </span>
-                            {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[13px] font-medium text-[#0A2540] truncate">{n.title}</p>
+                            {!n.read && <span className="w-2 h-2 rounded-full bg-[#7AC943] flex-shrink-0 mt-1" />}
                           </div>
+                          <p className="text-[12px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
+                          <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-slate-400">
+                            <Clock className="w-3 h-3" />{timeAgo(n.created_date)}
+                          </span>
                         </div>
                         {n.link && (
                           <ExternalLink className="w-3 h-3 text-slate-300 flex-shrink-0 mt-1" />
@@ -321,29 +393,29 @@ export default function Layout({ children, currentPageName }) {
               {user && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2">
+                    <Button variant="ghost" className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-[#0A2540]/5">
                       <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-blue-500 text-white text-xs">
+                        <AvatarFallback className="bg-gradient-to-br from-[#0A2540] to-[#0D3466] text-white text-xs font-bold">
                           {user.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-3 py-2">
-                      <p className="font-medium text-sm">{user.full_name || "Usuário"}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                  <DropdownMenuContent align="end" className="w-60 rounded-2xl border-slate-200/80 shadow-xl shadow-slate-200/20">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="font-semibold text-[13px] text-[#0A2540]">{user.full_name || "Usuário"}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{user.email}</p>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild className="text-[13px]">
                       <Link to={createPageUrl("Configuracoes")}>
-                        <Settings className="w-4 h-4 mr-2" />
+                        <Settings className="w-4 h-4 mr-2.5 text-slate-400" />
                         Configurações
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="w-4 h-4 mr-2" />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-500 text-[13px]">
+                      <LogOut className="w-4 h-4 mr-2.5" />
                       Sair
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -354,7 +426,7 @@ export default function Layout({ children, currentPageName }) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">
+        <main className="p-5 lg:p-7">
           {children}
         </main>
       </div>
