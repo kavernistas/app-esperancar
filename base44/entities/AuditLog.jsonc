@@ -1,0 +1,64 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que realizou a a\u00e7\u00e3o"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "action": {
+      "type": "string",
+      "description": "A\u00e7\u00e3o realizada (create, read, update, delete, export, login, logout)"
+    },
+    "entity": {
+      "type": "string",
+      "description": "Entidade afetada (Contact, Demand, Mission, etc.)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID do registro afetado"
+    },
+    "entity_label": {
+      "type": "string",
+      "description": "R\u00f3tulo leg\u00edvel do registro (nome, t\u00edtulo)"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Mudan\u00e7as realizadas (old \u2192 new) \u2014 campos alterados"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP de origem"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent do navegador"
+    },
+    "module": {
+      "type": "string",
+      "description": "M\u00f3dulo da plataforma (crm, gamification, electoral, etc.)"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error",
+        "critical"
+      ],
+      "default": "info"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Dados adicionais (filtros usados, dura\u00e7\u00e3o, etc.)"
+    }
+  },
+  "required": [
+    "action",
+    "entity"
+  ]
+}

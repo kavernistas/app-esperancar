@@ -100,6 +100,8 @@ const PAGE_TO_MODULE = {
   Campaigns: "campaigns",
   ElectoralConsult: "electoral_intelligence",
   DiagnosticoTSE: "diagnostico_tse",
+  MissionDetail: "missions",
+  SaudeSistema: "saude_sistema",
   Reports: "reports",
   Configuracoes: "configuracoes",
   PortalLideranca: "portal_lideranca",

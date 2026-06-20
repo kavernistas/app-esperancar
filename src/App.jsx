@@ -48,7 +48,7 @@ const AuthenticatedApp = () => {
       {/* Central de Inteligência as the main unified page */}
       <Route path="/" element={
         <LayoutWrapper currentPageName="InteligenciaEleitoral">
-          <InteligenciaEleitoral />
+          <RouteGuard pageName="InteligenciaEleitoral"><InteligenciaEleitoral /></RouteGuard>
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -57,14 +57,14 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <LayoutWrapper currentPageName={path}>
-              <Page />
+              <RouteGuard pageName={path}><Page /></RouteGuard>
             </LayoutWrapper>
           }
         />
       ))}
       <Route path="/mission/:id" element={
         <LayoutWrapper currentPageName="MissionCenter">
-          <MissionDetail />
+          <RouteGuard pageName="MissionCenter"><MissionDetail /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="/InteligenciaEleitoral" element={
@@ -74,7 +74,7 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/DiagnosticoTSE" element={
         <LayoutWrapper currentPageName="InteligenciaEleitoral">
-          <DiagnosticoTSE />
+          <RouteGuard pageName="DiagnosticoTSE"><DiagnosticoTSE /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="/PortalLideranca" element={

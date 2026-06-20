@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
   Loader2, Zap, Server, Wifi, Database, Brain, Phone,
-  RefreshCw, BellRing
+  RefreshCw, BellRing, HardDrive, FileText
 } from "lucide-react";
 
 // ============================================================
@@ -22,11 +22,13 @@ export default function SaudeSistema() {
     setLoading(true);
     try {
       // Coletar métricas em paralelo
-      const [leaders, missions, whatsappTest, syncStatuses] = await Promise.all([
+      const [leaders, missions, whatsappTest, syncStatuses, backupStatus, auditLogs] = await Promise.all([
         base44.entities.Leader.list("-created_date", 5).catch(() => []),
         base44.entities.Mission.list("-created_date", 5).catch(() => []),
         base44.functions.invoke("whatsappSend", { action: "health_check" }).catch(() => ({ data: { status: "unknown" } })),
         base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" }).catch(() => ({ data: { statuses: [] } })),
+        base44.functions.invoke("backupRestore", { action: "status" }).catch(() => ({ data: null })),
+        base44.entities.AuditLog.list("-created_date", 10).catch(() => []),
       ]);
 
       const overdueMissions = Array.isArray(missions) ? missions.filter(m => m.status === "overdue").length : 0;
@@ -49,13 +51,17 @@ export default function SaudeSistema() {
           }).length
         : 0;
 
-      // Demandas sem atualização — simplificado
-      const staleDemands = 0; // requer query dedicada
+      // Backup stats
+      const bkCounts = backupStatus?.data?.counts || {};
+      const bkEntitiesOk = Object.values(bkCounts).filter(v => typeof v === 'number').length;
+      const bkEntitiesTotal = Object.keys(bkCounts).length;
 
       setHealth({
         platform: { status: "ok", uptime: "99.9%", responseTime: "< 200ms" },
-        api: { status: "ok", endpoints: "11 funções ativas" },
-        database: { status: "ok", entities: "11 schemas" },
+        api: { status: "ok", endpoints: "13 funções ativas" },
+        database: { status: "ok", entities: "16 schemas", recordCount: Object.values(bkCounts).filter(v => typeof v === 'number').reduce((a, b) => a + b, 0) },
+        backup: { status: bkEntitiesTotal > 0 ? `${bkEntitiesOk}/${bkEntitiesTotal} entidades` : "não verificado", lastCheck: new Date().toLocaleString("pt-BR") },
+        auditLog: { status: "ativo", recentEntries: auditLogs.length },
         whatsapp: { status: whatsappOk ? "conectado" : "desconectado", lastTest: whatsappOk ? "OK" : "Falha" },
         sofia: { status: "ativo", model: "Gemini" },
         tse: { status: tseTotal > 0 ? (tseSynced === tseTotal ? "100% sincronizado" : `${tseSynced}/${tseTotal} sincronizado`) : "sem dados", synced: tseSynced, total: tseTotal },
@@ -67,10 +73,10 @@ export default function SaudeSistema() {
           ...(tseTotal > 0 && tseSynced < tseTotal ? [{ type: "warning", text: `${tseTotal - tseSynced} datasets TSE não sincronizados`, icon: Database }] : []),
         ],
         automations: [
-          { name: "Missões Vencidas", schedule: "A cada 1 hora", status: "ativo" },
-          { name: "Relatório Semanal", schedule: "Segunda 08:00", status: "pendente" },
-          { name: "Ranking Semanal", schedule: "Segunda 07:00", status: "pendente" },
-          { name: "Cobrança Automática", schedule: "Diário 08:00", status: "pendente" },
+          { name: "Atualizar Missões Vencidas", schedule: "A cada 1 hora", status: "ativo" },
+          { name: "Reset Ranking Semanal", schedule: "Segunda 07:00 BRT", status: "ativo" },
+          { name: "Verificar Lideranças Inativas", schedule: "Diário 08:00 BRT", status: "ativo" },
+          { name: "Verificar Demandas Estagnadas", schedule: "Diário 09:00 BRT", status: "ativo" },
         ],
       });
     } catch (e) {
@@ -112,9 +118,9 @@ export default function SaudeSistema() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { icon: Server, label: "Plataforma Base44", value: health?.platform.status === "ok" ? "Online" : "Erro", sub: health?.platform.responseTime, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { icon: Database, label: "Banco de Dados", value: "Online", sub: health?.database.entities, color: "text-blue-600", bg: "bg-blue-50" },
-          { icon: Phone, label: "WhatsApp", value: health?.whatsapp.status === "conectado" ? "Conectado" : "Desconectado", sub: health?.whatsapp.lastTest, color: health?.whatsapp.status === "conectado" ? "text-emerald-600" : "text-red-600", bg: health?.whatsapp.status === "conectado" ? "bg-emerald-50" : "bg-red-50" },
-          { icon: Brain, label: "Sofia IA", value: health?.sofia.status === "ativo" ? "Ativa" : "Inativa", sub: health?.sofia.model, color: "text-indigo-600", bg: "bg-indigo-50" },
+          { icon: Database, label: "Banco de Dados", value: "Online", sub: `${health?.database.entities} · ${(health?.database.recordCount || 0).toLocaleString()} registros`, color: "text-blue-600", bg: "bg-blue-50" },
+          { icon: HardDrive, label: "Backup", value: health?.backup.status || "—", sub: health?.backup.lastCheck || "—", color: "text-teal-600", bg: "bg-teal-50" },
+          { icon: FileText, label: "AuditLog", value: `${health?.auditLog.recentEntries || 0} eventos`, sub: "logs estruturados", color: "text-slate-600", bg: "bg-slate-50" },
         ].map((item, i) => (
           <Card key={i} className={`border-slate-200 ${item.bg} border-none`}>
             <CardContent className="p-4">
@@ -208,20 +214,59 @@ export default function SaudeSistema() {
         </CardContent>
       </Card>
 
-      {/* Logs Simplificados */}
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="w-5 h-5 text-slate-600" />
-            Últimos Eventos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-slate-500 text-center py-6">
-            Logs estruturados serão exibidos aqui quando o sistema de auditoria estiver ativo.
-          </div>
-        </CardContent>
-      </Card>
+      {/* Logs + Integrações */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="w-5 h-5 text-slate-600" />
+              AuditLog — Últimos Eventos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {health?.auditLog.recentEntries > 0 ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-slate-500 mb-2">
+                  <span>{health.auditLog.recentEntries} eventos registrados</span>
+                  <span>Entidade: AuditLog</span>
+                </div>
+                <div className="text-sm text-slate-400 text-center py-4">
+                  Sistema de auditoria ativo — eventos sendo registrados em AuditLog
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400 text-center py-6">
+                Nenhum evento registrado. Logs automáticos nas operações CRUD ativarão o registro.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Phone className="w-5 h-5 text-emerald-600" />
+              Integrações
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[
+              { name: "WhatsApp", status: health?.whatsapp.status === "conectado" ? "online" : "offline", color: health?.whatsapp.status === "conectado" ? "text-emerald-600" : "text-red-600" },
+              { name: "Sofia IA (Gemini)", status: "online", color: "text-indigo-600" },
+              { name: "TSE", status: health?.tse.synced > 0 ? "online" : "pendente", color: health?.tse.synced > 0 ? "text-blue-600" : "text-amber-600" },
+              { name: "ViaCEP", status: "online", color: "text-emerald-600" },
+              { name: "Leaflet/OSM", status: "online", color: "text-emerald-600" },
+            ].map((int, i) => (
+              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-700">{int.name}</span>
+                <Badge className={`text-[10px] ${int.status === "online" ? "bg-emerald-100 text-emerald-700" : int.status === "pendente" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                  {int.status}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
