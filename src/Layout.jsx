@@ -60,6 +60,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Campanhas", page: "Campaigns", icon: FileText },
     { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
+    { name: "Configurações", page: "Configuracoes", icon: Settings },
   ];
 
   const handleLogout = () => {
@@ -206,9 +207,11 @@ export default function Layout({ children, currentPageName }) {
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurações
+                    <DropdownMenuItem asChild>
+                      <Link to={createPageUrl("Configuracoes")}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Configurações
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                       <LogOut className="w-4 h-4 mr-2" />

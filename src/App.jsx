@@ -11,6 +11,7 @@ import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
 import PortalLideranca from './pages/PortalLideranca';
+import Configuracoes from './pages/Configuracoes';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -77,6 +78,11 @@ const AuthenticatedApp = () => {
       <Route path="/PortalLideranca" element={
         <LayoutWrapper currentPageName="PortalLideranca">
           <PortalLideranca />
+        </LayoutWrapper>
+      } />
+      <Route path="/Configuracoes" element={
+        <LayoutWrapper currentPageName="Configuracoes">
+          <Configuracoes />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
