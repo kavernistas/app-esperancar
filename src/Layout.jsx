@@ -19,7 +19,11 @@ import {
   Bell,
   Search,
   Gamepad2,
-  Activity
+  Activity,
+  AlertTriangle,
+  CheckCheck,
+  Clock,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +41,8 @@ import { useAccessControl, getEffectiveRole } from "@/lib/AccessControl";
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notifOpen, setNotifOpen] = useState(false);
   const { canAccessPage, isLideranca } = useAccessControl();
 
   useEffect(() => {
@@ -50,6 +56,60 @@ export default function Layout({ children, currentPageName }) {
     };
     loadUser();
   }, []);
+
+  // Carregar notificações
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadNotifications = async () => {
+      try {
+        const notifs = await base44.entities.Notification.filter(
+          { user_id: user.id },
+          '-created_date',
+          30
+        );
+        setNotifications(notifs);
+      } catch (_) {}
+    };
+    loadNotifications();
+  }, [user?.id, notifOpen]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAsRead = async (notif) => {
+    try {
+      await base44.entities.Notification.update(notif.id, { read: true });
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+    } catch (_) {}
+  };
+
+  const handleMarkAllRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length === 0) return;
+    try {
+      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (_) {}
+  };
+
+  const getNotifIcon = (type) => {
+    switch (type) {
+      case 'demand_overdue': return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'mission_overdue': return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+      case 'mission_assigned': return <Target className="w-4 h-4 text-blue-500" />;
+      case 'level_up': return <Activity className="w-4 h-4 text-[#7AC943]" />;
+      default: return <Bell className="w-4 h-4 text-slate-400" />;
+    }
+  };
+
+  const timeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  };
 
   const allNavigation = [
     { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: LayoutDashboard },
@@ -200,10 +260,63 @@ export default function Layout({ children, currentPageName }) {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5 text-slate-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </Button>
+              {/* Notifications Bell */}
+              <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="w-5 h-5 text-slate-600" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-[420px] overflow-y-auto">
+                  <div className="flex items-center justify-between px-3 py-2 border-b">
+                    <p className="font-semibold text-sm text-slate-700">Notificações</p>
+                    {unreadCount > 0 && (
+                      <button onClick={handleMarkAllRead} className="text-xs text-[#7AC943] hover:underline flex items-center gap-1">
+                        <CheckCheck className="w-3.5 h-3.5" /> Marcar todas lidas
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-3 py-8 text-center">
+                      <Bell className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm text-slate-400">Nenhuma notificação</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`flex gap-3 px-3 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition ${!n.read ? 'bg-blue-50/50' : ''}`}
+                        onClick={() => {
+                          handleMarkAsRead(n);
+                          if (n.link) window.location.href = n.link;
+                        }}
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getNotifIcon(n.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-700 truncate">{n.title}</p>
+                          <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{n.message}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />{timeAgo(n.created_date)}
+                            </span>
+                            {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                          </div>
+                        </div>
+                        {n.link && (
+                          <ExternalLink className="w-3 h-3 text-slate-300 flex-shrink-0 mt-1" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {user && (
                 <DropdownMenu>
