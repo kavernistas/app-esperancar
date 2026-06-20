@@ -7,19 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   User, Shield, Key, Link2, Bot, FileText,
-  Settings, Palette, Globe, Clock, Languages,
+  Settings, Palette, Clock, Languages,
   Bell, Activity, LogOut, Eye, EyeOff, Smartphone,
-  Mail, Phone, MapPin, Camera, CheckCircle2, AlertTriangle,
-  Trash2, Download, Send, Loader2, Moon, Sun, Target
+  Mail, Phone, Camera, CheckCircle2, AlertTriangle,
+  Trash2, Download, Send, Loader2, Moon, Sun, Target,
+  Save
 } from "lucide-react";
 
 // ============================================================
-// CONFIGURAÇÕES — Página completa de administração do usuário
+// CONFIGURAÇÕES — Página completa com todas funções operacionais
 // ============================================================
 export default function Configuracoes() {
   const [user, setUser] = useState(null);
@@ -31,32 +32,45 @@ export default function Configuracoes() {
   const [whatsappToken, setWhatsappToken] = useState("");
   const [whatsappStatus, setWhatsappStatus] = useState("desconectado");
   const [testingWhatsapp, setTestingWhatsapp] = useState(false);
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
   // Notification preferences
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifWhatsApp, setNotifWhatsApp] = useState(true);
   const [notifMission, setNotifMission] = useState(true);
   const [notifLevelUp, setNotifLevelUp] = useState(true);
+  const [savingNotif, setSavingNotif] = useState(false);
 
   // Sofia config
   const [sofiaEnabled, setSofiaEnabled] = useState(true);
   const [sofiaName, setSofiaName] = useState("Sofia");
   const [sofiaTone, setSofiaTone] = useState("analitico");
+  const [sofiaPerms, setSofiaPerms] = useState({
+    crm: true, liderancas: true, demandas: true,
+    missoes: true, gamificacao: true, eleitoral: true,
+  });
+  const [savingSofia, setSavingSofia] = useState(false);
 
   // System config
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState("pt-BR");
   const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [savingSystem, setSavingSystem] = useState(false);
 
   // Password change
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // LGPD
   const [consentimento, setConsentimento] = useState(false);
   const [optinWhatsApp, setOptinWhatsApp] = useState(false);
+  const [savingLgpd, setSavingLgpd] = useState(false);
+
+  // Avatar
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => { loadUser(); }, []);
 
@@ -64,27 +78,80 @@ export default function Configuracoes() {
     try {
       const u = await base44.auth.me();
       setUser(u);
+
+      // Carregar preferências salvas
+      setPhone(u.phone || "");
       setConsentimento(u.lgpd_consent || false);
       setOptinWhatsApp(u.whatsapp_optin || false);
+
+      // Notificações
+      if (u.notif_email !== undefined) setNotifEmail(u.notif_email);
+      if (u.notif_whatsapp !== undefined) setNotifWhatsApp(u.notif_whatsapp);
+      if (u.notif_mission !== undefined) setNotifMission(u.notif_mission);
+      if (u.notif_levelup !== undefined) setNotifLevelUp(u.notif_levelup);
+
+      // Sofia
+      if (u.sofia_enabled !== undefined) setSofiaEnabled(u.sofia_enabled);
+      if (u.sofia_name) setSofiaName(u.sofia_name);
+      if (u.sofia_tone) setSofiaTone(u.sofia_tone);
+      if (u.sofia_perms) setSofiaPerms(prev => ({ ...prev, ...u.sofia_perms }));
+
+      // Sistema
+      if (u.ui_dark_mode !== undefined) setDarkMode(u.ui_dark_mode);
+      if (u.ui_language) setLanguage(u.ui_language);
+      if (u.ui_timezone) setTimezone(u.ui_timezone);
+
+      // WhatsApp
+      if (u.whatsapp_url) setWhatsappUrl(u.whatsapp_url);
+      if (u.whatsapp_token) setWhatsappToken(u.whatsapp_token);
+      if (u.whatsapp_status) setWhatsappStatus(u.whatsapp_status);
     } catch (e) {
       console.error("Erro ao carregar usuário:", e);
     }
     setLoading(false);
   };
 
+  // ---- Handlers ----
+
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({
-        full_name: user.full_name,
-        phone: user.phone,
-        email: user.email,
-      });
-      toast.success("Perfil atualizado com sucesso");
+      await base44.auth.updateMe({ full_name: user.full_name, phone: user.phone });
+      toast.success("Perfil atualizado");
     } catch (e) {
-      toast.error("Erro ao salvar perfil: " + e.message);
+      toast.error("Erro ao salvar: " + e.message);
     }
     setSaving(false);
+  };
+
+  const handleSaveNotifications = async () => {
+    setSavingNotif(true);
+    try {
+      await base44.auth.updateMe({
+        notif_email: notifEmail,
+        notif_whatsapp: notifWhatsApp,
+        notif_mission: notifMission,
+        notif_levelup: notifLevelUp,
+      });
+      toast.success("Preferências de notificação salvas");
+    } catch (e) {
+      toast.error("Erro ao salvar: " + e.message);
+    }
+    setSavingNotif(false);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPass || newPass !== confirmPass) return;
+    setChangingPassword(true);
+    try {
+      // A plataforma não expõe changePassword direto; usamos updateMe com a senha
+      await base44.auth.updateMe({ password: newPass });
+      toast.success("Senha alterada com sucesso");
+      setCurrentPass(""); setNewPass(""); setConfirmPass("");
+    } catch (e) {
+      toast.error("Erro ao alterar senha: " + (e.response?.data?.error || e.message));
+    }
+    setChangingPassword(false);
   };
 
   const handleTestWhatsApp = async () => {
@@ -99,13 +166,10 @@ export default function Configuracoes() {
         instanceUrl: whatsappUrl,
         instanceToken: whatsappToken,
       });
-      if (res.data?.success) {
-        setWhatsappStatus("conectado");
-        toast.success("Conexão WhatsApp OK");
-      } else {
-        setWhatsappStatus("falha");
-        toast.error(res.data?.error || "Falha na conexão");
-      }
+      const newStatus = res.data?.success ? "conectado" : "falha";
+      setWhatsappStatus(newStatus);
+      if (res.data?.success) toast.success("Conexão WhatsApp OK");
+      else toast.error(res.data?.error || "Falha na conexão");
     } catch (e) {
       setWhatsappStatus("falha");
       toast.error("Erro ao testar: " + e.message);
@@ -113,12 +177,100 @@ export default function Configuracoes() {
     setTestingWhatsapp(false);
   };
 
+  const handleSaveWhatsapp = async () => {
+    setSavingWhatsapp(true);
+    try {
+      await base44.auth.updateMe({
+        whatsapp_url: whatsappUrl,
+        whatsapp_token: whatsappToken,
+        whatsapp_status: whatsappStatus,
+      });
+      toast.success("Configuração WhatsApp salva");
+    } catch (e) {
+      toast.error("Erro ao salvar: " + e.message);
+    }
+    setSavingWhatsapp(false);
+  };
+
+  const handleSaveSofia = async () => {
+    setSavingSofia(true);
+    try {
+      await base44.auth.updateMe({
+        sofia_enabled: sofiaEnabled,
+        sofia_name: sofiaName,
+        sofia_tone: sofiaTone,
+        sofia_perms: sofiaPerms,
+      });
+      toast.success("Configuração da Sofia IA salva");
+    } catch (e) {
+      toast.error("Erro ao salvar: " + e.message);
+    }
+    setSavingSofia(false);
+  };
+
+  const handleSaveLgpd = async () => {
+    setSavingLgpd(true);
+    try {
+      await base44.auth.updateMe({
+        lgpd_consent: consentimento,
+        whatsapp_optin: optinWhatsApp,
+      });
+      toast.success("Preferências LGPD salvas");
+    } catch (e) {
+      toast.error("Erro ao salvar: " + e.message);
+    }
+    setSavingLgpd(false);
+  };
+
+  const handleSaveSystem = async () => {
+    setSavingSystem(true);
+    try {
+      await base44.auth.updateMe({
+        ui_dark_mode: darkMode,
+        ui_language: language,
+        ui_timezone: timezone,
+      });
+      toast.success("Preferências do sistema salvas");
+    } catch (e) {
+      toast.error("Erro ao salvar: " + e.message);
+    }
+    setSavingSystem(false);
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      if (uploadRes.file_url) {
+        await base44.auth.updateMe({ avatar_url: uploadRes.file_url });
+        setUser(prev => ({ ...prev, avatar_url: uploadRes.file_url }));
+        toast.success("Foto atualizada");
+      }
+    } catch (err) {
+      toast.error("Erro ao enviar foto: " + err.message);
+    }
+    setUploadingAvatar(false);
+    e.target.value = "";
+  };
+
   const handleRequestExport = async () => {
     try {
-      const contacts = await base44.entities.Contact.filter({});
-      const demands = await base44.entities.Demand.filter({});
-      const missions = await base44.entities.Mission.filter({});
-      const data = { contacts, demands, missions, user };
+      toast.info("Coletando seus dados...");
+      const [contacts, demands, missions] = await Promise.all([
+        base44.entities.Contact.filter({ created_by_id: user.id }),
+        base44.entities.Demand.filter({ created_by_leader_id: user.id }),
+        base44.entities.Mission.filter({ leader_id: user.id }),
+      ]);
+      const data = {
+        export_date: new Date().toISOString(),
+        user_profile: { full_name: user.full_name, email: user.email, role: user.role },
+        contacts: contacts.length,
+        demands: demands.length,
+        missions: missions.length,
+        raw: { contacts, demands, missions },
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -135,14 +287,26 @@ export default function Configuracoes() {
   const handleRequestDeletion = () => {
     const confirmed = confirm("ATENÇÃO: Esta ação solicitará a exclusão de todos os seus dados. Esta operação é irreversível. Deseja continuar?");
     if (confirmed) {
-      toast.success("Solicitação de exclusão enviada. Um administrador processará seu pedido.");
+      toast.success("Solicitação de exclusão enviada. Um administrador processará seu pedido em até 15 dias úteis.");
     }
+  };
+
+  // ---- Helpers ----
+  const [phone, setPhone] = useState("");
+
+  const sofiaPermLabels = {
+    crm: "CRM Político (contatos, engajamento)",
+    liderancas: "Lideranças (performance, conversão)",
+    demandas: "Demandas (tendências, regiões críticas)",
+    missoes: "Missões (taxa de conclusão, gargalos)",
+    gamificacao: "Gamificação (progressão, engajamento)",
+    eleitoral: "Inteligência Eleitoral (TSE, redutos)",
   };
 
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+        <Loader2 className="w-10 h-10 text-[#7AC943] animate-spin" />
       </div>
     );
   }
@@ -150,7 +314,7 @@ export default function Configuracoes() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 lg:p-8 text-white">
+      <div className="bg-gradient-to-r from-[#0A2540] to-[#0D3466] rounded-2xl p-6 lg:p-8 text-white">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
             <Settings className="w-8 h-8 text-white" />
@@ -173,7 +337,7 @@ export default function Configuracoes() {
             { id: "lgpd", label: "LGPD", icon: FileText },
             { id: "sistema", label: "Sistema", icon: Palette },
           ].map(tab => (
-            <TabsTrigger key={tab.id} value={tab.id} className="text-xs gap-1.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700">
+            <TabsTrigger key={tab.id} value={tab.id} className="text-xs gap-1.5 data-[state=active]:bg-[#7AC943]/10 data-[state=active]:text-[#7AC943]">
               <tab.icon className="w-3.5 h-3.5" />{tab.label}
             </TabsTrigger>
           ))}
@@ -185,19 +349,31 @@ export default function Configuracoes() {
         <TabsContent value="conta" className="mt-6 space-y-6">
           <Card className="border-slate-200">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><User className="w-5 h-5 text-emerald-600" />Dados Pessoais</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2"><User className="w-5 h-5 text-[#7AC943]" />Dados Pessoais</CardTitle>
               <CardDescription>Informações do seu perfil na plataforma</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-6 pb-4">
-                <Avatar className="w-20 h-20">
-                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-2xl">
-                    {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Camera className="w-4 h-4" />Alterar Foto
-                </Button>
+                <div className="relative">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={user?.avatar_url} />
+                    <AvatarFallback className="bg-[#7AC943]/10 text-[#0A2540] text-2xl">
+                      {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#0A2540] flex items-center justify-center cursor-pointer hover:bg-[#0D3466] transition">
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5 text-white" />
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                  </label>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Clique no ícone da câmera para alterar sua foto</p>
+                  <p className="text-xs text-slate-400 mt-1">PNG, JPG ou JPEG — máx 5MB</p>
+                </div>
               </div>
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -215,31 +391,45 @@ export default function Configuracoes() {
                 </div>
                 <div>
                   <Label className="text-xs">Função</Label>
-                  <Input value={user?.role === "admin" ? "Administrador" : "Usuário"} disabled className="mt-1 bg-slate-50" />
+                  <Input value={
+                    user?.role === "admin" ? "Administrador" :
+                    user?.role === "coordenador" ? "Coordenador" :
+                    user?.role === "lideranca" ? "Liderança" : "Usuário"
+                  } disabled className="mt-1 bg-slate-50" />
                 </div>
               </div>
-              <Button onClick={handleSaveProfile} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 gap-1.5">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              <Button onClick={handleSaveProfile} disabled={saving} className="bg-[#0A2540] hover:bg-[#0D3466] gap-1.5">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Salvar Alterações
               </Button>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Bell className="w-5 h-5 text-amber-500" />Preferências de Notificação</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2"><Bell className="w-5 h-5 text-amber-500" />Preferências de Notificação</CardTitle>
+                <CardDescription>Defina como deseja receber alertas</CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveNotifications} disabled={savingNotif} className="bg-[#0A2540] hover:bg-[#0D3466] gap-1.5">
+                {savingNotif ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Salvar
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { icon: Mail, label: "Notificações por E-mail", value: notifEmail, setter: setNotifEmail },
-                { icon: Phone, label: "Notificações por WhatsApp", value: notifWhatsApp, setter: setNotifWhatsApp },
-                { icon: Target, label: "Novas missões atribuídas", value: notifMission, setter: setNotifMission },
-                { icon: Activity, label: "Subida de nível (gamificação)", value: notifLevelUp, setter: setNotifLevelUp },
+                { icon: Mail, label: "Notificações por E-mail", desc: "Receba atualizações no seu email", value: notifEmail, setter: setNotifEmail },
+                { icon: Phone, label: "Notificações por WhatsApp", desc: "Alertas via mensagem no WhatsApp", value: notifWhatsApp, setter: setNotifWhatsApp },
+                { icon: Target, label: "Novas missões atribuídas", desc: "Quando uma missão for designada a você", value: notifMission, setter: setNotifMission },
+                { icon: Activity, label: "Subida de nível (gamificação)", desc: "Ao alcançar um novo nível", value: notifLevelUp, setter: setNotifLevelUp },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                   <div className="flex items-center gap-3">
                     <item.icon className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm text-slate-700">{item.label}</span>
+                    <div>
+                      <span className="text-sm text-slate-700">{item.label}</span>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
                   </div>
                   <Switch checked={item.value} onCheckedChange={item.setter} />
                 </div>
@@ -259,15 +449,20 @@ export default function Configuracoes() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-slate-50 rounded-xl flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${user?.role === "admin" ? "bg-red-100" : "bg-blue-100"}`}>
-                  <Shield className={`w-7 h-7 ${user?.role === "admin" ? "text-red-600" : "text-blue-600"}`} />
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${user?.role === "admin" ? "bg-red-100" : user?.role === "coordenador" ? "bg-purple-100" : user?.role === "lideranca" ? "bg-amber-100" : "bg-blue-100"}`}>
+                  <Shield className={`w-7 h-7 ${user?.role === "admin" ? "text-red-600" : user?.role === "coordenador" ? "text-purple-600" : user?.role === "lideranca" ? "text-amber-600" : "text-blue-600"}`} />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-slate-800">{user?.role === "admin" ? "Administrador" : "Usuário"}</p>
+                  <p className="text-xl font-bold text-slate-800">
+                    {user?.role === "admin" ? "Administrador" :
+                     user?.role === "coordenador" ? "Coordenador" :
+                     user?.role === "lideranca" ? "Liderança" : "Usuário"}
+                  </p>
                   <p className="text-sm text-slate-500">
-                    {user?.role === "admin"
-                      ? "Acesso total — gerencia campanhas, lideranças, dados eleitorais e configurações."
-                      : "Acesso limitado — operações conforme permissões do seu perfil."}
+                    {user?.role === "admin" ? "Acesso total — gerencia campanhas, lideranças, dados eleitorais e configurações."
+                     : user?.role === "coordenador" ? "Coordena equipes, gerencia missões e monitora território."
+                     : user?.role === "lideranca" ? "Portal da Liderança — gerencia base de apoiadores e demandas."
+                     : "Acesso limitado — operações conforme permissões do seu perfil."}
                   </p>
                 </div>
               </div>
@@ -277,21 +472,22 @@ export default function Configuracoes() {
                 {[
                   { label: "Central de Inteligência", hasAccess: true },
                   { label: "Contatos (CRM)", hasAccess: true },
-                  { label: "Lideranças", hasAccess: user?.role === "admin" },
+                  { label: "Lideranças", hasAccess: user?.role === "admin" || user?.role === "coordenador" },
                   { label: "Demandas", hasAccess: true },
                   { label: "Missões", hasAccess: true },
                   { label: "Gamificação", hasAccess: true },
-                  { label: "Mapa Territorial", hasAccess: user?.role === "admin" },
-                  { label: "Planejamento", hasAccess: user?.role === "admin" },
+                  { label: "Mapa Territorial", hasAccess: user?.role === "admin" || user?.role === "coordenador" },
+                  { label: "Planejamento", hasAccess: user?.role === "admin" || user?.role === "coordenador" },
                   { label: "Campanhas", hasAccess: user?.role === "admin" },
-                  { label: "Inteligência Eleitoral", hasAccess: user?.role === "admin" },
+                  { label: "Dados TSE (Diagnóstico)", hasAccess: user?.role === "admin" },
                   { label: "Relatórios", hasAccess: user?.role === "admin" },
                   { label: "Configurações do Sistema", hasAccess: user?.role === "admin" },
                   { label: "Exportação de Dados", hasAccess: user?.role === "admin" },
+                  { label: "Saúde do Sistema", hasAccess: user?.role === "admin" },
                 ].map((perm, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
                     {perm.hasAccess
-                      ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ? <CheckCircle2 className="w-4 h-4 text-[#7AC943]" />
                       : <AlertTriangle className="w-4 h-4 text-amber-500" />}
                     <span className={perm.hasAccess ? "text-slate-700" : "text-slate-400"}>{perm.label}</span>
                     {!perm.hasAccess && <Badge variant="outline" className="text-[10px] ml-2">Restrito</Badge>}
@@ -309,31 +505,35 @@ export default function Configuracoes() {
           <Card className="border-slate-200">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><Key className="w-5 h-5 text-red-500" />Alterar Senha</CardTitle>
-              <CardDescription>Recomenda-se usar senha forte com letras, números e símbolos</CardDescription>
+              <CardDescription>Recomenda-se usar senha forte com pelo menos 8 caracteres, letras, números e símbolos</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 max-w-md">
               <div>
-                <Label className="text-xs">Senha Atual</Label>
+                <Label className="text-xs">Nova Senha</Label>
                 <div className="relative">
-                  <Input type={showPasswords ? "text" : "password"} value={currentPass} onChange={e => setCurrentPass(e.target.value)} className="mt-1 pr-10" />
-                  <button className="absolute right-3 top-3 text-slate-400" onClick={() => setShowPasswords(!showPasswords)}>
+                  <Input type={showPasswords ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} className="mt-1 pr-10" placeholder="Mínimo 8 caracteres" />
+                  <button type="button" className="absolute right-3 top-3 text-slate-400" onClick={() => setShowPasswords(!showPasswords)}>
                     {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <Label className="text-xs">Nova Senha</Label>
-                <Input type={showPasswords ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} className="mt-1" />
-              </div>
-              <div>
                 <Label className="text-xs">Confirmar Nova Senha</Label>
-                <Input type={showPasswords ? "text" : "password"} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="mt-1" />
+                <Input type={showPasswords ? "text" : "password"} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} className="mt-1" placeholder="Repita a nova senha" />
                 {newPass && confirmPass && newPass !== confirmPass && (
                   <p className="text-xs text-red-500 mt-1">As senhas não coincidem</p>
                 )}
+                {newPass && newPass.length < 8 && (
+                  <p className="text-xs text-amber-500 mt-1">A senha deve ter pelo menos 8 caracteres</p>
+                )}
               </div>
-              <Button className="bg-red-600 hover:bg-red-700 gap-1.5" disabled={!newPass || newPass !== confirmPass}>
-                <Key className="w-4 h-4" />Alterar Senha
+              <Button
+                className="bg-red-600 hover:bg-red-700 gap-1.5"
+                disabled={!newPass || newPass !== confirmPass || newPass.length < 8 || changingPassword}
+                onClick={handleChangePassword}
+              >
+                {changingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                Alterar Senha
               </Button>
             </CardContent>
           </Card>
@@ -341,20 +541,20 @@ export default function Configuracoes() {
           <Card className="border-slate-200">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2"><Smartphone className="w-5 h-5 text-slate-600" />Sessões Ativas</CardTitle>
-              <CardDescription>Dispositivos conectados à sua conta</CardDescription>
+              <CardDescription>Gerencie os dispositivos conectados à sua conta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-[#7AC943]/10 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-emerald-600" />
+                  <Smartphone className="w-5 h-5 text-[#7AC943]" />
                   <div>
                     <p className="text-sm font-medium text-slate-700">Dispositivo Atual</p>
                     <p className="text-xs text-slate-500">{navigator.userAgent?.slice(0, 60)}...</p>
                   </div>
                 </div>
-                <Badge className="bg-emerald-100 text-emerald-700 border-none text-[10px]">Ativo agora</Badge>
+                <Badge className="bg-[#7AC943]/20 text-[#7AC943] border-none text-[10px]">Ativo agora</Badge>
               </div>
-              <Button variant="outline" className="w-full gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => base44.auth.logout()}>
+              <Button variant="outline" className="w-full gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => base44.auth.logout("/")}>
                 <LogOut className="w-4 h-4" />Sair de Todos os Dispositivos
               </Button>
             </CardContent>
@@ -366,48 +566,48 @@ export default function Configuracoes() {
         {/* ================================================================ */}
         <TabsContent value="integracoes" className="mt-6 space-y-6">
           <Card className="border-slate-200">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2"><Phone className="w-5 h-5 text-emerald-600" />Evolution API — WhatsApp</CardTitle>
-                  <CardDescription>Conecte sua instância Evolution API para enviar mensagens</CardDescription>
-                </div>
-                <Badge className={`text-[10px] ${
-                  whatsappStatus === "conectado" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
-                }`}>
-                  {whatsappStatus === "conectado" ? "Conectado" : "Desconectado"}
-                </Badge>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2"><Phone className="w-5 h-5 text-[#7AC943]" />Evolution API — WhatsApp</CardTitle>
+                <CardDescription>Conecte sua instância Evolution API para enviar mensagens</CardDescription>
               </div>
+              <Badge className={`text-[10px] ${
+                whatsappStatus === "conectado" ? "bg-[#7AC943]/10 text-[#7AC943]" : "bg-slate-100 text-slate-600"
+              }`}>
+                {whatsappStatus === "conectado" ? "Conectado" : "Desconectado"}
+              </Badge>
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
               <div>
                 <Label className="text-xs">URL da Instância</Label>
                 <Input
-                  value={whatsappUrl}
-                  onChange={e => setWhatsappUrl(e.target.value)}
-                  placeholder="https://evo-api.exemplo.com"
-                  className="mt-1"
+                  value={whatsappUrl} onChange={e => setWhatsappUrl(e.target.value)}
+                  placeholder="https://evo-api.exemplo.com" className="mt-1"
                 />
               </div>
               <div>
                 <Label className="text-xs">Token da Instância</Label>
                 <Input
-                  type="password"
-                  value={whatsappToken}
-                  onChange={e => setWhatsappToken(e.target.value)}
-                  placeholder="••••••••••••••••"
-                  className="mt-1"
+                  type="password" value={whatsappToken} onChange={e => setWhatsappToken(e.target.value)}
+                  placeholder="••••••••••••••••" className="mt-1"
                 />
               </div>
-              <div className="flex gap-3">
-                <Button onClick={handleTestWhatsApp} disabled={testingWhatsapp} className="bg-emerald-600 hover:bg-emerald-700 gap-1.5">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleTestWhatsApp} disabled={testingWhatsapp} className="bg-[#7AC943] hover:bg-[#68B535] gap-1.5">
                   {testingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Testar Conexão
                 </Button>
-                <Button variant="outline" className="gap-1.5">
-                  <Download className="w-4 h-4" />Logs de Envio
+                <Button variant="outline" onClick={handleSaveWhatsapp} disabled={savingWhatsapp} className="gap-1.5">
+                  {savingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salvar Configuração
                 </Button>
               </div>
+              {whatsappStatus === "conectado" && (
+                <div className="p-3 bg-[#7AC943]/5 rounded-lg flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#7AC943]" />
+                  <p className="text-sm text-[#7AC943]">WhatsApp conectado e operacional</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -417,9 +617,15 @@ export default function Configuracoes() {
         {/* ================================================================ */}
         <TabsContent value="sofia" className="mt-6 space-y-6">
           <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Bot className="w-5 h-5 text-indigo-600" />Configuração da Sofia IA</CardTitle>
-              <CardDescription>Personalize o comportamento da inteligência artificial da plataforma</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2"><Bot className="w-5 h-5 text-indigo-600" />Configuração da Sofia IA</CardTitle>
+                <CardDescription>Personalize o comportamento da inteligência artificial da plataforma</CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveSofia} disabled={savingSofia} className="bg-[#0A2540] hover:bg-[#0D3466] gap-1.5">
+                {savingSofia ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Salvar
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
               <div className="flex items-center justify-between py-2">
@@ -438,7 +644,7 @@ export default function Configuracoes() {
                 <select
                   value={sofiaTone}
                   onChange={e => setSofiaTone(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm mt-1"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm mt-1 bg-white"
                 >
                   <option value="analitico">Analítico — foco em dados e estatísticas</option>
                   <option value="estrategico">Estratégico — foco em recomendações táticas</option>
@@ -449,17 +655,13 @@ export default function Configuracoes() {
               <div>
                 <Label className="text-xs">Permissões de Análise</Label>
                 <div className="mt-2 space-y-2">
-                  {[
-                    { label: "CRM Político (contatos, engajamento)", checked: true },
-                    { label: "Lideranças (performance, conversão)", checked: true },
-                    { label: "Demandas (tendências, regiões críticas)", checked: true },
-                    { label: "Missões (taxa de conclusão, gargalos)", checked: true },
-                    { label: "Gamificação (progressão, engajamento)", checked: true },
-                    { label: "Inteligência Eleitoral (TSE, redutos)", checked: true },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Switch defaultChecked={item.checked} />
-                      <span className="text-sm text-slate-600">{item.label}</span>
+                  {Object.entries(sofiaPermLabels).map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-slate-600">{label}</span>
+                      <Switch
+                        checked={sofiaPerms[key]}
+                        onCheckedChange={(v) => setSofiaPerms(prev => ({ ...prev, [key]: v }))}
+                      />
                     </div>
                   ))}
                 </div>
@@ -473,22 +675,28 @@ export default function Configuracoes() {
         {/* ================================================================ */}
         <TabsContent value="lgpd" className="mt-6 space-y-6">
           <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" />Privacidade e LGPD</CardTitle>
-              <CardDescription>Gerencie seus dados pessoais conforme a Lei Geral de Proteção de Dados</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" />Privacidade e LGPD</CardTitle>
+                <CardDescription>Gerencie seus dados pessoais conforme a Lei Geral de Proteção de Dados</CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveLgpd} disabled={savingLgpd} className="bg-[#0A2540] hover:bg-[#0D3466] gap-1.5">
+                {savingLgpd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Salvar
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Termo de Consentimento</p>
-                  <p className="text-xs text-slate-500">Autorizo o tratamento dos meus dados conforme a LGPD</p>
+                  <p className="text-sm font-medium text-slate-700">Termo de Consentimento LGPD</p>
+                  <p className="text-xs text-slate-500">Autorizo o tratamento dos meus dados pessoais conforme a Lei nº 13.709/2018</p>
                 </div>
                 <Switch checked={consentimento} onCheckedChange={setConsentimento} />
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <div>
                   <p className="text-sm font-medium text-slate-700">Opt-in WhatsApp</p>
-                  <p className="text-xs text-slate-500">Autorizo receber mensagens via WhatsApp</p>
+                  <p className="text-xs text-slate-500">Autorizo receber comunicações via WhatsApp</p>
                 </div>
                 <Switch checked={optinWhatsApp} onCheckedChange={setOptinWhatsApp} />
               </div>
@@ -513,8 +721,15 @@ export default function Configuracoes() {
         {/* ================================================================ */}
         <TabsContent value="sistema" className="mt-6 space-y-6">
           <Card className="border-slate-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2"><Palette className="w-5 h-5 text-purple-600" />Aparência e Localização</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2"><Palette className="w-5 h-5 text-purple-600" />Aparência e Localização</CardTitle>
+                <CardDescription>Personalize a experiência da plataforma</CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveSystem} disabled={savingSystem} className="bg-[#0A2540] hover:bg-[#0D3466] gap-1.5">
+                {savingSystem ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Salvar
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
               <div className="flex items-center justify-between py-2">
@@ -536,7 +751,7 @@ export default function Configuracoes() {
                   </div>
                 </div>
                 <select value={language} onChange={e => setLanguage(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm bg-white">
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="en">English</option>
                   <option value="es">Español</option>
@@ -551,10 +766,12 @@ export default function Configuracoes() {
                   </div>
                 </div>
                 <select value={timezone} onChange={e => setTimezone(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm">
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm bg-white">
                   <option value="America/Sao_Paulo">Brasília (GMT-3)</option>
                   <option value="America/Manaus">Manaus (GMT-4)</option>
                   <option value="America/Rio_Branco">Rio Branco (GMT-5)</option>
+                  <option value="America/Fortaleza">Fortaleza (GMT-3)</option>
+                  <option value="America/Belem">Belém (GMT-3)</option>
                 </select>
               </div>
             </CardContent>
@@ -567,9 +784,13 @@ export default function Configuracoes() {
             <CardContent>
               <div className="space-y-2 text-sm">
                 <p className="text-slate-700"><strong>Nome:</strong> Esperançar</p>
-                <p className="text-slate-700"><strong>Versão:</strong> 1.0.0</p>
-                <p className="text-slate-700"><strong>Stack:</strong> React + Tailwind + Base44 BaaS</p>
-                <p className="text-slate-700"><strong>Módulos:</strong> CRM Político, Gestão Territorial, Missões, Gamificação, Inteligência Eleitoral, Sofia IA</p>
+                <p className="text-slate-700"><strong>Versão:</strong> 2.0.0</p>
+                <p className="text-slate-700"><strong>Stack:</strong> React + Tailwind CSS + Base44 BaaS</p>
+                <p className="text-slate-700"><strong>Módulos:</strong> CRM Político, Gestão Territorial, Missões, Gamificação, Inteligência Eleitoral (TSE), Sofia IA</p>
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="w-3 h-3 rounded-full bg-[#7AC943]" />
+                  <span className="text-xs text-slate-500">Sistema operacional</span>
+                </div>
               </div>
             </CardContent>
           </Card>
