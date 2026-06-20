@@ -104,5 +104,39 @@
   },
   "required": [
     "leader_id"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.leader_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.leader_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.leader_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
