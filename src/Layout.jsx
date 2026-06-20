@@ -18,7 +18,8 @@ import {
   LogOut,
   Bell,
   Search,
-  Gamepad2
+  Gamepad2,
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,11 +31,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAccessControl, getEffectiveRole } from "@/lib/AccessControl";
 
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const { canAccessPage, isLideranca } = useAccessControl();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -48,7 +51,7 @@ export default function Layout({ children, currentPageName }) {
     loadUser();
   }, []);
 
-  const navigation = [
+  const allNavigation = [
     { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: LayoutDashboard },
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },
@@ -60,8 +63,19 @@ export default function Layout({ children, currentPageName }) {
     { name: "Campanhas", page: "Campaigns", icon: FileText },
     { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
+    { name: "Saúde do Sistema", page: "SaudeSistema", icon: Activity },
     { name: "Configurações", page: "Configuracoes", icon: Settings },
   ];
+
+  // Filtrar navegação por perfil (RBAC)
+  const navigation = allNavigation.filter(item => canAccessPage(item.page));
+
+  // Redirecionar lideranças para o portal se tentarem acessar outra página
+  useEffect(() => {
+    if (isLideranca && currentPageName && currentPageName !== "PortalLideranca" && currentPageName !== "Configuracoes") {
+      window.location.href = "/PortalLideranca";
+    }
+  }, [isLideranca, currentPageName]);
 
   const handleLogout = () => {
     base44.auth.logout();

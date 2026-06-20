@@ -28,7 +28,10 @@ Esperançar é uma plataforma integrada de CRM político, gestão territorial, m
 | **Campanhas** | 70% | Gestão de campanhas eleitorais |
 | **Planejamento** | 70% | Calendário, ações estratégicas |
 | **Relatórios** | 65% | PDF, CSV, exportação de dados |
-| **Configurações** | 95% | Conta, segurança, integrações, LGPD |
+| **Configurações** | 95% | Conta, segurança, integrações, LGPD, 7 abas |
+| **Saúde do Sistema** | 90% | Monitoramento, integrações, automações, alertas |
+| **RBAC** | 95% | 4 perfis, proteção de rotas, sidebar, componentes |
+| **Automações** | 90% | 4 ativas: missões vencidas, ranking, inativos, demandas |
 
 ## Tecnologias
 
@@ -42,7 +45,7 @@ Esperançar é uma plataforma integrada de CRM político, gestão territorial, m
 
 ```
 src/
-├── pages/           # 13 páginas (rotas)
+├── pages/           # 14 páginas (rotas)
 ├── components/      # 55+ componentes React
 │   ├── portal/      # Portal da Liderança (8 componentes)
 │   ├── electoral/   # Inteligência Eleitoral (14 componentes)
@@ -54,11 +57,11 @@ src/
 │   ├── integrations/ # WhatsApp, TSE (2 componentes)
 │   ├── planning/    # Planejamento (1 componente)
 │   └── ui/          # shadcn/ui base (40+ componentes)
-├── functions/       # 11 funções Deno (backend)
+├── functions/       # 12 funções Deno (backend)
 ├── entities/        # 11 schemas de entidades
 ├── agents/          # Configs de agentes IA
 ├── api/             # Cliente Base44 SDK
-├── lib/             # AuthContext, utilitários
+├── lib/             # AuthContext, AccessControl (RBAC), utilitários
 └── utils/           # Funções auxiliares
 ```
 

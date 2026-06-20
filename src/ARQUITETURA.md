@@ -37,8 +37,9 @@
 ### 1. Frontend (React SPA)
 
 - **App.jsx:** Roteador principal com AuthProvider e QueryClientProvider
-- **Layout.jsx:** Sidebar + Header + conteúdo principal, aplicado via LayoutWrapper
-- **pages/:** 13 páginas com rotas explícitas
+- **Layout.jsx:** Sidebar + Header + conteúdo principal, com filtro RBAC por perfil
+- **lib/AccessControl.jsx:** Sistema RBAC com 4 perfis (admin, coordenador, liderança, usuário)
+- **pages/:** 14 páginas com rotas explícitas e RouteGuard
 - **components/:** 55+ componentes modulares organizados por domínio
 
 ### 2. SDK / Comunicação
@@ -54,7 +55,14 @@
 - **Integrations Core:** InvokeLLM (Sofia IA), UploadFile, SendEmail
 - **Automations:** 1 automação ativa (markOverdueMissions a cada 1h)
 
-### 4. Integrações Externas
+### 4. Segurança e RBAC
+
+- **4 perfis:** admin, coordenador, liderança, usuário
+- **RouteGuard:** Bloqueia acesso por URL direta quando sem permissão
+- **Sidebar dinâmica:** Filtra itens visíveis conforme perfil
+- **Redirecionamento:** Lideranças são forçadas ao Portal da Liderança
+
+### 5. Integrações Externas
 
 | Serviço | Propósito | Via |
 |---|---|---|

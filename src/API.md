@@ -1,6 +1,6 @@
 # API e Backend Functions
 
-## Funções Deno (11 funções)
+## Funções Deno (12 funções)
 
 Todas as funções residem em `functions/` e são implantadas automaticamente.
 
@@ -65,6 +65,15 @@ Todas as funções residem em `functions/` e são implantadas automaticamente.
 ### 11. exportMapPDF
 **Propósito:** Gerar PDF do mapa territorial com jsPDF.
 
+### 12. weeklyMaintenance
+**Propósito:** Manutenção semanal automatizada.
+
+**Ações:**
+- `weekly_ranking` — Resetar pontos semanais da gamificação
+- `weekly_goals` — Resetar metas semanais das lideranças
+- `check_inactive_leaders` — Marcar lideranças sem atividade há 30 dias como inativas
+- `check_stale_demands` — Elevar prioridade de demandas estagnadas há 15 dias
+
 ---
 
 ## SDK Frontend
@@ -100,6 +109,9 @@ await base44.users.inviteUser("email@exemplo.com", "user");
 | Nome | Tipo | Função | Schedule |
 |---|---|---|---|
 | Atualizar Missões Vencidas | Scheduled | markOverdueMissions | A cada 1 hora |
+| Reset Ranking Semanal | Scheduled | weeklyMaintenance | Segunda 07:00 BRT |
+| Verificar Lideranças Inativas | Scheduled | weeklyMaintenance | Diário 08:00 BRT |
+| Verificar Demandas Estagnadas | Scheduled | weeklyMaintenance | Diário 09:00 BRT |
 
 ---
 

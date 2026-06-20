@@ -115,13 +115,15 @@ export default function CentralInteligencia() {
   const loadCRMData = useCallback(async () => {
     setCrmLoading(true);
     try {
+      // Paginação: carregar apenas contagens e amostras para o dashboard,
+      // não todos os registros
       const [leaders, missions, contacts, demands, gamificationProfiles, actions] = await Promise.all([
-        base44.entities.Leader.list("-created_date", 200),
-        base44.entities.Mission.list("-created_date", 200),
-        base44.entities.Contact.list("-created_date", 500),
-        base44.entities.Demand.list("-created_date", 200),
-        base44.entities.GamificationProfile.list("-total_points", 100),
-        base44.entities.StrategicAction.list("-created_date", 100),
+        base44.entities.Leader.list("-created_date", 50),
+        base44.entities.Mission.list("-created_date", 50),
+        base44.entities.Contact.list("-created_date", 100),
+        base44.entities.Demand.list("-created_date", 50),
+        base44.entities.GamificationProfile.list("-total_points", 30),
+        base44.entities.StrategicAction.list("-created_date", 20),
       ]);
 
       const activeLeaders = leaders.filter(l => l.status === "active");

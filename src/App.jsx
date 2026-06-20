@@ -12,6 +12,8 @@ import DiagnosticoTSE from './pages/DiagnosticoTSE';
 import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
 import PortalLideranca from './pages/PortalLideranca';
 import Configuracoes from './pages/Configuracoes';
+import SaudeSistema from './pages/SaudeSistema';
+import { RouteGuard } from '@/lib/AccessControl';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -67,7 +69,7 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/InteligenciaEleitoral" element={
         <LayoutWrapper currentPageName="InteligenciaEleitoral">
-          <InteligenciaEleitoral />
+          <RouteGuard pageName="InteligenciaEleitoral"><InteligenciaEleitoral /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="/DiagnosticoTSE" element={
@@ -77,12 +79,17 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/PortalLideranca" element={
         <LayoutWrapper currentPageName="PortalLideranca">
-          <PortalLideranca />
+          <RouteGuard pageName="PortalLideranca"><PortalLideranca /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="/Configuracoes" element={
         <LayoutWrapper currentPageName="Configuracoes">
-          <Configuracoes />
+          <RouteGuard pageName="Configuracoes"><Configuracoes /></RouteGuard>
+        </LayoutWrapper>
+      } />
+      <Route path="/SaudeSistema" element={
+        <LayoutWrapper currentPageName="SaudeSistema">
+          <RouteGuard pageName="SaudeSistema"><SaudeSistema /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
