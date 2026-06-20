@@ -85,11 +85,11 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-slate-50">
       <style>{`
         .sidebar-gradient {
-          background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+          background: linear-gradient(180deg, #0A2540 0%, #0D3466 100%);
         }
         .nav-item-active {
-          background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, transparent 100%);
-          border-left: 3px solid #3b82f6;
+          background: linear-gradient(90deg, rgba(122, 201, 67, 0.18) 0%, transparent 100%);
+          border-left: 3px solid #7AC943;
         }
         .header-blur {
           backdrop-filter: blur(12px);
@@ -115,12 +115,14 @@ export default function Layout({ children, currentPageName }) {
           {/* Logo */}
           <div className="flex items-center justify-between p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <Target className="w-6 h-6 text-white" />
-              </div>
+              <img
+                src="https://media.base44.com/images/public/6927a32c597892cda17b4136/9f3f423e6_ChatGPTImage19dejunde202620_51_17.png"
+                alt="Esperançar"
+                className="w-10 h-10 rounded-lg object-contain bg-white p-0.5"
+              />
               <div>
                 <h1 className="text-lg font-bold text-white">Esperançar</h1>
-                <p className="text-xs text-slate-400">Plataforma Eleitoral</p>
+                <p className="text-xs text-[#7AC943]">PLATAFORMA ESTRATÉGICA POLÍTICA</p>
               </div>
             </div>
             <button
@@ -146,7 +148,7 @@ export default function Layout({ children, currentPageName }) {
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? "text-blue-400" : ""}`} />
+                  <item.icon className={`w-5 h-5 ${isActive ? "text-[#7AC943]" : ""}`} />
                   {item.name}
                 </Link>
               );
