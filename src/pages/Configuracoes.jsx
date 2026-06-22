@@ -27,12 +27,9 @@ export default function Configuracoes() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // WhatsApp state
-  const [whatsappUrl, setWhatsappUrl] = useState("");
-  const [whatsappToken, setWhatsappToken] = useState("");
+  // WhatsApp state (credenciais gerenciadas pelo ambiente, não por usuário)
   const [whatsappStatus, setWhatsappStatus] = useState("desconectado");
   const [testingWhatsapp, setTestingWhatsapp] = useState(false);
-  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
   // Notification preferences
   const [notifEmail, setNotifEmail] = useState(true);
@@ -101,9 +98,7 @@ export default function Configuracoes() {
       if (u.ui_language) setLanguage(u.ui_language);
       if (u.ui_timezone) setTimezone(u.ui_timezone);
 
-      // WhatsApp
-      if (u.whatsapp_url) setWhatsappUrl(u.whatsapp_url);
-      if (u.whatsapp_token) setWhatsappToken(u.whatsapp_token);
+      // WhatsApp — status do último teste salvo localmente
       if (u.whatsapp_status) setWhatsappStatus(u.whatsapp_status);
     } catch (e) {
       console.error("Erro ao carregar usuário:", e);
@@ -155,41 +150,25 @@ export default function Configuracoes() {
   };
 
   const handleTestWhatsApp = async () => {
-    if (!whatsappUrl || !whatsappToken) {
-      toast.error("Preencha URL e Token da instância");
-      return;
-    }
     setTestingWhatsapp(true);
     try {
       const res = await base44.functions.invoke("whatsappSend", {
-        action: "test_connection",
-        instanceUrl: whatsappUrl,
-        instanceToken: whatsappToken,
+        mode: "test",
       });
       const newStatus = res.data?.success ? "conectado" : "falha";
       setWhatsappStatus(newStatus);
-      if (res.data?.success) toast.success("Conexão WhatsApp OK");
-      else toast.error(res.data?.error || "Falha na conexão");
+      // Salvar status no perfil para referência
+      await base44.auth.updateMe({ whatsapp_status: newStatus });
+      if (res.data?.success) {
+        toast.success(`WhatsApp conectado — ${res.data?.instance_status || 'OK'}`);
+      } else {
+        toast.error(res.data?.error || "Falha na conexão");
+      }
     } catch (e) {
       setWhatsappStatus("falha");
       toast.error("Erro ao testar: " + e.message);
     }
     setTestingWhatsapp(false);
-  };
-
-  const handleSaveWhatsapp = async () => {
-    setSavingWhatsapp(true);
-    try {
-      await base44.auth.updateMe({
-        whatsapp_url: whatsappUrl,
-        whatsapp_token: whatsappToken,
-        whatsapp_status: whatsappStatus,
-      });
-      toast.success("Configuração WhatsApp salva");
-    } catch (e) {
-      toast.error("Erro ao salvar: " + e.message);
-    }
-    setSavingWhatsapp(false);
   };
 
   const handleSaveSofia = async () => {
@@ -569,7 +548,7 @@ export default function Configuracoes() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-lg flex items-center gap-2"><Phone className="w-5 h-5 text-[#7AC943]" />Evolution API — WhatsApp</CardTitle>
-                <CardDescription>Conecte sua instância Evolution API para enviar mensagens</CardDescription>
+                <CardDescription>Credenciais gerenciadas pelo administrador via variáveis de ambiente</CardDescription>
               </div>
               <Badge className={`text-[10px] ${
                 whatsappStatus === "conectado" ? "bg-[#7AC943]/10 text-[#7AC943]" : "bg-slate-100 text-slate-600"
@@ -578,34 +557,24 @@ export default function Configuracoes() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
-              <div>
-                <Label className="text-xs">URL da Instância</Label>
-                <Input
-                  value={whatsappUrl} onChange={e => setWhatsappUrl(e.target.value)}
-                  placeholder="https://evo-api.exemplo.com" className="mt-1"
-                />
+              <div className="p-4 bg-slate-50 rounded-xl text-sm text-slate-600">
+                <p>As credenciais da Evolution API (<strong>URL</strong> e <strong>Token</strong>) são configuradas pelo administrador nas variáveis de ambiente do app.</p>
+                <p className="text-xs text-slate-400 mt-2">Se o teste falhar, solicite ao admin que verifique as secrets <code className="bg-slate-200 px-1 rounded">WHATSAPP_INSTANCE_URL</code> e <code className="bg-slate-200 px-1 rounded">WHATSAPP_INSTANCE_TOKEN</code>.</p>
               </div>
-              <div>
-                <Label className="text-xs">Token da Instância</Label>
-                <Input
-                  type="password" value={whatsappToken} onChange={e => setWhatsappToken(e.target.value)}
-                  placeholder="••••••••••••••••" className="mt-1"
-                />
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={handleTestWhatsApp} disabled={testingWhatsapp} className="bg-[#7AC943] hover:bg-[#68B535] gap-1.5">
-                  {testingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Testar Conexão
-                </Button>
-                <Button variant="outline" onClick={handleSaveWhatsapp} disabled={savingWhatsapp} className="gap-1.5">
-                  {savingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar Configuração
-                </Button>
-              </div>
+              <Button onClick={handleTestWhatsApp} disabled={testingWhatsapp} className="bg-[#7AC943] hover:bg-[#68B535] gap-1.5">
+                {testingWhatsapp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Testar Conexão
+              </Button>
               {whatsappStatus === "conectado" && (
                 <div className="p-3 bg-[#7AC943]/5 rounded-lg flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-[#7AC943]" />
                   <p className="text-sm text-[#7AC943]">WhatsApp conectado e operacional</p>
+                </div>
+              )}
+              {whatsappStatus === "falha" && (
+                <div className="p-3 bg-red-50 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <p className="text-sm text-red-600">Falha na conexão — verifique as credenciais de ambiente</p>
                 </div>
               )}
             </CardContent>

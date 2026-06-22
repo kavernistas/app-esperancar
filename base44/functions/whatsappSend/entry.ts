@@ -66,6 +66,42 @@ Deno.serve(async (req) => {
     const instanceUrl = Deno.env.get('WHATSAPP_INSTANCE_URL');
     const instanceToken = Deno.env.get('WHATSAPP_INSTANCE_TOKEN');
 
+    // ── Modo teste de conexão ──
+    if (mode === "test") {
+      if (!instanceUrl || !instanceToken) {
+        return Response.json({
+          success: false,
+          mode: "test",
+          error: 'Credenciais WhatsApp não configuradas no ambiente (WHATSAPP_INSTANCE_URL / WHATSAPP_INSTANCE_TOKEN)',
+        });
+      }
+      try {
+        const res = await fetch(`${instanceUrl}/instance/connectionState/${instanceToken}`, {
+          headers: { apikey: instanceToken },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return Response.json({
+            success: true,
+            mode: "test",
+            instance_status: data.instance?.state || data.state || 'connected',
+            message: 'Conexão WhatsApp verificada com sucesso',
+          });
+        }
+        return Response.json({
+          success: false,
+          mode: "test",
+          error: `Falha na conexão: ${res.status} ${res.statusText}`,
+        });
+      } catch (e) {
+        return Response.json({
+          success: false,
+          mode: "test",
+          error: `Erro ao conectar: ${e.message}`,
+        });
+      }
+    }
+
     if (!message || message.trim() === '') {
       return Response.json({ error: 'Mensagem é obrigatória' }, { status: 400 });
     }
