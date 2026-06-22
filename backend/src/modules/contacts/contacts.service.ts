@@ -87,6 +87,7 @@ export class ContactsService {
     const contact = await this.prisma.contact.create({
       data: {
         ...dto,
+        status: dto.status as any,
         created_by_user_id: userId,
       },
     });

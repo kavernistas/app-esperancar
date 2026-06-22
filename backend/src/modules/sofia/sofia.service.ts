@@ -3,19 +3,19 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/common/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
-interface LLMMessage {
+export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-interface LLMResponse {
+export interface LLMResponse {
   content: string;
   provider: string;
   model: string;
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }
 
-interface PromptHistoryEntry {
+export interface PromptHistoryEntry {
   id: string;
   userId: string;
   module: string;

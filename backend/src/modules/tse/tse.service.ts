@@ -63,7 +63,7 @@ export class TseService {
 
   async queryVoteResults(query: {
     ano: number; uf: string; cargo?: string; municipio?: string;
-    zona?: string; secao?: string?; candidato?: string;
+    zona?: string; secao?: string; candidato?: string;
     page?: number; limit?: number; sortBy?: string; sortOrder?: string;
   }, userId?: string) {
     const {

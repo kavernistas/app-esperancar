@@ -1,0 +1,165 @@
+# /opt/app-esperancar/docker-compose.swarm.yml
+# Deploy no Docker Swarm do EasyPanel
+# VPS: root@69.62.67.78
+
+version: '3.9'
+
+services:
+
+  # =============================================
+  # BACKEND — NestJS API
+  # =============================================
+  esperancar-backend:
+    image: 127.0.0.1:5000/esperancar-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://esperancar:***@esperancar-postgres:5432/esperancar_db?schema=public
+      - REDIS_URL=redis://esperancar-redis:6379
+      - JWT_ACCESS_SECRET=${JWT_...t}
+      - JWT_REFRESH_SECRET=${JWT_...t}
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=7d
+      - CORS_ORIGIN=https://esperancar.f5rg2q.easypanel.host
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL:-}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-esperancar}
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_PATH=/app/uploads
+      - TSE_ETL_SHARED_SECRET=${TSE_ETL_SHARED_SECRET:-change-me}
+    volumes:
+      - esperancar-uploads:/app/uploads
+      - esperancar-logs:/app/logs
+    networks:
+      - esperancar-net
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.esperancar-api.rule=Host(`esperancar.f5rg2q.easypanel.host`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.esperancar-api.entrypoints=websecure"
+        - "traefik.http.routers.esperancar-api.tls.certresolver=letsencrypt"
+        - "traefik.http.services.esperancar-api.loadbalancer.server.port=3001"
+        - "traefik.http.middlewares.esperancar-api-stripprefix.stripprefix.prefixes=/api"
+        - "traefik.http.routers.esperancar-api.middlewares=esperancar-api-stripprefix@docker"
+
+  # =============================================
+  # FRONTEND — React (servido via Nginx)
+  # =============================================
+  esperancar-frontend:
+    image: 127.0.0.1:5000/esperancar-frontend:latest
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - VITE_API_MODE=BACKEND
+        - VITE_API_BASE_URL=/api
+    networks:
+      - esperancar-net
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.esperancar-web.rule=Host(`esperancar.f5rg2q.easypanel.host`)"
+        - "traefik.http.routers.esperancar-web.entrypoints=websecure"
+        - "traefik.http.routers.esperancar-web.tls.certresolver=letsencrypt"
+        - "traefik.http.services.esperancar-web.loadbalancer.server.port=3000"
+
+  # =============================================
+  # POSTGRESQL
+  # =============================================
+  esperancar-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-esperancar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-esperancar_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - esperancar-pgdata:/var/lib/postgresql/data
+    networks:
+      - esperancar-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-esperancar} -d ${POSTGRES_DB:-esperancar_db}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # =============================================
+  # REDIS
+  # =============================================
+  esperancar-redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - esperancar-redisdata:/data
+    networks:
+      - esperancar-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# =============================================
+# VOLUMES
+# =============================================
+volumes:
+  esperancar-pgdata:
+    driver: local
+  esperancar-redisdata:
+    driver: local
+  esperancar-uploads:
+    driver: local
+  esperancar-logs:
+    driver: local
+
+# =============================================
+# NETWORKS
+# =============================================
+networks:
+  esperancar-net:
+    driver: overlay
+    attachable: true
+  traefik-public:
+    external: true

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/common/prisma.service';
 import { AuditService } from '../audit/audit.service';
 
-interface WhatsAppSendResult {
+export interface WhatsAppSendResult {
   success: boolean;
   messageId?: string;
   error?: string;

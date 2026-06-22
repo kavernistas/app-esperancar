@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-interface FileUploadResult {
+export interface FileUploadResult {
   id: string;
   filename: string;
   originalName: string;

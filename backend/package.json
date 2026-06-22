@@ -40,7 +40,9 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^10.0.0",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "@nestjs/axios": "^3.0.0",
+    "axios": "^1.7.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.0",

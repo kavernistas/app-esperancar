@@ -10,11 +10,11 @@ import { ContactsModule } from './modules/contacts/contacts.module';
 import { LeadersModule } from './modules/leaders/leaders.module';
 import { DemandsModule } from './modules/demands/demands.module';
 import { MissionsModule } from './modules/missions/missions.module';
-import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { CampaignModule } from './modules/campaigns/campaigns.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { ElectoralModule } from './modules/electoral/electoral.module';
 import { TseModule } from './modules/tse/tse.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
+import { NotificationModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { SofiaModule } from './modules/sofia/sofia.module';
@@ -34,11 +34,11 @@ import { JobsModule } from './modules/jobs/jobs.module';
     LeadersModule,
     DemandsModule,
     MissionsModule,
-    CampaignsModule,
+    CampaignModule,
     GamificationModule,
     ElectoralModule,
     TseModule,
-    NotificationsModule,
+    NotificationModule,
     AuditModule,
     WhatsAppModule,
     SofiaModule,

@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import * as cron from 'node-cron';
 
-interface JobStatus {
+export interface JobStatus {
   name: string;
   description: string;
   schedule: string;
