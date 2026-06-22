@@ -5,6 +5,9 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!['admin', 'coordenador'].includes(user.role)) {
+      return Response.json({ error: 'Acesso restrito a admin e coordenador' }, { status: 403 });
+    }
 
     const body = await req.json();
     const { ano, uf, cargo, municipio, zona, secao, candidato, page = 0, limit = 100 } = body;

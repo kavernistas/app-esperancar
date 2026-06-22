@@ -17,6 +17,9 @@ Deno.serve(async (req) => {
     if (!user) {
       return Response.json({ error: 'Não autorizado' }, { status: 401 });
     }
+    if (!['admin', 'coordenador'].includes(user.role)) {
+      return Response.json({ error: 'Acesso restrito a admin e coordenador' }, { status: 403 });
+    }
 
     const body = await req.json();
     const { yearFilter = "all", positionFilter = "all", candidateName = "Candidato" } = body;

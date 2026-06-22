@@ -7,8 +7,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Validação por segredo compartilhado (não exige autenticação de usuário)
+    const SECRET = Deno.env.get('TSE_ETL_SHARED_SECRET');
+    const authHeader = req.headers.get('Authorization') || '';
+    const expectedAuth = `Bearer ${SECRET}`;
+    if (!SECRET || authHeader !== expectedAuth) {
+      return Response.json({ error: 'Unauthorized — shared secret mismatch' }, { status: 401 });
+    }
 
     const body = await req.json();
     const { ano, uf, dataset_tipo, records, final_batch, source_url, total_registros } = body;

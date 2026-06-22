@@ -47,8 +47,6 @@ Deno.serve(async (req) => {
       contactIds = [],
       message,
       mode = "test",
-      instanceUrl,
-      instanceToken,
       sendToAll = false,
       filters = {},
 
@@ -63,6 +61,10 @@ Deno.serve(async (req) => {
       // [{ phone, name }] — used for mission notifications
       recipients = [],
     } = body;
+
+    // Credenciais recuperadas do ambiente seguro, nunca do payload
+    const instanceUrl = Deno.env.get('WHATSAPP_INSTANCE_URL');
+    const instanceToken = Deno.env.get('WHATSAPP_INSTANCE_TOKEN');
 
     if (!message || message.trim() === '') {
       return Response.json({ error: 'Mensagem é obrigatória' }, { status: 400 });

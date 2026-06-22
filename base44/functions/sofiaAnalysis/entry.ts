@@ -7,6 +7,9 @@ Deno.serve(async (req) => {
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (!['admin', 'coordenador'].includes(user.role)) {
+      return Response.json({ error: 'Acesso restrito a admin e coordenador' }, { status: 403 });
+    }
 
     const { tseData, ano, uf, cargo, candidato } = await req.json();
 
