@@ -45,7 +45,16 @@
     "message"
   ],
   "rls": {
-    "create": {},
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "coordenador"
+          ]
+        }
+      }
+    },
     "read": {
       "$or": [
         {

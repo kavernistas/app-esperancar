@@ -1,0 +1,105 @@
+{
+  "name": "WhatsAppLog",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "ID da campanha vinculada"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Nome do destinat\u00e1rio"
+    },
+    "recipient_phone": {
+      "type": "string",
+      "description": "Telefone do destinat\u00e1rio"
+    },
+    "recipient_type": {
+      "type": "string",
+      "enum": [
+        "apoiador",
+        "lideranca",
+        "equipe",
+        "outro"
+      ],
+      "default": "apoiador"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Nome do template usado"
+    },
+    "message_content": {
+      "type": "string",
+      "description": "Conte\u00fado da mensagem enviada"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+        "pending"
+      ],
+      "default": "sent"
+    },
+    "sent_by_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que enviou"
+    },
+    "sent_by_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio que enviou"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Dados adicionais (miss\u00e3o, demanda relacionados)"
+    }
+  },
+  "required": [
+    "recipient_phone"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "coordenador",
+            "lideranca"
+          ]
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.sent_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "coordenador"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
