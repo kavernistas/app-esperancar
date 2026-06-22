@@ -235,46 +235,43 @@ export default function CentralInteligencia() {
   return (
     <div className="space-y-6">
       {/* ===== HEADER ===== */}
-      <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-6 lg:p-8 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5 pointer-events-none"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='40' cy='40' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}
-        />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-20 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl" />
+      <div className="bg-gradient-to-r from-[#0A2540] via-[#0D3466] to-[#0A2540] rounded-2xl p-5 lg:p-7 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#7AC943]/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-48 h-48 bg-[#7AC943]/3 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
-            <div>
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div className="space-y-1">
               <div className="flex items-center gap-2 mb-2">
-                <Badge className="bg-white/20 text-white border-white/20 text-xs">
-                  <MapPin className="w-3 h-3 mr-1" />Plataforma Esperançar
+                <Badge className="bg-white/10 text-white/80 border-white/10 text-[11px] font-normal">
+                  <Sparkles className="w-3 h-3 mr-1 text-[#7AC943]" />Esperançar
                 </Badge>
-                <Badge className="bg-emerald-500/30 text-emerald-100 border-emerald-400/30 text-xs">CRM Político</Badge>
-                <Badge className="bg-amber-500/30 text-amber-100 border-amber-400/30 text-xs">
-                  <Brain className="w-3 h-3 mr-1" />Sofia IA
-                </Badge>
+                <span className="text-white/20 text-sm">·</span>
+                <span className="text-[11px] text-[#7AC943]/80 font-medium tracking-wide uppercase">CRM Político</span>
+                <span className="text-white/20 text-sm">·</span>
+                <span className="text-[11px] text-amber-300/70 font-medium">Sofia IA</span>
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold mb-1">Central de Inteligência Territorial</h1>
-              <p className="text-emerald-100 text-sm max-w-2xl">
-                CRM Político • Gestão Territorial • Mobilização • Inteligência Eleitoral • Sofia IA
+              <h1 className="text-xl lg:text-2xl font-bold tracking-tight">Central de Inteligência Territorial</h1>
+              <p className="text-slate-400 text-xs lg:text-sm">
+                Gestão Territorial · Mobilização · Inteligência Eleitoral · Análises Sofia IA
               </p>
             </div>
             <RouterLink to="/DiagnosticoTSE">
-              <Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-                <Activity className="w-4 h-4 mr-1.5" />Status da Base TSE
+              <Button variant="outline" size="sm" className="bg-white/5 text-white border-white/15 hover:bg-white/10 hover:border-white/25 text-xs h-8">
+                <Activity className="w-3.5 h-3.5 mr-1.5" />Status da Base TSE
               </Button>
             </RouterLink>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 mt-4">
+          <div className="flex flex-wrap gap-1">
             {MODULOS.map(mod => (
               <button
                 key={mod.id}
                 onClick={() => setActiveTab(mod.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                   activeTab === mod.id
-                    ? "bg-white/20 text-white shadow-sm"
-                    : "text-emerald-200 hover:text-white hover:bg-white/10"
+                    ? "bg-[#7AC943] text-[#0A2540] shadow-sm shadow-[#7AC943]/25"
+                    : "text-slate-400 hover:text-white hover:bg-white/8"
                 }`}
               >
                 <mod.icon className="w-3.5 h-3.5" />
