@@ -1,0 +1,840 @@
+// Prisma Schema — Plataforma Politica Esperancar
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// AUTH & USERS
+// =============================================
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password_hash  String    @map("password_hash")
+  full_name      String    @map("full_name")
+  phone          String?
+  avatar_url     String?   @map("avatar_url")
+  role           Role      @default(USER)
+  profile        String?   // extended role: coordenador, lideranca, operador
+  status         UserStatus @default(ACTIVE)
+  
+  // Preferences (stored in User for simplicity, could be separate table)
+  lgpd_consent   Boolean   @default(false) @map("lgpd_consent")
+  notif_email    Boolean   @default(true) @map("notif_email")
+  sofia_enabled  Boolean   @default(true) @map("sofia_enabled")
+  ui_dark_mode   Boolean   @default(false) @map("ui_dark_mode")
+  whatsapp_status String?  @map("whatsapp_status")
+  metas          Json?     // user metadata/goals
+  
+  // Timestamps
+  created_at     DateTime  @default(now()) @map("created_at")
+  updated_at     DateTime  @updatedAt @map("updated_at")
+  last_login_at  DateTime? @map("last_login_at")
+  deleted_at     DateTime? @map("deleted_at")
+
+  // Relations
+  refresh_tokens RefreshToken[]
+  notifications  Notification[]
+  audit_logs     AuditLog[]
+  sent_messages  WhatsAppLog[]    @relation("SentBy")
+  files          File[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  user_id     String   @map("user_id")
+  token       String   @unique
+  expires_at  DateTime @map("expires_at")
+  created_at  DateTime @default(now()) @map("created_at")
+  revoked_at  DateTime? @map("revoked_at")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+enum Role {
+  ADMIN
+  COORDENADOR
+  LIDERANCA
+  OPERADOR
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+// =============================================
+// CONTACTS
+// =============================================
+
+model Contact {
+  id                        String   @id @default(uuid())
+  full_name                 String   @map("full_name")
+  phone                     String?
+  email                     String?
+  cep                       String?
+  city                      String?
+  neighborhood              String?
+  address_street            String?  @map("address_street")
+  address_number            String?  @map("address_number")
+  electoral_zone            String?  @map("electoral_zone")
+  electoral_section         String?  @map("electoral_section")
+  voting_location           String?  @map("voting_location")
+  position                  String?
+  segment                   String?
+  support_intent            String?  @map("support_intent") // apoiador, indeciso, contrario, lideranca_potencial
+  contact_authorized        Boolean  @default(true) @map("contact_authorized")
+  is_leader                 Boolean  @default(false) @map("is_leader")
+  vote_goal                 Int      @default(0) @map("vote_goal")
+  converted_by_leader_id    String?  @map("converted_by_leader_id")
+  converted_by_leader_name  String?  @map("converted_by_leader_name")
+  engagement_level          Int      @default(50) @map("engagement_level")
+  visual_no_carro           Boolean  @default(false) @map("visual_no_carro")
+  visual_na_residencia      Boolean  @default(false) @map("visual_na_residencia")
+  tags                      String[] @default([])
+  notes                     String?  @db.Text
+  interactions              Json[]   @default([])
+  latitude                  Float?
+  longitude                 Float?
+  status                    ContactStatus @default(ACTIVE)
+  
+  // Audit
+  created_by_leader_id      String?  @map("created_by_leader_id")
+  created_by_leader_name    String?  @map("created_by_leader_name")
+  created_by_user_id        String?  @map("created_by_user_id")
+  
+  // Timestamps
+  created_at                DateTime @default(now()) @map("created_at")
+  updated_at                DateTime @updatedAt @map("updated_at")
+  deleted_at                DateTime? @map("deleted_at")
+
+  // Relations
+  demands                   Demand[]
+
+  @@index([full_name])
+  @@index([city])
+  @@index([neighborhood])
+  @@index([status])
+  @@index([is_leader])
+  @@index([electoral_zone])
+  @@map("contacts")
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+// =============================================
+// LEADERS
+// =============================================
+
+model Leader {
+  id                 String        @id @default(uuid())
+  name               String
+  phone              String?
+  email              String?
+  city               String?
+  neighborhood       String?
+  electoral_zone     String?       @map("electoral_zone")
+  supporters_count   Int           @default(0) @map("supporters_count")
+  political_strength String?       @map("political_strength") // low, medium, high, very_high
+  monthly_goal       Int           @default(0) @map("monthly_goal")
+  conversions        Int           @default(0)
+  actions_completed  Int           @default(0) @map("actions_completed")
+  segment            String?
+  notes              String?       @db.Text
+  photo_url          String?       @map("photo_url")
+  status             LeaderStatus  @default(ACTIVE)
+  
+  // Timestamps
+  created_at         DateTime      @default(now()) @map("created_at")
+  updated_at         DateTime      @updatedAt @map("updated_at")
+  deleted_at         DateTime?     @map("deleted_at")
+
+  // Relations
+  missions           Mission[]
+  gamification       GamificationProfile?
+
+  @@index([name])
+  @@index([city])
+  @@index([status])
+  @@map("leaders")
+}
+
+enum LeaderStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// =============================================
+// DEMANDS
+// =============================================
+
+model Demand {
+  id                     String       @id @default(uuid())
+  title                  String
+  protocol               String?      @unique
+  type                   DemandType
+  description            String?      @db.Text
+  requester_name         String?      @map("requester_name")
+  requester_phone        String?      @map("requester_phone")
+  requester_email        String?      @map("requester_email")
+  address                String?
+  city                   String?
+  neighborhood           String?
+  latitude               Float?
+  longitude              Float?
+  priority               DemandPriority @default(MEDIUM)
+  status                 DemandStatus  @default(OPEN)
+  responsible            String?
+  due_date               DateTime?    @map("due_date")
+  closed_date            DateTime?    @map("closed_date")
+  photo_url              String?      @map("photo_url")
+  
+  // Relations
+  supporter_id           String?      @map("supporter_id")
+  supporter_name         String?      @map("supporter_name")
+  created_by_leader_id   String?      @map("created_by_leader_id")
+  created_by_leader_name String?      @map("created_by_leader_name")
+  created_by_user_id     String?      @map("created_by_user_id")
+  
+  // History
+  history                Json[]       @default([])
+  
+  // Timestamps
+  created_at             DateTime     @default(now()) @map("created_at")
+  updated_at             DateTime     @updatedAt @map("updated_at")
+  deleted_at             DateTime?    @map("deleted_at")
+
+  // Relations
+  contact                Contact?     @relation(fields: [supporter_id], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([city])
+  @@index([neighborhood])
+  @@index([due_date])
+  @@map("demands")
+}
+
+enum DemandType {
+  HEALTH
+  EDUCATION
+  INFRASTRUCTURE
+  ZELADORIA
+  ILUMINACAO
+  TRANSPORT
+  SOCIAL
+  SECURITY
+  HOUSING
+  EMPLOYMENT
+  DOCUMENTACAO
+  OTHER
+}
+
+enum DemandPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DemandStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  PENDING
+  CANCELLED
+}
+
+// =============================================
+// MISSIONS
+// =============================================
+
+model Mission {
+  id                   String         @id @default(uuid())
+  title                String
+  description          String?        @db.Text
+  type                 MissionType
+  neighborhood         String?
+  city                 String?
+  leader_id            String?        @map("leader_id")
+  leader_name          String?        @map("leader_name")
+  deadline             DateTime?
+  priority             MissionPriority @default(MEDIUM)
+  points               Int            @default(30)
+  status               MissionStatus  @default(PENDING)
+  evidence             String?        @db.Text
+  evidence_url         String?        @map("evidence_url")
+  completed_date       DateTime?      @map("completed_date")
+  notified_at          DateTime?      @map("notified_at")
+  reminded_at          DateTime?      @map("reminded_at")
+  congratulated_at     DateTime?      @map("congratulated_at")
+  parent_mission_id    String?        @map("parent_mission_id")
+  is_group_mission     Boolean        @default(false) @map("is_group_mission")
+  assignment_type      String?        @map("assignment_type") // individual, neighborhood_group, segment_group, all, custom_filters
+  assignment_filters   Json?          @map("assignment_filters")
+  total_recipients     Int            @default(0) @map("total_recipients")
+  completed_recipients Int            @default(0) @map("completed_recipients")
+  segment              String?
+  checklist            Json[]         @default([])
+  
+  // Audit
+  created_by_user_id   String?        @map("created_by_user_id")
+  
+  // Timestamps
+  created_at           DateTime       @default(now()) @map("created_at")
+  updated_at           DateTime       @updatedAt @map("updated_at")
+  deleted_at           DateTime?      @map("deleted_at")
+
+  // Relations
+  leader               Leader?        @relation(fields: [leader_id], references: [id])
+
+  @@index([status])
+  @@index([leader_id])
+  @@index([deadline])
+  @@index([type])
+  @@map("missions")
+}
+
+enum MissionType {
+  REGISTER_SUPPORTERS
+  VISIT_REGION
+  MOBILIZE_MEETING
+  COLLECT_DEMANDS
+  CONFIRM_ATTENDANCE
+  SHARE_CONTENT
+  ORGANIZE_LOCAL_NUCLEUS
+  UPDATE_TERRITORIAL_DATA
+  FORWARD_SERVICE
+  OTHER
+}
+
+enum MissionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MissionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+// =============================================
+// GAMIFICATION
+// =============================================
+
+model GamificationProfile {
+  id                    String   @id @default(uuid())
+  leader_id             String   @unique @map("leader_id")
+  leader_name           String   @map("leader_name")
+  neighborhood          String?
+  city                  String?
+  total_points          Int      @default(0) @map("total_points")
+  current_level         String   @default("semente") // semente, mobilizador, lideranca_local, coordenador_territorial, referencia_esperancar
+  badges                String[] @default([])
+  missions_completed    Int      @default(0) @map("missions_completed")
+  missions_pending      Int      @default(0) @map("missions_pending")
+  missions_overdue      Int      @default(0) @map("missions_overdue")
+  supporters_registered Int      @default(0) @map("supporters_registered")
+  leaders_converted     Int      @default(0) @map("leaders_converted")
+  visual_carros         Int      @default(0) @map("visual_carros")
+  visual_residencias    Int      @default(0) @map("visual_residencias")
+  demands_resolved      Int      @default(0) @map("demands_resolved")
+  vote_goal             Int      @default(0) @map("vote_goal")
+  votes_achieved        Int      @default(0) @map("votes_achieved")
+  weekly_points         Int      @default(0) @map("weekly_points")
+  monthly_points        Int      @default(0) @map("monthly_points")
+  last_level_up_at      DateTime? @map("last_level_up_at")
+  last_activity_at      DateTime? @map("last_activity_at")
+  week_start            DateTime? @map("week_start")
+  month_start           DateTime? @map("month_start")
+  
+  // Timestamps
+  created_at            DateTime @default(now()) @map("created_at")
+  updated_at            DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  leader                Leader   @relation(fields: [leader_id], references: [id], onDelete: Cascade)
+
+  @@index([total_points])
+  @@index([current_level])
+  @@map("gamification_profiles")
+}
+
+// =============================================
+// CAMPAIGNS
+// =============================================
+
+model Campaign {
+  id                     String         @id @default(uuid())
+  name                   String
+  type                   CampaignType   @default(MUNICIPAL")
+  year                   Int?
+  position               CampaignPosition?
+  candidate_name         String?        @map("candidate_name")
+  party                  String?
+  coalition              String?
+  vote_goal              Int            @default(0) @map("vote_goal")
+  current_votes_estimate Int            @default(0) @map("current_votes_estimate")
+  budget                 Float          @default(0)
+  status                 CampaignStatus @default(PLANNING)
+  start_date             DateTime?      @map("start_date")
+  end_date               DateTime?      @map("end_date")
+  
+  // Timestamps
+  created_at             DateTime       @default(now()) @map("created_at")
+  updated_at             DateTime       @updatedAt @map("updated_at")
+  deleted_at             DateTime?      @map("deleted_at")
+
+  // Relations
+  whatsapp_logs          WhatsAppLog[]
+
+  @@index([status])
+  @@index([year])
+  @@map("campaigns")
+}
+
+enum CampaignType {
+  MUNICIPAL
+  STATE
+  FEDERAL
+}
+
+enum CampaignPosition {
+  MAYOR
+  COUNCILOR
+  GOVERNOR
+  STATE_DEPUTY
+  FEDERAL_DEPUTY
+  SENATOR
+  PRESIDENT
+}
+
+enum CampaignStatus {
+  PLANNING
+  ACTIVE
+  FINISHED
+}
+
+// =============================================
+// STRATEGIC ACTIONS
+// =============================================
+
+model StrategicAction {
+  id             String              @id @default(uuid())
+  title          String
+  description    String?             @db.Text
+  type           StrategicActionType @default(EVENT)
+  city           String?
+  neighborhood   String?
+  start_date     DateTime?           @map("start_date")
+  end_date       DateTime?           @map("end_date")
+  responsible    String?
+  goal           String?             @db.Text
+  expected_reach Int                 @default(0) @map("expected_reach")
+  actual_reach   Int                 @default(0) @map("actual_reach")
+  status         StrategicActionStatus @default(PLANNED)
+  budget         Float               @default(0)
+  notes          String?             @db.Text
+  
+  // Audit
+  created_by_user_id String?         @map("created_by_user_id")
+  
+  // Timestamps
+  created_at     DateTime            @default(now()) @map("created_at")
+  updated_at     DateTime            @updatedAt @map("updated_at")
+  deleted_at     DateTime?           @map("deleted_at")
+
+  @@index([status])
+  @@index([type])
+  @@map("strategic_actions")
+}
+
+enum StrategicActionType {
+  EVENT
+  CAMPAIGN
+  VISIT
+  MEETING
+  TRAINING
+  OTHER
+}
+
+enum StrategicActionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// =============================================
+// NOTIFICATIONS
+// =============================================
+
+model Notification {
+  id         String           @id @default(uuid())
+  user_id    String           @map("user_id")
+  title      String
+  message    String           @db.Text
+  type       NotificationType @default(INFO)
+  link       String?
+  entity_id  String?          @map("entity_id")
+  read       Boolean          @default(false)
+  
+  // Timestamps
+  created_at DateTime         @default(now()) @map("created_at")
+  updated_at DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  user       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([read])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  DEMAND_OVERDUE
+  MISSION_OVERDUE
+  MISSION_ASSIGNED
+  LEVEL_UP
+  SYSTEM
+  INFO
+}
+
+// =============================================
+// AUDIT LOG
+// =============================================
+
+model AuditLog {
+  id           String       @id @default(uuid())
+  user_id      String?      @map("user_id")
+  user_name    String?      @map("user_name")
+  action       String
+  entity       String
+  entity_id    String?      @map("entity_id")
+  entity_label String?      @map("entity_label")
+  changes      Json?
+  ip_address   String?      @map("ip_address")
+  user_agent   String?      @map("user_agent")
+  module       String?
+  severity     AuditSeverity @default(INFO)
+  metadata     Json?
+  
+  // Timestamps
+  created_at   DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  user         User?        @relation(fields: [user_id], references: [id])
+
+  @@index([entity])
+  @@index([action])
+  @@index([user_id])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+// =============================================
+// ELECTORAL DATA
+// =============================================
+
+model ElectoralData {
+  id               String   @id @default(uuid())
+  city             String
+  neighborhood     String
+  electoral_zone   String?  @map("electoral_zone")
+  electoral_section String? @map("electoral_section")
+  voting_location  String?  @map("voting_location")
+  year             Int?
+  position         String?
+  candidate_name   String?  @map("candidate_name")
+  votes            Int      @default(0)
+  total_voters     Int      @default(0) @map("total_voters")
+  latitude         Float?
+  longitude        Float?
+  heat_level       String?  @map("heat_level") // cold, warm, hot
+  
+  // Timestamps
+  created_at       DateTime @default(now()) @map("created_at")
+  updated_at       DateTime @updatedAt @map("updated_at")
+
+  @@index([city])
+  @@index([neighborhood])
+  @@index([year])
+  @@map("electoral_data")
+}
+
+// =============================================
+// TSE MODULE
+// =============================================
+
+model TSECandidate {
+  id              String   @id @default(uuid())
+  ano             Int
+  uf              String
+  municipio       String?
+  cargo           String
+  numero          String
+  nome            String
+  partido         String?
+  situacao        String?
+  tse_resource_id String?  @map("tse_resource_id")
+  
+  // Timestamps
+  created_at      DateTime @default(now()) @map("created_at")
+  updated_at      DateTime @updatedAt @map("updated_at")
+
+  @@unique([ano, uf, numero])
+  @@index([uf])
+  @@index([ano])
+  @@map("tse_candidates")
+}
+
+model TSEDataSourceMap {
+  id               String   @id @default(uuid())
+  ano              Int
+  uf               String
+  dataset_tipo     String   @map("dataset_tipo")
+  fonte_url        String   @map("fonte_url")
+  formato          String   @default("zip")
+  status           String   @default("nao_verificado")
+  tamanho_estimado Int      @default(0) @map("tamanho_estimado")
+  observacao       String?
+  
+  // Timestamps
+  created_at       DateTime @default(now()) @map("created_at")
+  updated_at       DateTime @updatedAt @map("updated_at")
+
+  @@unique([ano, uf, dataset_tipo])
+  @@map("tse_data_source_maps")
+}
+
+model TSEElectorateProfile {
+  id            String   @id @default(uuid())
+  ano           Int
+  uf            String
+  municipio     String?
+  zona          String?
+  secao         String?
+  genero        String?
+  faixa_etaria  String?  @map("faixa_etaria")
+  escolaridade  String?
+  quantidade    Int      @default(0)
+  
+  // Timestamps
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+
+  @@index([ano, uf])
+  @@map("tse_electorate_profiles")
+}
+
+model TSEImportJob {
+  id                        String   @id @default(uuid())
+  ano                       Int
+  uf                        String
+  municipio                 String?
+  dataset_tipo              String   @map("dataset_tipo")
+  file_url                  String   @map("file_url")
+  csv_cache_url             String?  @map("csv_cache_url")
+  status                    String   @default("pendente")
+  progresso                 Int      @default(0)
+  total_linhas_arquivo      Int      @default(0) @map("total_linhas_arquivo")
+  linhas_processadas        Int      @default(0) @map("linhas_processadas")
+  registros_importados      Int      @default(0) @map("registros_importados")
+  registros_duplicados      Int      @default(0) @map("registros_duplicados")
+  linha_offset              Int      @default(0) @map("linha_offset")
+  velocidade_registros_segundo Int   @default(0) @map("velocidade_registros_segundo")
+  tempo_estimado_segundos   Int      @default(0) @map("tempo_estimado_segundos")
+  inicio                    DateTime?
+  fim                       DateTime?
+  ultima_atividade          DateTime? @map("ultima_atividade")
+  erro                      String?
+  etapa                     String   @default("baixando")
+  tamanho_arquivo_mb        Float    @default(0) @map("tamanho_arquivo_mb")
+  
+  // Timestamps
+  created_at                DateTime @default(now()) @map("created_at")
+  updated_at                DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([ano, uf])
+  @@map("tse_import_jobs")
+}
+
+model TSEPollingPlace {
+  id            String   @id @default(uuid())
+  ano           Int
+  uf            String
+  municipio     String?
+  zona          String?
+  secao         String?
+  local_votacao String?  @map("local_votacao")
+  endereco      String?
+  bairro        String?
+  
+  // Timestamps
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+
+  @@index([ano, uf])
+  @@map("tse_polling_places")
+}
+
+model TSESyncStatus {
+  id                      String   @id @default(uuid())
+  ano                     Int
+  uf                      String
+  tipo_dataset            String   @map("tipo_dataset")
+  status                  String   @default("nao_importado")
+  total_linhas            Int      @default(0) @map("total_linhas")
+  data_ultima_sincronizacao DateTime? @map("data_ultima_sincronizacao")
+  fonte_url               String?  @map("fonte_url")
+  mensagem_erro           String?  @map("mensagem_erro")
+  
+  // Timestamps
+  created_at              DateTime @default(now()) @map("created_at")
+  updated_at              DateTime @updatedAt @map("updated_at")
+
+  @@unique([ano, uf, tipo_dataset])
+  @@map("tse_sync_status")
+}
+
+model TSEVoteResult {
+  id                String   @id @default(uuid())
+  ano               Int
+  turno             Int      @default(1)
+  uf                String
+  municipio         String?
+  codigo_municipio  String?  @map("codigo_municipio")
+  zona              String?
+  secao             String?
+  cargo             String
+  numero_candidato  String?  @map("numero_candidato")
+  nome_candidato    String?  @map("nome_candidato")
+  partido           String?
+  votos             Int      @default(0)
+  local_votacao     String?  @map("local_votacao")
+  
+  // Timestamps
+  created_at        DateTime @default(now()) @map("created_at")
+  updated_at        DateTime @updatedAt @map("updated_at")
+
+  @@index([ano, uf])
+  @@index([cargo])
+  @@index([numero_candidato])
+  @@map("tse_vote_results")
+}
+
+// =============================================
+// WHATSAPP
+// =============================================
+
+model WhatsAppLog {
+  id               String        @id @default(uuid())
+  campaign_id      String?       @map("campaign_id")
+  recipient_name   String?       @map("recipient_name")
+  recipient_phone  String        @map("recipient_phone")
+  recipient_type   String?       @map("recipient_type") // apoiador, lideranca, equipe, outro
+  template_name    String?       @map("template_name")
+  message_content  String?       @map("message_content")
+  status           WhatsAppStatus @default(SENT)
+  sent_by_id       String?       @map("sent_by_id")
+  sent_by_name     String?       @map("sent_by_name")
+  error_message    String?       @map("error_message")
+  metadata         Json?
+  
+  // Timestamps
+  created_at       DateTime      @default(now()) @map("created_at")
+  updated_at       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  campaign         Campaign?     @relation(fields: [campaign_id], references: [id])
+  sent_by          User?         @relation("SentBy", fields: [sent_by_id], references: [id])
+
+  @@index([campaign_id])
+  @@index([sent_by_id])
+  @@index([status])
+  @@map("whatsapp_logs")
+}
+
+enum WhatsAppStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  PENDING
+}
+
+// =============================================
+// FILES (Storage)
+// =============================================
+
+model File {
+  id           String   @id @default(uuid())
+  filename     String
+  original_name String  @map("original_name")
+  mime_type    String   @map("mime_type")
+  size         Int
+  path         String
+  url          String?
+  provider     String   @default("local") // local, minio, s3, r2
+  uploaded_by  String?  @map("uploaded_by")
+  
+  // Timestamps
+  created_at   DateTime @default(now()) @map("created_at")
+  updated_at   DateTime @updatedAt @map("updated_at")
+  deleted_at   DateTime? @map("deleted_at")
+
+  // Relations
+  user         User?    @relation(fields: [uploaded_by], references: [id])
+
+  @@index([uploaded_by])
+  @@map("files")
+}
+
+// =============================================
+// SYSTEM CONFIG
+// =============================================
+
+model SystemConfig {
+  id         String   @id @default(uuid())
+  key        String   @unique
+  value      Json
+  description String?
+  
+  // Timestamps
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
