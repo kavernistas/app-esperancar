@@ -76,22 +76,30 @@ Deno.serve(async (req) => {
         });
       }
       try {
-        const res = await fetch(`${instanceUrl}/instance/connectionState/${instanceToken}`, {
+        // Testa buscando a lista de instâncias — verifica API key e conectividade
+        const res = await fetch(`${instanceUrl}/instance/fetchInstances`, {
           headers: { apikey: instanceToken },
         });
         if (res.ok) {
           const data = await res.json();
+          const instances = Array.isArray(data) ? data : (data.instances || []);
+          const connected = instances.filter(i => i.connectionStatus === 'open' || i.state === 'connected');
           return Response.json({
             success: true,
             mode: "test",
-            instance_status: data.instance?.state || data.state || 'connected',
-            message: 'Conexão WhatsApp verificada com sucesso',
+            instance_count: instances.length,
+            connected_count: connected.length,
+            instance_status: connected.length > 0 ? 'connected' : (instances.length > 0 ? 'disconnected' : 'no_instances'),
+            message: instances.length > 0
+              ? `${connected.length} de ${instances.length} instância(s) conectada(s)`
+              : 'API conectada mas nenhuma instância WhatsApp encontrada',
           });
         }
+        const errText = await res.text();
         return Response.json({
           success: false,
           mode: "test",
-          error: `Falha na conexão: ${res.status} ${res.statusText}`,
+          error: `Falha na conexão: ${res.status} — ${errText.substring(0, 200)}`,
         });
       } catch (e) {
         return Response.json({
