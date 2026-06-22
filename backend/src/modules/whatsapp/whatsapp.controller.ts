@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { WhatsAppService } from './whatsapp.service';
-import { CreateWhatsAppDto, UpdateWhatsAppDto, ListWhatsAppDto } from './dto';
+import { WhatsAppSendDto, WhatsAppSingleSendDto, WhatsAppLogQueryDto } from './dto';
 
 @ApiTags('WhatsApp')
 @ApiBearerAuth()
@@ -13,36 +14,55 @@ import { CreateWhatsAppDto, UpdateWhatsAppDto, ListWhatsAppDto } from './dto';
 export class WhatsAppController {
   constructor(private readonly service: WhatsAppService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Listar whatsapp' })
-  async findAll(@Query() query: ListWhatsAppDto) {
-    return this.service.findAll(query);
+  @Post('send')
+  @Roles('admin', 'coordenador', 'lideranca')
+  @ApiOperation({ summary: 'Enviar mensagem WhatsApp (single ou batch)' })
+  async send(@Body() dto: WhatsAppSendDto, @CurrentUser() user: any) {
+    return this.service.sendBatch({
+      contacts: dto.contacts,
+      message: dto.message,
+      campaignId: dto.campaignId,
+      templateName: dto.templateName,
+      userId: user?.id,
+      userName: user?.full_name,
+      delayMs: dto.delayMs,
+      batchSize: dto.batchSize,
+      batchPauseMs: dto.batchPauseMs,
+    });
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Obter whatsapp por ID' })
-  async findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  @Post('send-single')
+  @Roles('admin', 'coordenador', 'lideranca')
+  @ApiOperation({ summary: 'Enviar mensagem WhatsApp individual' })
+  async sendSingle(@Body() dto: WhatsAppSingleSendDto, @CurrentUser() user: any) {
+    return this.service.send({
+      phone: dto.phone,
+      message: dto.message,
+      contactName: dto.contactName,
+      campaignId: dto.campaignId,
+      templateName: dto.templateName,
+      userId: user?.id,
+      userName: user?.full_name,
+    });
   }
 
-  @Post()
+  @Get('logs')
   @Roles('admin', 'coordenador')
-  @ApiOperation({ summary: 'Criar whatsapp' })
-  async create(@Body() dto: CreateWhatsAppDto) {
-    return this.service.create(dto);
+  @ApiOperation({ summary: 'Listar logs de mensagens' })
+  async getLogs(@Query() query: WhatsAppLogQueryDto) {
+    return this.service.getLogs(query);
   }
 
-  @Patch(':id')
+  @Get('stats')
   @Roles('admin', 'coordenador')
-  @ApiOperation({ summary: 'Atualizar whatsapp' })
-  async update(@Param('id') id: string, @Body() dto: UpdateWhatsAppDto) {
-    return this.service.update(id, dto);
+  @ApiOperation({ summary: 'Estatisticas de envio' })
+  async getStats(@Query('campaignId') campaignId?: string) {
+    return this.service.getLogStats(campaignId);
   }
 
-  @Delete(':id')
-  @Roles('admin')
-  @ApiOperation({ summary: 'Excluir whatsapp (soft delete)' })
-  async remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  @Get('status')
+  @ApiOperation({ summary: 'Status da integracao WhatsApp' })
+  async getStatus() {
+    return this.service.getStatus();
   }
 }
