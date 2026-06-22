@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trophy, Target, Brain, MessageSquare, ListFilter, Edit, Copy, UserPlus } from "lucide-react";
+import { Plus, Trophy, Target, Brain, ListFilter, Edit, Copy, UserPlus } from "lucide-react";
 import StatsCards from "@/components/gamification/StatsCards";
 import MissionCard from "@/components/gamification/MissionCard";
 import MissionForm from "@/components/gamification/MissionForm";
@@ -15,6 +14,9 @@ import RankingSection from "@/components/gamification/RankingSection";
 import SofiaGamificationInsight from "@/components/gamification/SofiaGamificationInsight";
 import SofiaMissionRecommendation from "@/components/gamification/SofiaMissionRecommendation";
 import WhatsAppMissionModal from "@/components/gamification/WhatsAppMissionModal";
+import * as gamificationApi from '@/api/gamification';
+import * as missionsApi from '@/api/missions';
+import * as leadersApi from '@/api/leaders';
 
 export default function Gamification() {
   const [missions, setMissions] = useState([]);
@@ -35,9 +37,9 @@ export default function Gamification() {
     setLoading(true);
     try {
       const [missionsData, profilesData, leadersData] = await Promise.all([
-        base44.entities.Mission.list("-created_date", 200),
-        base44.entities.GamificationProfile.list("-total_points", 100),
-        base44.entities.Leader.filter({ status: "active" }, "name", 200),
+        missionsApi.listMissions("-created_date", 200),
+        gamificationApi.listProfiles("-total_points", 100),
+        leadersApi.listLeaders({ status: "active" }, "name", 200),
       ]);
       setMissions(missionsData);
       setProfiles(profilesData);
@@ -78,7 +80,7 @@ export default function Gamification() {
 
     if (data.is_group_mission && recipients.length > 1) {
       // Criar missão principal
-      const parent = await base44.entities.Mission.create({
+      const parent = await missionsApi.createMission({
         ...data,
         leader_id: recipients[0]?.id || "",
         leader_name: recipients[0]?.name || "Grupo",
@@ -106,13 +108,13 @@ export default function Gamification() {
         checklist: data.checklist || [],
       }));
 
-      await base44.entities.Mission.bulkCreate(subMissions);
+      await missionsApi.bulkCreate(subMissions);
 
       // Atualizar pending count
       for (const leader of recipients) {
-        const profs = await base44.entities.GamificationProfile.filter({ leader_id: leader.id });
+        const profs = await gamificationApi.listProfiles({ leader_id: leader.id });
         if (profs.length > 0) {
-          await base44.entities.GamificationProfile.update(profs[0].id, {
+          await gamificationApi.updateProfile(profs[0].id, {
             missions_pending: (profs[0].missions_pending || 0) + 1,
           });
         }
@@ -124,12 +126,12 @@ export default function Gamification() {
       }
     } else {
       // Missão individual
-      const created = await base44.entities.Mission.create(data);
+      const created = await missionsApi.createMission(data);
       createdMissions.push(created);
       if (data.leader_id) {
-        const profs = await base44.entities.GamificationProfile.filter({ leader_id: data.leader_id });
+        const profs = await gamificationApi.listProfiles({ leader_id: data.leader_id });
         if (profs.length > 0) {
-          await base44.entities.GamificationProfile.update(profs[0].id, {
+          await gamificationApi.updateProfile(profs[0].id, {
             missions_pending: (profs[0].missions_pending || 0) + 1,
           });
         }
@@ -154,18 +156,14 @@ export default function Gamification() {
 
       const finalMessage = msg || `Olá {{nome}}! 🌟 Nova missão no Esperançar:\n📌 ${data.title}\n📍 ${data.neighborhood || ''}\n⏰ ${data.deadline ? new Date(data.deadline + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem prazo'}\n⭐ ${data.points || 30} pontos`;
 
-      // Fire-and-forget — não bloqueia a UI
-      base44.functions.invoke("whatsappSend", {
-        recipients: notifyRecipients.map(r => ({ phone: r.phone, name: r.name })),
-        message: finalMessage,
-        mode: "send",
-        // Taxa segura para não banir (1.5s entre msgs, lotes de 8, pausa 45s)
-        delayMs: 1500,
-        batchSize: 8,
-        batchPauseMs: 45000,
-        maxPerHour: 30,
-        maxPerDay: 200,
-      }).catch(e => console.error("Erro ao enviar WhatsApp automático:", e));
+      // Fire-and-forget
+      if (notifyRecipients.length > 0) {
+        whatsappApi.sendBatch(
+          notifyRecipients.map(r => ({ phone: r.phone, name: r.name })),
+          finalMessage,
+          { delayMs: 1500, batchSize: 8, batchPauseMs: 45000 }
+        ).catch(e => console.error("Erro ao enviar WhatsApp automatico:", e));
+      }
     }
 
     setFormOpen(false);
@@ -173,21 +171,21 @@ export default function Gamification() {
   };
 
   const handleCompleteMission = async (mission) => {
-    await base44.entities.Mission.update(mission.id, {
+    await missionsApi.updateMission(mission.id, {
       status: "completed",
       completed_date: new Date().toISOString().split("T")[0],
     });
 
     if (mission.parent_mission_id) {
       // Atualizar contador da missão pai
-      const parent = await base44.entities.Mission.get(mission.parent_mission_id);
-      const subs = await base44.entities.Mission.filter({ parent_mission_id: mission.parent_mission_id }, "", 500);
-      await base44.entities.Mission.update(mission.parent_mission_id, {
+      const parent = await missionsApi.getMission(mission.parent_mission_id);
+      const subs = await missionsApi.listMissions({ parent_mission_id: mission.parent_mission_id }, "", 500);
+      await missionsApi.updateMission(mission.parent_mission_id, {
         completed_recipients: subs.filter((s) => s.status === "completed").length,
       });
     }
 
-    const engineRes = await base44.functions.invoke("gamificationEngine", {
+    const engineRes = await gamificationApi.run({
       action: "mission_completed",
       leader_id: mission.leader_id,
       leader_name: mission.leader_name,
@@ -207,9 +205,9 @@ export default function Gamification() {
       });
     }
 
-    const profs = await base44.entities.GamificationProfile.filter({ leader_id: mission.leader_id });
+    const profs = await gamificationApi.listProfiles({ leader_id: mission.leader_id });
     if (profs.length > 0) {
-      await base44.entities.GamificationProfile.update(profs[0].id, {
+      await gamificationApi.updateProfile(profs[0].id, {
         missions_completed: (profs[0].missions_completed || 0) + 1,
         missions_pending: Math.max(0, (profs[0].missions_pending || 0) - 1),
       });
@@ -220,7 +218,7 @@ export default function Gamification() {
   const handleEditSave = async (missionId, changes, historyEntries) => {
     const existingMission = missions.find((m) => m.id === missionId);
     const existingHistory = existingMission?.history || [];
-    await base44.entities.Mission.update(missionId, {
+    await missionsApi.updateMission(missionId, {
       ...changes,
       history: [...existingHistory, ...historyEntries],
     });
@@ -228,7 +226,7 @@ export default function Gamification() {
   };
 
   const handleDuplicate = async (original, { title, deadline }) => {
-    await base44.entities.Mission.create({
+    await missionsApi.createMission({
       title,
       description: original.description,
       type: original.type,
@@ -253,7 +251,7 @@ export default function Gamification() {
   const handleReassign = async (missionId, { mode, leader_ids }) => {
     if (leader_ids.length === 1) {
       const leader = leaders.find((l) => l.id === leader_ids[0]);
-      await base44.entities.Mission.update(missionId, {
+      await missionsApi.updateMission(missionId, {
         leader_id: leader_ids[0],
         leader_name: leader?.name || "",
         neighborhood: leader?.neighborhood || "",
@@ -264,7 +262,7 @@ export default function Gamification() {
       const original = missions.find((m) => m.id === missionId);
       for (const lid of leader_ids) {
         const leader = leaders.find((l) => l.id === lid);
-        await base44.entities.Mission.create({
+        await missionsApi.createMission({
           title: original?.title || "",
           description: original?.description || "",
           type: original?.type || "other",

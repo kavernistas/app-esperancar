@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Link as RouterLink } from "react-router-dom";
+import * as gamificationApi from '@/api/gamification';
+import * as missionsApi from '@/api/missions';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 import {
-  Users, TrendingUp, Target, AlertTriangle, UserCheck, Clock, Trophy,
-  Phone, MapPin, Star, Loader2, BarChart3, Zap, CheckCircle2
+  Users, TrendingUp, Target, AlertTriangle, UserCheck, Trophy, MapPin, Loader2, BarChart3
 } from "lucide-react";
 
 const ENGAGEMENT_BANDS = [
@@ -29,10 +30,10 @@ export default function CRMDashboard() {
     setLoading(true);
     try {
       const [contacts, leaders, missions, gamificationProfiles] = await Promise.all([
-        base44.entities.Contact.list("-created_date", 500),
-        base44.entities.Leader.list("-created_date", 200),
-        base44.entities.Mission.list("-created_date", 200),
-        base44.entities.GamificationProfile.list("-total_points", 100),
+        contactsApi.listContacts("-created_date", 500),
+        leadersApi.listLeaders("-created_date", 200),
+        missionsApi.listMissions("-created_date", 200),
+        gamificationApi.listProfiles("-total_points", 100),
       ]);
 
       // Engagement distribution

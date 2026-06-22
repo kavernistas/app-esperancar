@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +25,7 @@ import { Plus, Search, ClipboardList, Clock, CheckCircle, AlertTriangle, Downloa
 import { Skeleton } from "@/components/ui/skeleton";
 import DemandCard from "@/components/demands/DemandCard";
 import DemandForm from "@/components/demands/DemandForm";
+import * as demandsApi from '@/api/demands';
 
 const exportDemandsCSV = (demands) => {
   const headers = ["Título","Tipo","Descrição","Solicitante","Telefone","Email","Cidade","Bairro","Prioridade","Status","Responsável","Prazo"];
@@ -53,11 +54,11 @@ export default function Demands() {
 
   const { data: demands = [], isLoading } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => base44.entities.Demand.list("-created_date", 500),
+    queryFn: () => demandsApi.listDemands("-created_date", 500),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Demand.create(data),
+    mutationFn: (data) => demandsApi.createDemand(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["demands"] });
       setFormOpen(false);
@@ -66,7 +67,7 @@ export default function Demands() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Demand.update(id, data),
+    mutationFn: ({ id, data }) => demandsApi.updateDemand(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["demands"] });
       setFormOpen(false);
@@ -75,7 +76,7 @@ export default function Demands() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Demand.delete(id),
+    mutationFn: (id) => demandsApi.deleteDemand(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["demands"] });
       setDeleteDemand(null);

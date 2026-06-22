@@ -1,5 +1,5 @@
 // src/api/contacts.js
-// Contacts API — substitui base44.entities.Contact
+// Contacts API
 
 import api from './client';
 

@@ -1,12 +1,10 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link as RouterLink } from "react-router-dom";
 import {
-  Database, CheckCircle2, AlertTriangle, XCircle, Clock, RefreshCw, ExternalLink, Activity
+  Database, CheckCircle2, XCircle, RefreshCw, ExternalLink, Activity
 } from "lucide-react";
-import moment from "moment";
 
 const ESTADOS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
 const ANOS = [2012,2014,2016,2018,2020,2022,2024];

@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Sprout, Users, Building2, Shield, Star } from "lucide-react";
 

@@ -1,15 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  GitCompare, ArrowLeftRight, History, TrendingUp, TrendingDown, Loader2,
-  Users, Trophy, Target, Building2, BarChart3
+  GitCompare, ArrowLeftRight, History, TrendingUp, Loader2, Trophy
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 const ESTADOS = [
   { sigla: "AC", nome: "Acre" },{ sigla: "AL", nome: "Alagoas" },{ sigla: "AM", nome: "Amazonas" },
@@ -44,14 +40,14 @@ export default function ComparativoPanel({ syncStatuses }) {
     setComparison(null);
     try {
       const [res1, res2] = await Promise.all([
-        base44.functions.invoke("tseDataSync", { action: "query", ano: ano1, uf, cargo, candidato: candidato1 || undefined }),
-        base44.functions.invoke("tseDataSync", { action: "query", ano: ano2, uf, cargo, candidato: candidato2 || undefined }),
+        tseApi.queryVotes({ ano: parseInt(ano1), uf, cargo, candidato: candidato1 }),
+        tseApi.queryVotes({ ano: parseInt(ano2), uf, cargo, candidato: candidato2 }),
       ]);
 
-      if (res1.data?.success && res2.data?.success) {
-        const data1 = res1.data.data || [];
-        const data2 = res2.data.data || [];
-        setComparison({ data1, data2, ano1, ano2, total1: res1.data.total, total2: res2.data.total });
+      if (res1.success && res2.success) {
+        const data1 = res1.data || [];
+        const data2 = res2.data || [];
+        setComparison({ data1, data2, ano1, ano2, total1: res1.total, total2: res2.total });
       }
     } catch (e) {
       console.error("Erro na comparação:", e);

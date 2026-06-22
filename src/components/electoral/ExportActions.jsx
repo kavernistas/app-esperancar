@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2, Share2, AlertTriangle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 export default function ExportActions({ data, filters, isSynced }) {
   const [exportingPDF, setExportingPDF] = useState(false);
@@ -11,7 +10,7 @@ export default function ExportActions({ data, filters, isSynced }) {
   const handleExportPDF = async () => {
     if (!hasData || !isSynced) return;
     setExportingPDF(true);
-    const response = await base44.functions.invoke("exportMapPDF", {
+    const response = await electoralApi.exportPDF({
       yearFilter: filters.ano,
       positionFilter: filters.cargo,
       candidateName: filters.candidato || "Todos os candidatos",

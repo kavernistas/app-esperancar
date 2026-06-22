@@ -1,7 +1,6 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, ClipboardList, Clock, AlertTriangle, Star, MapPin } from "lucide-react";
+import { Users, AlertTriangle, Star, MapPin } from "lucide-react";
 
 export default function PainelCoordenador({ equipe }) {
   if (!equipe || equipe.length === 0) {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import DashboardLideranca from "@/components/portal/DashboardLideranca";
 import CadastrarApoiador from "@/components/portal/CadastrarApoiador";
 import MinhaBase from "@/components/portal/MinhaBase";
@@ -17,11 +17,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import * as authApi from '@/api/auth';
+import * as gamificationApi from '@/api/gamification';
+import * as missionsApi from '@/api/missions';
+import * as demandsApi from '@/api/demands';
+import * as contactsApi from '@/api/contacts';
 import {
   Home, UserPlus, Users, ClipboardList, Target, Trophy,
-  Sparkles, BarChart3, Send, Plus, MessageCircle, X, Star
+  Sparkles, BarChart3, Send, Plus, X, Star
 } from "lucide-react";
 
 export default function PortalLideranca() {
@@ -67,14 +70,14 @@ export default function PortalLideranca() {
     setLoading(true);
     try {
       const [cs, ds, ms, gs, allG, myContact] = await Promise.all([
-        base44.entities.Contact.filter({ created_by_leader_id: leaderId }, "-created_date"),
-        base44.entities.Demand.filter({ created_by_leader_id: leaderId }, "-created_date"),
-        base44.entities.Mission.filter({ leader_id: leaderId }, "-created_date"),
-        base44.entities.GamificationProfile.filter({ leader_id: leaderId }),
-        base44.entities.GamificationProfile.list("-total_points", 50),
-        base44.auth.me().then(async (me) => {
+        contactsApi.listContacts({ created_by_leader_id: leaderId }, "-created_date"),
+        demandsApi.listDemands({ created_by_leader_id: leaderId }, "-created_date"),
+        missionsApi.listMissions({ leader_id: leaderId }, "-created_date"),
+        gamificationApi.listProfiles({ leader_id: leaderId }),
+        gamificationApi.listProfiles("-total_points", 50),
+        authApi.getMe().then(async (me) => {
           if (!me) return null;
-          const contacts = await base44.entities.Contact.filter({ is_leader: true, full_name: me.full_name }, "-created_date", 1);
+          const contacts = await contactsApi.listContacts({ is_leader: true, full_name: me.full_name }, "-created_date", 1);
           return contacts[0] || null;
         }),
       ]);
@@ -116,7 +119,7 @@ export default function PortalLideranca() {
         setRanking({ geral: rankIdx >= 0 ? rankIdx + 1 : null, bairro: bairroIdx >= 0 ? bairroIdx + 1 : null });
       }
 
-      const me = await base44.auth.me();
+      const me = await authApi.getMe();
       setMetas(me?.metas || []);
     } catch (e) {
       console.error("Erro ao carregar dados do portal:", e);
@@ -125,15 +128,15 @@ export default function PortalLideranca() {
   }, [leaderId]);
 
   useEffect(() => {
-    base44.auth.me().then(u => { setUser(u); if (u) loadData(); }).catch(() => {});
+    authApi.getMe().then(u => { setUser(u); if (u) loadData(); }).catch(() => {});
   }, [loadData]);
 
   // Handlers
   const handleSaveSupporter = async (data) => {
-    await base44.entities.Contact.create(data);
+    await contactsApi.createContact(data);
     // Trigger gamification for supporter registration
     try {
-      const res = await base44.functions.invoke("gamificationEngine", {
+      const res = await gamificationApi.run({
         action: "register_supporter",
         leader_id: user?.id,
         leader_name: user?.full_name,
@@ -157,7 +160,7 @@ export default function PortalLideranca() {
     // Trigger gamification for visuals
     if (data.visual_no_carro) {
       try {
-        await base44.functions.invoke("gamificationEngine", {
+        await gamificationApi.run({
           action: "visual_carro",
           leader_id: user?.id,
           leader_name: user?.full_name,
@@ -167,7 +170,7 @@ export default function PortalLideranca() {
     }
     if (data.visual_na_residencia) {
       try {
-        await base44.functions.invoke("gamificationEngine", {
+        await gamificationApi.run({
           action: "visual_residencia",
           leader_id: user?.id,
           leader_name: user?.full_name,
@@ -177,16 +180,16 @@ export default function PortalLideranca() {
     }
     loadData();
   };
-  const handleSaveDemand = async (data) => { await base44.entities.Demand.create(data); loadData(); };
+  const handleSaveDemand = async (data) => { await demandsApi.createDemand(data); loadData(); };
   const handleEditContact = (contact) => { setSelectedContact(contact); setEditOpen(true); };
   const handleSaveEdit = async (data) => {
-    if (selectedContact) { await base44.entities.Contact.update(selectedContact.id, data); loadData(); setEditOpen(false); }
+    if (selectedContact) { await contactsApi.updateContact(selectedContact.id, data); loadData(); setEditOpen(false); }
   };
   const handleAddInteraction = (contact) => { setSelectedContact(contact); setInteractionText(""); setInteractionOpen(true); };
   const handleSaveInteraction = async () => {
     if (!selectedContact || !interactionText.trim()) return;
     const entry = { date: new Date().toISOString(), type: "interaction", description: interactionText };
-    await base44.entities.Contact.update(selectedContact.id, { interactions: [...(selectedContact.interactions || []), entry] });
+    await contactsApi.updateContact(selectedContact.id, { interactions: [...(selectedContact.interactions || []), entry] });
     setInteractionOpen(false); loadData();
   };
   // Convert to leader dialog
@@ -202,7 +205,7 @@ export default function PortalLideranca() {
 
   const handleConfirmConvert = async () => {
     if (!convertContact) return;
-    await base44.entities.Contact.update(convertContact.id, {
+    await contactsApi.updateContact(convertContact.id, {
       is_leader: true,
       support_intent: "lideranca_potencial",
       vote_goal: convertVoteGoal || 0,
@@ -211,7 +214,7 @@ export default function PortalLideranca() {
     });
     // Trigger gamification bonus for the converting leader
     try {
-      const res = await base44.functions.invoke("gamificationEngine", {
+      const res = await gamificationApi.run({
         action: "leader_converted",
         leader_id: user?.id,
         leader_name: user?.full_name,
@@ -245,15 +248,15 @@ export default function PortalLideranca() {
   const handleSaveComment = async () => {
     if (!commentDemand || !commentText.trim()) return;
     const entry = { date: new Date().toISOString(), action: "comment", user: user?.full_name || "Liderança", new_value: commentText };
-    await base44.entities.Demand.update(commentDemand.id, { history: [...(commentDemand.history || []), entry] });
+    await demandsApi.updateDemand(commentDemand.id, { history: [...(commentDemand.history || []), entry] });
     setCommentOpen(false); loadData();
   };
-  const handleAcceptMission = async (mission) => { await base44.entities.Mission.update(mission.id, { status: "in_progress" }); loadData(); };
-  const handleStartMission = async (mission) => { await base44.entities.Mission.update(mission.id, { status: "in_progress" }); loadData(); };
+  const handleAcceptMission = async (mission) => { await missionsApi.updateMission(mission.id, { status: "in_progress" }); loadData(); };
+  const handleStartMission = async (mission) => { await missionsApi.updateMission(mission.id, { status: "in_progress" }); loadData(); };
   const handleCompleteMission = async (mission) => {
-    await base44.entities.Mission.update(mission.id, { status: "completed", evidence: mission.evidence, checklist: mission.checklist, completed_date: new Date().toISOString() });
+    await missionsApi.updateMission(mission.id, { status: "completed", evidence: mission.evidence, checklist: mission.checklist, completed_date: new Date().toISOString() });
     try {
-      const res = await base44.functions.invoke("gamificationEngine", { action: "mission_completed", leader_id: user?.id, leader_name: user?.full_name, neighborhood: mission.neighborhood, city: mission.city, mission_points: mission.points || 30 });
+      const res = await gamificationApi.run({ action: "mission_completed", leader_id: user?.id, leader_name: user?.full_name, neighborhood: mission.neighborhood, city: mission.city, mission_points: mission.points || 30 });
       if (res.data?.level_up) {
         import("react-hot-toast").then(({ toast }) => { toast.success(`🎉 Você subiu para ${res.data.current_level}!`, { duration: 5000 }); });
       }
@@ -269,11 +272,11 @@ export default function PortalLideranca() {
   };
   const handleSaveMeta = async (meta) => {
     const newMetas = [...metas, meta]; setMetas(newMetas);
-    try { await base44.auth.updateMe({ metas: newMetas }); } catch (e) { /* ignore */ }
+    try { await authApi.updateProfile({ metas: newMetas }); } catch (e) { /* ignore */ }
   };
   const handleDeleteMeta = async (index) => {
     const newMetas = metas.filter((_, i) => i !== index); setMetas(newMetas);
-    try { await base44.auth.updateMe({ metas: newMetas }); } catch (e) { /* ignore */ }
+    try { await authApi.updateProfile({ metas: newMetas }); } catch (e) { /* ignore */ }
   };
 
   // Stats
@@ -295,7 +298,7 @@ export default function PortalLideranca() {
     if (!isCoordinator || !user?.neighborhood || equipeLoaded) return;
     (async () => {
       try {
-        const profiles = await base44.entities.GamificationProfile.filter({ neighborhood: user.neighborhood });
+        const profiles = await gamificationApi.listProfiles({ neighborhood: user.neighborhood });
         setEquipe(profiles.map(p => ({
           name: p.leader_name, neighborhood: p.neighborhood, supporters: p.supporters_registered || 0,
           openDemands: 0, pendingMissions: p.missions_pending || 0, points: p.total_points || 0, rank: 0,

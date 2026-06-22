@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import * as notificationsApi from "@/api/notifications";
 import {
   LayoutDashboard,
   Users,
@@ -26,7 +27,6 @@ import {
   ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,34 +40,18 @@ import { useAccessControl } from "@/lib/AccessControl";
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const { canAccessPage, isLideranca } = useAccessControl();
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await base44.auth.me();
-        setUser(userData);
-      } catch (e) {
-        console.log("User not logged in");
-      }
-    };
-    loadUser();
-  }, []);
-
-  // Carregar notificações
+  // Carregar notificacoes
   useEffect(() => {
     if (!user?.id) return;
     const loadNotifications = async () => {
       try {
-        const notifs = await base44.entities.Notification.filter(
-          { user_id: user.id },
-          '-created_date',
-          30
-        );
-        setNotifications(notifs);
+        const notifs = await notificationsApi.listNotifications({ userId: user.id });
+        setNotifications(notifs?.data || notifs || []);
       } catch (_) {}
     };
     loadNotifications();
@@ -77,7 +61,7 @@ export default function Layout({ children, currentPageName }) {
 
   const handleMarkAsRead = async (notif) => {
     try {
-      await base44.entities.Notification.update(notif.id, { read: true });
+      await notificationsApi.markAsRead(notif.id);
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
     } catch (_) {}
   };
@@ -86,7 +70,7 @@ export default function Layout({ children, currentPageName }) {
     const unread = notifications.filter(n => !n.read);
     if (unread.length === 0) return;
     try {
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true })));
+      await notificationsApi.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (_) {}
   };
@@ -138,7 +122,7 @@ export default function Layout({ children, currentPageName }) {
   }, [isLideranca, currentPageName]);
 
   const handleLogout = () => {
-    base44.auth.logout();
+    logout();
   };
 
   return (
@@ -233,11 +217,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.07]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-sm">
-                <img
-                  src="https://media.base44.com/images/public/6927a32c597892cda17b4136/9f3f423e6_ChatGPTImage19dejunde202620_51_17.png"
-                  alt="Esperançar"
-                  className="w-8 h-8 object-contain rounded-lg"
-                />
+                <div className="w-8 h-8 rounded-lg bg-[#7AC943] flex items-center justify-center text-white font-bold text-sm">E</div>
               </div>
               <div>
                 <h1 className="text-[15px] font-bold text-white tracking-tight leading-tight">Esperançar</h1>

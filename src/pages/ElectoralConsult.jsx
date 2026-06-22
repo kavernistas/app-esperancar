@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Database, Search, BarChart3, TrendingUp, Users, Heart, Trophy,
+  Database, Search, BarChart3, TrendingUp, Users, Trophy,
   FileText, Building2, MapPin, Filter, Activity
 } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
@@ -51,7 +51,7 @@ export default function ElectoralConsult() {
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" });
+      const res = await tseApi.getData({ action: "status", ano: "", uf: "" });
       if (res.data?.success) setSyncStatuses(res.data.statuses || []);
     } catch (e) {
       console.error("Erro ao carregar status:", e);
@@ -66,7 +66,7 @@ export default function ElectoralConsult() {
     setResults(null);
 
     try {
-      const res = await base44.functions.invoke("tseDataSync", {
+      const res = await tseApi.getData({
         action: "query",
         ano: filters.ano,
         uf: filters.uf,

@@ -1,7 +1,6 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Heart, TrendingDown, Minus } from "lucide-react";
 
 export default function FidelityIndicator({ data, ano }) {
   const byZone = data.reduce((acc, c) => {

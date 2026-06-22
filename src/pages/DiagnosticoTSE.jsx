@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ export default function DiagnosticoTSE() {
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" });
+      const res = await tseApi.getData({ action: "status", ano: "", uf: "" });
       if (res.data?.success) setSyncStatuses(res.data.statuses || []);
     } catch (e) {
       console.error("Erro ao carregar status:", e);
@@ -40,7 +40,7 @@ export default function DiagnosticoTSE() {
   const handleResolveSource = async () => {
     setLoading(true);
     try {
-      await base44.functions.invoke("tseDataSync", {
+      await tseApi.getData({
         action: "resolve_source", ano, uf, dataset_tipo: "votacao_secao",
       });
     } catch (e) { /* silencioso — só atualiza cache */ }

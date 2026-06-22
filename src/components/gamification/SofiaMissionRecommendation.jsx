@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Loader2, Sparkles, MapPin, Users, Tag, AlertTriangle, Lightbulb } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { Brain, Loader2, Sparkles, Lightbulb } from "lucide-react";
+import * as sofiaApi from '@/api/sofia';
 
 export default function SofiaMissionRecommendation({ leaders, missions, profiles }) {
   const [analysis, setAnalysis] = useState(null);
@@ -44,7 +44,7 @@ Forneça:
 6. Risco de não conclusão das missões atuais
 7. Sugestão de REDISTRIBUIÇÃO se necessário`;
 
-      const result = await base44.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
+      const result = await sofiaApi.analyze({ prompt, model: "claude_sonnet_4_6" });
       setAnalysis(result);
     } catch (e) {
       setAnalysis("Análise indisponível no momento.");

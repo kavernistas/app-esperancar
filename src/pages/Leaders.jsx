@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import LeaderCard from "@/components/leaders/LeaderCard";
 import LeaderForm from "@/components/leaders/LeaderForm";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
+import * as leadersApi from '@/api/leaders';
 
 const exportLeadersCSV = (leaders) => {
   const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Força Política","Apoiadores","Conversões","Meta Mensal","Status","Segmento"];
@@ -53,11 +54,11 @@ export default function Leaders() {
 
   const { data: leaders = [], isLoading } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => base44.entities.Leader.list("-supporters_count", 200),
+    queryFn: () => leadersApi.listLeaders("-supporters_count", 200),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Leader.create(data),
+    mutationFn: (data) => leadersApi.createLeader(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaders"] });
       setFormOpen(false);
@@ -66,7 +67,7 @@ export default function Leaders() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Leader.update(id, data),
+    mutationFn: ({ id, data }) => leadersApi.updateLeader(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaders"] });
       setFormOpen(false);
@@ -75,7 +76,7 @@ export default function Leaders() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Leader.delete(id),
+    mutationFn: (id) => leadersApi.deleteLeader(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leaders"] });
       setDeleteLeader(null);

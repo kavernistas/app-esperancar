@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link as RouterLink } from "react-router-dom";
 import {
   MapPin, Users, UserCheck, ClipboardList, Target, Trophy,
-  Brain, Search, Database, BarChart3, TrendingUp, TrendingDown,
+  Brain, Search, Database, BarChart3, TrendingUp,
   Globe, Sparkles, Activity, Zap, PieChart, Building2, ShieldAlert,
-  Lightbulb, GitCompare, FileSpreadsheet, FileDown, Link2, Filter,
-  Star, CheckCircle2, AlertTriangle, Phone, Flag, MessageCircle, Play,
+  Lightbulb, GitCompare, FileSpreadsheet, FileDown, Link2,
+  Star, CheckCircle2, AlertTriangle, Phone, Play,
   LayoutDashboard, Clock
 } from "lucide-react";
 
@@ -26,6 +26,11 @@ import SofiaInsight from "@/components/electoral/SofiaInsight";
 import ExportActions from "@/components/electoral/ExportActions";
 import ComparativoPanel from "@/components/electoral/ComparativoPanel";
 import MapaVotos from "@/components/electoral/MapaVotos";
+import * as gamificationApi from '@/api/gamification';
+import * as missionsApi from '@/api/missions';
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 
 const ESTADOS = [
   { sigla: "AC", nome: "Acre" },{ sigla: "AL", nome: "Alagoas" },{ sigla: "AM", nome: "Amazonas" },
@@ -107,7 +112,7 @@ export default function CentralInteligencia() {
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" });
+      const res = await tseApi.getData({ action: "status", ano: "", uf: "" });
       if (res.data?.success) setSyncStatuses(res.data.statuses || []);
     } catch (e) { console.error("Erro ao carregar status:", e); }
   }, []);
@@ -118,12 +123,12 @@ export default function CentralInteligencia() {
       // Paginação: carregar apenas contagens e amostras para o dashboard,
       // não todos os registros
       const [leaders, missions, contacts, demands, gamificationProfiles, actions] = await Promise.all([
-        base44.entities.Leader.list("-created_date", 50),
-        base44.entities.Mission.list("-created_date", 50),
-        base44.entities.Contact.list("-created_date", 100),
-        base44.entities.Demand.list("-created_date", 50),
-        base44.entities.GamificationProfile.list("-total_points", 30),
-        base44.entities.StrategicAction.list("-created_date", 20),
+        leadersApi.listLeaders("-created_date", 50),
+        missionsApi.listMissions("-created_date", 50),
+        contactsApi.listContacts("-created_date", 100),
+        demandsApi.listDemands("-created_date", 50),
+        gamificationApi.listProfiles("-total_points", 30),
+        strategicActionsApi.list("-created_date", 20),
       ]);
 
       const activeLeaders = leaders.filter(l => l.status === "active");
@@ -215,7 +220,7 @@ export default function CentralInteligencia() {
     setLoading(true);
     setResults(null);
     try {
-      const res = await base44.functions.invoke("tseDataSync", {
+      const res = await tseApi.getData({
         action: "query", ano: filters.ano, uf: filters.uf,
         cargo: filters.cargo || undefined, municipio: filters.municipio || undefined,
         candidato: filters.candidato || undefined,

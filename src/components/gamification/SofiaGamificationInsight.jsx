@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Loader2, AlertTriangle, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { Brain, Loader2, Sparkles } from "lucide-react";
+import * as sofiaApi from '@/api/sofia';
 
 export default function SofiaGamificationInsight({ missions, leaders, profiles }) {
   const [insight, setInsight] = useState(null);
@@ -31,7 +31,7 @@ Com base nesses dados:
 5. Alerte sobre riscos de desmobilização
 6. Recomende um plano de ação semanal com até 3 tarefas`;
 
-      const result = await base44.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
+      const result = await sofiaApi.analyze({ prompt, model: "claude_sonnet_4_6" });
       setInsight(result);
     } catch (e) {
       setInsight("Não foi possível gerar a análise no momento.");

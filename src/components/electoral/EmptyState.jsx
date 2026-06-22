@@ -1,4 +1,3 @@
-import React from "react";
 import { Search, Database, ShieldCheck } from "lucide-react";
 
 export default function EmptyState() {

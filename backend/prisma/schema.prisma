@@ -391,7 +391,7 @@ model GamificationProfile {
 model Campaign {
   id                     String         @id @default(uuid())
   name                   String
-  type                   CampaignType   @default(MUNICIPAL")
+  type                   CampaignType   @default(MUNICIPAL)
   year                   Int?
   position               CampaignPosition?
   candidate_name         String?        @map("candidate_name")

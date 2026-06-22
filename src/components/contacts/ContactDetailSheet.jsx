@@ -1,12 +1,11 @@
-import React from "react";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription
+  Sheet, SheetContent, SheetHeader, SheetTitle
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Phone, Mail, MapPin, Star, Hash, Activity, UserCheck, Layers
+  Phone, Mail, MapPin, Star, Hash, Activity, Layers
 } from "lucide-react";
 import ContactMissionList from "@/components/contacts/ContactMissionList";
 

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Target, Save, Plus, Trash2 } from "lucide-react";
+import { Target, Plus, Trash2 } from "lucide-react";
 
 export default function MetasPainel({ metas, onSave, onDelete }) {
   const [newMeta, setNewMeta] = useState({ type: "", target: "" });

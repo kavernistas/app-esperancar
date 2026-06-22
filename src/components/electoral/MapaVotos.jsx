@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-  Globe, MapPin, Building2, Target, Filter, Layers, Loader2, TrendingUp,
-  Users, BarChart3, Trophy, Database, AlertTriangle
+  Globe, MapPin, Building2, Filter, Layers, Loader2, Database
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 const GEO_NIVEL = [
   { value: "municipio", label: "Município", icon: Building2 },
@@ -48,7 +42,7 @@ export default function MapaVotos({ filters, syncStatuses }) {
     setLoading(true);
     setData(null);
     try {
-      const res = await base44.functions.invoke("tseDataSync", {
+      const res = await tseApi.getData({
         action: "query", ano, uf, cargo: cargo || undefined, limit: 5000,
       });
       if (res.data?.success) setData(res.data);

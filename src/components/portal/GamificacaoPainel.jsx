@@ -1,6 +1,5 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Star, TrendingUp, Award, Target, Users, Car, Home, UserCheck } from "lucide-react";
+import { Trophy, TrendingUp, Award, Target, Users, Car, Home, UserCheck } from "lucide-react";
 import LevelBadge from "@/components/gamification/LevelBadge";
 
 export default function GamificacaoPainel({ profile, ranking }) {

@@ -1,6 +1,5 @@
-import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Database, CheckCircle2, AlertTriangle, XCircle, Clock, WifiOff } from "lucide-react";
+import { Database, CheckCircle2, XCircle, WifiOff } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 import moment from "moment";
 

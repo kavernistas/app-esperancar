@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -20,12 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+
+
+import * as contactsApi from '@/api/contacts';
 import {
   AlertCircle,
   CheckCircle2,
@@ -77,7 +74,7 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts("-created_date", 1000),
     enabled: open,
   });
 
@@ -109,7 +106,7 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
     if (filterLeaders === "contacts") filters.is_leader = false;
     if (filterCity !== "all") filters.city = filterCity;
 
-    const response = await base44.functions.invoke("whatsappSend", {
+    const response = await whatsappApi.send({
       contactIds: sendToAll ? [] : selectedContacts.map(c => c.id || c),
       message,
       mode: "preview",
@@ -135,7 +132,7 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
     if (filterLeaders === "contacts") filters.is_leader = false;
     if (filterCity !== "all") filters.city = filterCity;
 
-    const response = await base44.functions.invoke("whatsappSend", {
+    const response = await whatsappApi.send({
       contactIds: sendToAll ? [] : selectedContacts.map(c => c.id || c),
       message,
       mode: "send",

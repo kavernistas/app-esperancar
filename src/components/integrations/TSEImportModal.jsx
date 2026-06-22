@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -11,18 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertCircle,
   CheckCircle2,
-  Database,
   Download,
   Eye,
   Info,
   Loader2,
-  MapPin,
-  Phone,
-  User,
   Vote,
 } from "lucide-react";
 
@@ -52,7 +47,7 @@ export default function TSEImportModal({ open, onOpenChange, onImportComplete })
     if (!config.city.trim()) { setError("Informe a cidade."); return; }
     setError(null);
     setLoading(true);
-    const response = await base44.functions.invoke("tseImport", {
+    const response = await tseApi.import({
       city: config.city,
       zone: config.zone,
       section: config.section,
@@ -71,7 +66,7 @@ export default function TSEImportModal({ open, onOpenChange, onImportComplete })
   const handleImport = async () => {
     setStep(STEPS.IMPORTING);
     setLoading(true);
-    const response = await base44.functions.invoke("tseImport", {
+    const response = await tseApi.import({
       city: config.city,
       zone: config.zone,
       section: config.section,

@@ -1,4 +1,3 @@
-import React from "react";
 import { Vote, Users, MapPin, TrendingUp, Award, BarChart2 } from "lucide-react";
 
 export default function SummaryStats({ data, ano, uf, cargo }) {

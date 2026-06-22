@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 export default function SofiaInsight({ tseData, filters, isSynced }) {
   const [analysis, setAnalysis] = useState(null);
@@ -13,7 +12,7 @@ export default function SofiaInsight({ tseData, filters, isSynced }) {
   const handleAnalyze = async () => {
     setLoading(true);
     setAnalysis(null);
-    const response = await base44.functions.invoke("sofiaAnalysis", {
+    const response = await sofiaApi.analyze({
       tseData: tseData.slice(0, 50),
       ano: filters.ano,
       uf: filters.uf,

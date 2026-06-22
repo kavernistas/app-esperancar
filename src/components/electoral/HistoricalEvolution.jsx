@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { TrendingUp, Loader2, RefreshCw } from "lucide-react";
 
 const ANOS = ["2012", "2014", "2016", "2018", "2020", "2022", "2024"];
 
@@ -22,12 +21,12 @@ export default function HistoricalEvolution({ filters }) {
     const anosToFetch = ANOS.filter((a) => parseInt(a) <= parseInt(filters.ano || "2024"));
     const results = await Promise.all(
       anosToFetch.map((ano) =>
-        base44.functions.invoke("tseApiQuery", {
-          ano,
+        tseApi.queryVotes({
+          ano: parseInt(ano),
           uf: filters.uf,
           cargo: filters.cargo,
           candidato: filters.candidato,
-        }).then((r) => ({ ano, data: r.data?.data || [] }))
+        }).then((r) => ({ ano, data: r.data || [] }))
       )
     );
 

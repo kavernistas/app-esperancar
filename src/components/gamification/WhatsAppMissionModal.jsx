@@ -4,8 +4,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Send, Loader2, CheckCircle2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+
 import moment from "moment";
+import * as missionsApi from '@/api/missions';
 
 const TEMPLATES = {
   new_mission: `Olá, {{nome}}! 🌟 Nova missão no Esperançar:
@@ -53,20 +54,14 @@ export default function WhatsAppMissionModal({ open, onClose, mission, leader })
     if (!leader?.phone) return;
     setSending(true);
     try {
-      await base44.functions.invoke("whatsappSend", {
-        recipients: [{ phone: leader.phone, name: leader.name || mission?.leader_name }],
+      await whatsappApi.sendBatch(
+        [{ phone: leader.phone, name: leader.name || mission?.leader_name }],
         message,
-        mode: "send",
-        // Taxa conservadora para envio manual (mais rápida que automático)
-        delayMs: 1200,
-        batchSize: 5,
-        batchPauseMs: 30000,
-        maxPerHour: 30,
-        maxPerDay: 200,
-      });
+        { delayMs: 1200, batchSize: 5, batchPauseMs: 30000 }
+      );
       setSent(true);
       if (templateType === "new_mission") {
-        await base44.entities.Mission.update(mission.id, { notified_at: new Date().toISOString() });
+        await missionsApi.updateMission(mission.id, { notified_at: new Date().toISOString() });
       }
     } catch (e) {
       console.error("Erro ao enviar:", e);

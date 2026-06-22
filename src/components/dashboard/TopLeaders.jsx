@@ -1,9 +1,7 @@
-import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp } from "lucide-react";
 
 const strengthColors = {
   low: "bg-slate-100 text-slate-600",

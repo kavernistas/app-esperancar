@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect } from "react";
+
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Target, CheckCircle2, Clock, AlertTriangle, Play } from "lucide-react";
+import { Loader2, Target } from "lucide-react";
+import * as missionsApi from '@/api/missions';
 
 const statusColors = {
   pending: "bg-amber-100 text-amber-700",
@@ -27,7 +28,7 @@ export default function ContactMissionList({ contactId }) {
   const loadMissions = async () => {
     setLoading(true);
     try {
-      const all = await base44.entities.Mission.list("-created_date", 200);
+      const all = await missionsApi.listMissions("-created_date", 200);
       const filtered = all.filter(m =>
         (m.participant_ids || []).includes(contactId) || m.leader_id === contactId
       );

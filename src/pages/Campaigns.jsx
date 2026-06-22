@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -37,7 +36,6 @@ import {
   Plus,
   FileText,
   Calendar,
-  Target,
   TrendingUp,
   Edit,
   Trash2,
@@ -56,6 +54,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import * as campaignsApi from '@/api/campaigns';
 
 const statusColors = {
   planning: "bg-slate-100 text-slate-600",
@@ -94,11 +93,11 @@ export default function Campaigns() {
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ["campaigns"],
-    queryFn: () => base44.entities.Campaign.list("-created_date", 100),
+    queryFn: () => campaignsApi.listCampaigns("-created_date", 100),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Campaign.create(data),
+    mutationFn: (data) => campaignsApi.createCampaign(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       setFormOpen(false);
@@ -106,7 +105,7 @@ export default function Campaigns() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Campaign.update(id, data),
+    mutationFn: ({ id, data }) => campaignsApi.updateCampaign(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       setFormOpen(false);
@@ -115,7 +114,7 @@ export default function Campaigns() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Campaign.delete(id),
+    mutationFn: (id) => campaignsApi.deleteCampaign(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
       setDeleteCampaign(null);

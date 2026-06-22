@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,12 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  ArrowLeft, Users, MapPin, Tag, Clock, CheckCircle2, AlertTriangle, Star,
-  Paperclip, MessageSquare, Eye, Edit, Copy, UserPlus, Brain
+  ArrowLeft, Users, Clock,
+  Paperclip
 } from "lucide-react";
-import LevelBadge from "@/components/gamification/LevelBadge";
 import moment from "moment";
+import * as gamificationApi from '@/api/gamification';
+import * as missionsApi from '@/api/missions';
 
 const STATUS_CONFIG = {
   pending: { label: "Pendente", color: "text-blue-500 bg-blue-50" },
@@ -35,14 +36,14 @@ export default function MissionDetail() {
     const load = async () => {
       setLoading(true);
       try {
-        const m = await base44.entities.Mission.get(id);
+        const m = await missionsApi.getMission(id);
         setMission(m);
         if (m.is_group_mission) {
-          const subs = await base44.entities.Mission.filter({ parent_mission_id: m.id }, "leader_name", 500);
+          const subs = await missionsApi.listMissions({ parent_mission_id: m.id }, "leader_name", 500);
           setSubmissions(subs);
           const leaderIds = [...new Set(subs.map((s) => s.leader_id).filter(Boolean))];
           if (leaderIds.length > 0) {
-            const profs = await base44.entities.GamificationProfile.list("-total_points", 500);
+            const profs = await gamificationApi.listProfiles("-total_points", 500);
             setProfiles(profs.filter((p) => leaderIds.includes(p.leader_id)));
           }
         }

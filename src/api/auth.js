@@ -1,5 +1,5 @@
 // src/api/auth.js
-// Auth API — substitui base44.auth
+// Auth API
 
 import api, { setTokens, clearTokens, getAccessToken } from './client';
 

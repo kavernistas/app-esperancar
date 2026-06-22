@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,12 +12,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaflet";
 import {
-  MapPin, Users, UserCheck, ClipboardList, Target, Filter, Search, X, Layers,
-  Thermometer, ChevronDown, ChevronUp, Phone, Star, MessageCircle, Vote,
-  ArrowUpDown
+  MapPin, Users, UserCheck, ClipboardList, Filter, X,
+  Thermometer, ChevronDown, ChevronUp, Phone, Star, Vote
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import * as electoralApi from '@/api/electoral';
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 
 // Fix default marker
 delete L.Icon.Default.prototype._getIconUrl;
@@ -88,22 +90,22 @@ export default function ElectoralMap() {
   // --- Data ---
   const { data: electoralData = [], isLoading: loadingElectoral } = useQuery({
     queryKey: ["electoralData"],
-    queryFn: () => base44.entities.ElectoralData.list("-votes", 500),
+    queryFn: () => electoralApi.listElectoralData("-votes", 500),
   });
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts("-created_date", 1000),
   });
 
   const { data: leadersRaw = [], isLoading: loadingLeaders } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => base44.entities.Leader.list("-supporters_count", 200),
+    queryFn: () => leadersApi.listLeaders("-supporters_count", 200),
   });
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => base44.entities.Demand.list("-created_date", 1000),
+    queryFn: () => demandsApi.listDemands("-created_date", 1000),
   });
 
   const isLoading = loadingElectoral || loadingContacts || loadingLeaders || loadingDemands;

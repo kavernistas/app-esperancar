@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { base44 } from "@/api/base44Client";
+
+import * as missionsApi from '@/api/missions';
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 import {
-  Link2, Users, UserCheck, ClipboardList, Target, Phone, Database,
-  TrendingUp, MapPin, Loader2, BarChart3
+  Link2, Users, UserCheck, ClipboardList, Target, Phone, MapPin, Loader2, BarChart3
 } from "lucide-react";
 
 export default function IntegracaoCRMPanel({ syncStatuses, filters }) {
@@ -19,10 +22,10 @@ export default function IntegracaoCRMPanel({ syncStatuses, filters }) {
     setLoading(true);
     try {
       const [leaders, missions, contacts, demands] = await Promise.all([
-        base44.entities.Leader.list("-created_date", 100),
-        base44.entities.Mission.list("-created_date", 100),
-        base44.entities.Contact.list("-created_date", 100),
-        base44.entities.Demand.list("-created_date", 100),
+        leadersApi.listLeaders("-created_date", 100),
+        missionsApi.listMissions("-created_date", 100),
+        contactsApi.listContacts("-created_date", 100),
+        demandsApi.listDemands("-created_date", 100),
       ]);
       setCrmData({
         totalLeaders: leaders.length,

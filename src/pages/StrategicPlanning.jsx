@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -42,7 +40,6 @@ import {
   Calendar as CalendarIcon,
   MapPin,
   Users,
-  TrendingUp,
   Edit,
   Trash2,
   MoreVertical,
@@ -95,11 +92,11 @@ export default function StrategicPlanning() {
 
   const { data: actions = [], isLoading } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => base44.entities.StrategicAction.list("-start_date", 200),
+    queryFn: () => strategicActionsApi.list("-start_date", 200),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.StrategicAction.create(data),
+    mutationFn: (data) => strategicActionsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actions"] });
       setFormOpen(false);
@@ -107,7 +104,7 @@ export default function StrategicPlanning() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.StrategicAction.update(id, data),
+    mutationFn: ({ id, data }) => strategicActionsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actions"] });
       setFormOpen(false);
@@ -116,7 +113,7 @@ export default function StrategicPlanning() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.StrategicAction.delete(id),
+    mutationFn: (id) => strategicActionsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["actions"] });
       setDeleteAction(null);

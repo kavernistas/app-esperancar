@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Save, Loader2, Camera } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
-import { base44 } from "@/api/base44Client";
+import * as filesApi from '@/api/files';
 
 const DEMAND_TYPES = [
   { value: "health", label: "Saúde" },
@@ -43,7 +43,7 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const res = await base44.integrations.Core.UploadFile({ file });
+      const res = await filesApi.uploadFile({ file });
       handleChange("photo_url", res.file_url);
     } catch (err) { /* ignore */ }
   };

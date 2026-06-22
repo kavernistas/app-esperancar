@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { base44 } from "@/api/base44Client";
-import {
-  PieChart, TrendingUp, TrendingDown, Target, Users, MapPin,
-  Zap, CheckCircle2, AlertTriangle, Loader2, BarChart3, Star, Flag, Database
+
+import * as missionsApi from '@/api/missions';
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
+import { TrendingUp, Target, Users, MapPin,
+  Zap, CheckCircle2, AlertTriangle, Loader2, Star, Flag, Database
 } from "lucide-react";
 
 export default function InteligenciaDashboard({ syncStatuses, filters }) {
@@ -19,11 +21,11 @@ export default function InteligenciaDashboard({ syncStatuses, filters }) {
     setLoading(true);
     try {
       const [syncStatus, leaders, missions, contacts, demands] = await Promise.all([
-        base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" }),
-        base44.entities.Leader.list("-created_date", 200),
-        base44.entities.Mission.list("-created_date", 200),
-        base44.entities.Contact.list("-created_date", 200),
-        base44.entities.Demand.list("-created_date", 200),
+        tseApi.getSyncStatus(0, ""),
+        leadersApi.listLeaders({ limit: 200 }),
+        missionsApi.listMissions("-created_date", 200),
+        contactsApi.listContacts("-created_date", 200),
+        demandsApi.listDemands("-created_date", 200),
       ]);
 
       const statuses = syncStatus.data?.statuses || [];

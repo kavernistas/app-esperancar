@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,9 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Save, Loader2, CheckCircle, Search, MapPin, Car, Home, Target, Star, Tags, X } from "lucide-react";
+import { UserPlus, Save, Loader2, CheckCircle, Search, Car, Home, Target, Star, Tags, X } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
-import { base44 } from "@/api/base44Client";
 
 const SEGMENTS = ["Jovem", "Mulher", "Idoso", "Trabalhador", "Empresário", "Estudante", "Religioso", "Comunitário", "Outros"];
 const SUPPORT_OPTIONS = [

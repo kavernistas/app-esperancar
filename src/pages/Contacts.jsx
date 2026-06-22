@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, MessageCircle, Upload, Users, Vote, Download } from "lucide-react";
+import { Plus, Search, MessageCircle, Users, Vote, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ContactsTable from "@/components/contacts/ContactsTable";
 import ContactForm from "@/components/contacts/ContactForm";

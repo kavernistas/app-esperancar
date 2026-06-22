@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect, useCallback } from "react";
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  Target, Plus, List, Users, MapPin, Tag, Clock, CheckCircle2, AlertTriangle,
-  Repeat, ArrowUpDown, Search, Eye, Copy, UserPlus, BarChart3
+  Target, Plus, Users, MapPin, Tag, Clock, CheckCircle2, AlertTriangle,
+  Repeat, ArrowUpDown, Search
 } from "lucide-react";
 import moment from "moment";
+import * as missionsApi from '@/api/missions';
 
 const STATUS_CONFIG = {
   pending: { label: "Pendente", icon: Clock, color: "text-blue-500 bg-blue-50" },
@@ -51,7 +51,7 @@ export default function MissionCenter() {
 
   const loadMissions = useCallback(async () => {
     setLoading(true);
-    const data = await base44.entities.Mission.list("-created_date", 200);
+    const data = await missionsApi.listMissions("-created_date", 200);
     setMissions(data);
     setLoading(false);
   }, []);

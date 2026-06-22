@@ -1,5 +1,5 @@
 // src/api/sofia.js
-// Sofia IA API — substitui base44.integrations.Core.InvokeLLM
+// Sofia IA API
 
 import api from './client';
 

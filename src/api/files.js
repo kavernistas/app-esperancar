@@ -1,5 +1,5 @@
 // src/api/files.js
-// Files API — substitui base44.integrations.Core.UploadFile
+// Files API
 
 import api from './client';
 

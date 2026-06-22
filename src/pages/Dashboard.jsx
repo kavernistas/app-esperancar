@@ -1,33 +1,35 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { Users, UserCheck, ClipboardList, TrendingUp, Target, MapPin } from "lucide-react";
+
+import { Users, UserCheck, ClipboardList, TrendingUp } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import EngagementChart from "@/components/dashboard/EngagementChart";
 import DemandsChart from "@/components/dashboard/DemandsChart";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import TopLeaders from "@/components/dashboard/TopLeaders";
 import { Skeleton } from "@/components/ui/skeleton";
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 
 export default function Dashboard() {
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts("-created_date", 1000),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => base44.entities.Leader.list("-supporters_count", 100),
+    queryFn: () => leadersApi.listLeaders("-supporters_count", 100),
   });
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => base44.entities.Demand.list("-created_date", 500),
+    queryFn: () => demandsApi.listDemands("-created_date", 500),
   });
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => base44.entities.StrategicAction.list("-created_date", 100),
+    queryFn: () => strategicActionsApi.list("-created_date", 100),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingActions;

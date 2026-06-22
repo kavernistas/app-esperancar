@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import * as authApi from '@/api/auth';
+import * as filesApi from '@/api/files';
+import * as missionsApi from '@/api/missions';
+import * as demandsApi from '@/api/demands';
+import * as contactsApi from '@/api/contacts';
 import {
   User, Shield, Key, Link2, Bot, FileText,
   Settings, Palette, Clock, Languages,
@@ -73,7 +78,7 @@ export default function Configuracoes() {
 
   const loadUser = async () => {
     try {
-      const u = await base44.auth.me();
+      const u = await authApi.getMe();
       setUser(u);
 
       // Carregar preferências salvas
@@ -111,7 +116,7 @@ export default function Configuracoes() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await base44.auth.updateMe({ full_name: user.full_name, phone: user.phone });
+      await authApi.updateProfile({ full_name: user.full_name, phone: user.phone });
       toast.success("Perfil atualizado");
     } catch (e) {
       toast.error("Erro ao salvar: " + e.message);
@@ -122,7 +127,7 @@ export default function Configuracoes() {
   const handleSaveNotifications = async () => {
     setSavingNotif(true);
     try {
-      await base44.auth.updateMe({
+      await authApi.updateProfile({
         notif_email: notifEmail,
         notif_whatsapp: notifWhatsApp,
         notif_mission: notifMission,
@@ -140,7 +145,7 @@ export default function Configuracoes() {
     setChangingPassword(true);
     try {
       // A plataforma não expõe changePassword direto; usamos updateMe com a senha
-      await base44.auth.updateMe({ password: newPass });
+      await authApi.updateProfile({ password: newPass });
       toast.success("Senha alterada com sucesso");
       setCurrentPass(""); setNewPass(""); setConfirmPass("");
     } catch (e) {
@@ -152,13 +157,13 @@ export default function Configuracoes() {
   const handleTestWhatsApp = async () => {
     setTestingWhatsapp(true);
     try {
-      const res = await base44.functions.invoke("whatsappSend", {
+      const res = await whatsappApi.send({
         mode: "test",
       });
       const newStatus = res.data?.success ? "conectado" : "falha";
       setWhatsappStatus(newStatus);
       // Salvar status no perfil para referência
-      await base44.auth.updateMe({ whatsapp_status: newStatus });
+      await authApi.updateProfile({ whatsapp_status: newStatus });
       if (res.data?.success) {
         toast.success(`WhatsApp conectado — ${res.data?.instance_status || 'OK'}`);
       } else {
@@ -174,7 +179,7 @@ export default function Configuracoes() {
   const handleSaveSofia = async () => {
     setSavingSofia(true);
     try {
-      await base44.auth.updateMe({
+      await authApi.updateProfile({
         sofia_enabled: sofiaEnabled,
         sofia_name: sofiaName,
         sofia_tone: sofiaTone,
@@ -190,7 +195,7 @@ export default function Configuracoes() {
   const handleSaveLgpd = async () => {
     setSavingLgpd(true);
     try {
-      await base44.auth.updateMe({
+      await authApi.updateProfile({
         lgpd_consent: consentimento,
         whatsapp_optin: optinWhatsApp,
       });
@@ -204,7 +209,7 @@ export default function Configuracoes() {
   const handleSaveSystem = async () => {
     setSavingSystem(true);
     try {
-      await base44.auth.updateMe({
+      await authApi.updateProfile({
         ui_dark_mode: darkMode,
         ui_language: language,
         ui_timezone: timezone,
@@ -221,9 +226,9 @@ export default function Configuracoes() {
     if (!file) return;
     setUploadingAvatar(true);
     try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await filesApi.uploadFile({ file });
       if (uploadRes.file_url) {
-        await base44.auth.updateMe({ avatar_url: uploadRes.file_url });
+        await authApi.updateProfile({ avatar_url: uploadRes.file_url });
         setUser(prev => ({ ...prev, avatar_url: uploadRes.file_url }));
         toast.success("Foto atualizada");
       }
@@ -238,9 +243,9 @@ export default function Configuracoes() {
     try {
       toast.info("Coletando seus dados...");
       const [contacts, demands, missions] = await Promise.all([
-        base44.entities.Contact.filter({ created_by_id: user.id }),
-        base44.entities.Demand.filter({ created_by_leader_id: user.id }),
-        base44.entities.Mission.filter({ leader_id: user.id }),
+        contactsApi.listContacts({ created_by_id: user.id }),
+        demandsApi.listDemands({ created_by_leader_id: user.id }),
+        missionsApi.listMissions({ leader_id: user.id }),
       ]);
       const data = {
         export_date: new Date().toISOString(),
@@ -533,7 +538,7 @@ export default function Configuracoes() {
                 </div>
                 <Badge className="bg-[#7AC943]/20 text-[#7AC943] border-none text-[10px]">Ativo agora</Badge>
               </div>
-              <Button variant="outline" className="w-full gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => base44.auth.logout("/")}>
+              <Button variant="outline" className="w-full gap-1.5 text-red-600 border-red-200 hover:bg-red-50" onClick={() => authApi.logout()}>
                 <LogOut className="w-4 h-4" />Sair de Todos os Dispositivos
               </Button>
             </CardContent>

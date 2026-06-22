@@ -1,10 +1,7 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, MapPin, Clock, Send, CheckCircle2, AlertTriangle } from "lucide-react";
-import LevelBadge from "./LevelBadge";
+import { Calendar, MapPin, Send, CheckCircle2 } from "lucide-react";
 import moment from "moment";
 
 const TYPE_LABELS = {

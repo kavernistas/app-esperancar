@@ -1,5 +1,5 @@
 // src/api/tse.js
-// TSE API — substitui base44.functions.invoke para funcoes TSE
+// TSE API
 
 import api from './client';
 

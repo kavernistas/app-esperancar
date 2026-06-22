@@ -1,8 +1,6 @@
-import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, TrendingUp, Award, Sparkles } from "lucide-react";
 import LevelBadge from "@/components/gamification/LevelBadge";
-import { Badge } from "@/components/ui/badge";
 
 export default function DashboardLideranca({ stats, gamification }) {
   return (

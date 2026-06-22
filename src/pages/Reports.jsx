@@ -1,16 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
@@ -23,19 +17,17 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Legend,
   AreaChart,
   Area,
 } from "recharts";
+import * as electoralApi from '@/api/electoral';
+import * as demandsApi from '@/api/demands';
+import * as leadersApi from '@/api/leaders';
+import * as contactsApi from '@/api/contacts';
 import {
   BarChart3,
-  PieChart as PieChartIcon,
-  TrendingUp,
-  Download,
   Users,
-  MapPin,
   Vote,
   Target,
 } from "lucide-react";
@@ -47,27 +39,27 @@ export default function Reports() {
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => base44.entities.Contact.list("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts("-created_date", 1000),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => base44.entities.Leader.list("-supporters_count", 200),
+    queryFn: () => leadersApi.listLeaders("-supporters_count", 200),
   });
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => base44.entities.Demand.list("-created_date", 500),
+    queryFn: () => demandsApi.listDemands("-created_date", 500),
   });
 
   const { data: electoralData = [], isLoading: loadingElectoral } = useQuery({
     queryKey: ["electoralData"],
-    queryFn: () => base44.entities.ElectoralData.list("-votes", 500),
+    queryFn: () => electoralApi.listElectoralData("-votes", 500),
   });
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => base44.entities.StrategicAction.list("-created_date", 200),
+    queryFn: () => strategicActionsApi.list("-created_date", 200),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingElectoral || loadingActions;

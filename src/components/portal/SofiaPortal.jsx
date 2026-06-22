@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Lightbulb, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 export default function SofiaPortal({ user, stats }) {
   const [suggestion, setSuggestion] = useState(null);
@@ -11,7 +10,7 @@ export default function SofiaPortal({ user, stats }) {
   const handleAsk = async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("sofiaAnalysis", {
+      const res = await sofiaApi.analyze({
         action: "lideranca_sugestao",
         leader_id: user?.id,
         leader_name: user?.full_name,

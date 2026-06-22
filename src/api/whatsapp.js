@@ -1,7 +1,8 @@
 // src/api/whatsapp.js
-// WhatsApp API — substitui base44.functions.invoke('whatsappSend')
+// WhatsApp API — substitui whatsappApi.sendBatch()
 
 import api from './client';
+import * as whatsappApi from '@/api/whatsapp';
 
 export async function sendMessage(phone, message, options = {}) {
   return api.post('/whatsapp/send-single', { phone, message, ...options });

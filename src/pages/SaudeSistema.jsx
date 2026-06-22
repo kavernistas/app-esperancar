@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { useState, useEffect } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import * as missionsApi from '@/api/missions';
+import * as leadersApi from '@/api/leaders';
 import {
   Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
-  Loader2, Zap, Server, Wifi, Database, Brain, Phone,
+  Loader2, Zap, Server, Database, Phone,
   RefreshCw, BellRing, HardDrive, FileText
 } from "lucide-react";
 
@@ -23,12 +25,12 @@ export default function SaudeSistema() {
     try {
       // Coletar métricas em paralelo
       const [leaders, missions, whatsappTest, syncStatuses, backupStatus, auditLogs] = await Promise.all([
-        base44.entities.Leader.list("-created_date", 5).catch(() => []),
-        base44.entities.Mission.list("-created_date", 5).catch(() => []),
-        base44.functions.invoke("whatsappSend", { action: "health_check" }).catch(() => ({ data: { status: "unknown" } })),
-        base44.functions.invoke("tseDataSync", { action: "status", ano: "", uf: "" }).catch(() => ({ data: { statuses: [] } })),
-        base44.functions.invoke("backupRestore", { action: "status" }).catch(() => ({ data: null })),
-        base44.entities.AuditLog.list("-created_date", 10).catch(() => []),
+        leadersApi.listLeaders({ limit: 5 }).catch(() => []),
+        missionsApi.listMissions({ limit: 5 }).catch(() => []),
+        whatsappApi.getStatus().catch(() => ({ status: "unknown" })),
+        tseApi.listSyncStatus({}).catch(() => ({ data: { statuses: [] } })),
+        Promise.resolve({ status: "not_implemented" }),
+        Promise.resolve([]),
       ]);
 
       const overdueMissions = Array.isArray(missions) ? missions.filter(m => m.status === "overdue").length : 0;
