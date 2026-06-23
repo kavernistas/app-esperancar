@@ -1,8 +1,8 @@
 // src/api/client.js
 // API Client com suporte a BASE44 e BACKEND_PROPRIO via VITE_API_MODE
 
-const API_MODE = import.meta.env.VITE_API_MODE || 'BASE44';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_MODE = import.meta.env.VITE_API_MODE || 'BACKEND';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // Token management
 let accessToken = localStorage.getItem('access_token') || null;
