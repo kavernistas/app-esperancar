@@ -17,7 +17,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=postgresql://esperancar:***@esperancar-postgres:5432/esperancar_db?schema=public
+      -e DATABASE_URL=postgresql://esperancar:Esperancar2026@esperancar-postgres:5432/esperancar_db?schema=public
       - REDIS_URL=redis://esperancar-redis:6379
       - JWT_ACCESS_SECRET=${JWT_...t}
       - JWT_REFRESH_SECRET=${JWT_...t}

@@ -8,7 +8,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -22,7 +22,7 @@ RUN npm ci --only=production && \
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -47,11 +47,11 @@ ENV NODE_ENV=production
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Install runtime dependencies (Prisma engine needs libssl, curl for healthcheck)
+RUN apk add --no-cache curl openssl3 libstdc++
 
 # Copy production files
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist/src ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
