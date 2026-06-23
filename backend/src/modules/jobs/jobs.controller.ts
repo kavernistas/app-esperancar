@@ -9,7 +9,7 @@ import { JobsService } from './jobs.service';
 @ApiTags('Jobs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/jobs')
+@Controller('jobs')
 export class JobsController {
   constructor(private readonly service: JobsService) {}
 

@@ -9,7 +9,7 @@ import { CreateNotificationDto, UpdateNotificationDto, ListNotificationDto } fro
 @ApiTags('Notification')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 

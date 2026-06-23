@@ -9,7 +9,7 @@ import { CreateCampaignDto, UpdateCampaignDto, ListCampaignDto } from './dto';
 @ApiTags('Campaign')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/campaigns')
+@Controller('campaigns')
 export class CampaignController {
   constructor(private readonly service: CampaignService) {}
 

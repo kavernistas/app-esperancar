@@ -7,7 +7,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { LoginDto, RefreshTokenDto, LogoutDto } from './dto';
 
 @ApiTags('Auth')
-@Controller('api/v1/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

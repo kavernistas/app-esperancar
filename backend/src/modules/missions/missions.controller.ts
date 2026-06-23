@@ -10,7 +10,7 @@ import { CreateMissionDto, UpdateMissionDto, ListMissionDto } from './dto';
 @ApiTags('Missions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/missions')
+@Controller('missions')
 export class MissionsController {
   constructor(private readonly service: MissionsService) {}
 

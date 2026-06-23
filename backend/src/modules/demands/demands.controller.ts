@@ -10,7 +10,7 @@ import { CreateDemandDto, UpdateDemandDto, ListDemandDto } from './dto';
 @ApiTags('Demands')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/demands')
+@Controller('demands')
 export class DemandsController {
   constructor(private readonly service: DemandsService) {}
 

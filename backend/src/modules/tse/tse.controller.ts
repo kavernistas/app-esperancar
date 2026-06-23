@@ -8,7 +8,7 @@ import { Public } from '@/common/decorators/public.decorator';
 import { TseService } from './tse.service';
 
 @ApiTags('TSE')
-@Controller('api/v1/tse')
+@Controller('tse')
 export class TseController {
   constructor(private readonly service: TseService) {}
 

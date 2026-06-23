@@ -10,7 +10,7 @@ import { SofiaAnalyzeDto, SofiaTseAnalysisDto, SofiaGamificationInsightDto, Sofi
 @ApiTags('Sofia IA')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/sofia')
+@Controller('sofia')
 export class SofiaController {
   constructor(private readonly service: SofiaService) {}
 

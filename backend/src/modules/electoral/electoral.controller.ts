@@ -9,7 +9,7 @@ import { CreateElectoralDto, UpdateElectoralDto, ListElectoralDto } from './dto'
 @ApiTags('Electoral')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/electoral-data')
+@Controller('electoral-data')
 export class ElectoralController {
   constructor(private readonly service: ElectoralService) {}
 

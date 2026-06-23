@@ -53,11 +53,11 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   const port = config.get('PORT') || 3001;
   await app.listen(port);
   console.log(`API running on port ${port}`);
-  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  console.log(`Swagger docs: http://localhost:${port}/docs`);
 }
 bootstrap();

@@ -10,7 +10,7 @@ import { CreateContactDto, UpdateContactDto, ListContactDto } from './dto';
 @ApiTags('Contacts')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/contacts')
+@Controller('contacts')
 export class ContactsController {
   constructor(private readonly service: ContactsService) {}
 

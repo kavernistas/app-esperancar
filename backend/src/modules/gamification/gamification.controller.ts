@@ -9,7 +9,7 @@ import { CreateGamificationDto, UpdateGamificationDto, ListGamificationDto } fro
 @ApiTags('Gamification')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/gamification')
+@Controller('gamification')
 export class GamificationController {
   constructor(private readonly service: GamificationService) {}
 

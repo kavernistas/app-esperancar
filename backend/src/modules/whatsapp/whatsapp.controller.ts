@@ -10,7 +10,7 @@ import { WhatsAppSendDto, WhatsAppSingleSendDto, WhatsAppLogQueryDto } from './d
 @ApiTags('WhatsApp')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/whatsapp')
+@Controller('whatsapp')
 export class WhatsAppController {
   constructor(private readonly service: WhatsAppService) {}
 

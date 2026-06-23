@@ -9,7 +9,7 @@ import { CreateAuditDto, UpdateAuditDto, ListAuditDto } from './dto';
 @ApiTags('Audit')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/audit-logs')
+@Controller('audit-logs')
 export class AuditController {
   constructor(private readonly service: AuditService) {}
 

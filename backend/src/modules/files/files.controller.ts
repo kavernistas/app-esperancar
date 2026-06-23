@@ -10,7 +10,7 @@ import { FilesService } from './files.service';
 @ApiTags('Files')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/files')
+@Controller('files')
 export class FilesController {
   constructor(private readonly service: FilesService) {}
 

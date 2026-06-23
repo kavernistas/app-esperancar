@@ -10,7 +10,7 @@ import { CreateLeaderDto, UpdateLeaderDto, ListLeaderDto } from './dto';
 @ApiTags('Leaders')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/v1/leaders')
+@Controller('leaders')
 export class LeadersController {
   constructor(private readonly service: LeadersService) {}
 
