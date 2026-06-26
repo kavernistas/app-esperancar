@@ -1,0 +1,460 @@
+{
+  "http": {
+    "middlewares": {
+      "bad-gateway-error-page": {
+        "errors": {
+          "query": "/api/errors/bad-gateway",
+          "service": "easypanel",
+          "status": [
+            "502"
+          ]
+        }
+      },
+      "not-found-error-page": {
+        "replacePath": {
+          "path": "/api/errors/not-found"
+        }
+      },
+      "not-started-error-page": {
+        "replacePath": {
+          "path": "/api/errors/not-started"
+        }
+      },
+      "redirect-to-https": {
+        "redirectScheme": {
+          "permanent": true,
+          "scheme": "https"
+        }
+      },
+      "forward-auth-traefik": {
+        "forwardAuth": {
+          "address": "http://easypanel:3000/api/token-auth/fb8224989e73a2e316eb"
+        }
+      },
+      "basic-auth-legal-legis_n8n": {
+        "basicAuth": {
+          "removeHeader": true,
+          "users": [
+            "kavernistas@gmail.com:$2b$10$tigjd3XGI1nBrfNaCG2L0uPlOn25stHxpSznZWi79TEr0nW7v5AeW"
+          ]
+        }
+      }
+    },
+    "routers": {
+      "http-error-page": {
+        "middlewares": [
+          "redirect-to-https",
+          "not-found-error-page"
+        ],
+        "priority": 1,
+        "rule": "HostRegexp(`.+`)",
+        "service": "easypanel",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-error-page": {
+        "middlewares": [
+          "not-found-error-page"
+        ],
+        "priority": 1,
+        "rule": "HostRegexp(`.+`)",
+        "service": "easypanel",
+        "tls": {},
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-easypanel-ip": {
+        "priority": 2,
+        "rule": "HostRegexp(`^[0-9.]+$`)",
+        "service": "easypanel",
+        "entryPoints": [
+          "http"
+        ],
+        "middlewares": [
+          "redirect-to-https"
+        ]
+      },
+      "https-easypanel-ip": {
+        "priority": 2,
+        "rule": "HostRegexp(`^[0-9.]+$`)",
+        "service": "easypanel",
+        "tls": {},
+        "entryPoints": [
+          "https"
+        ],
+        "middlewares": []
+      },
+      "http-easypanel-default": {
+        "rule": "Host(`f5rg2q.easypanel.host`)",
+        "service": "easypanel",
+        "entryPoints": [
+          "http"
+        ],
+        "middlewares": [
+          "redirect-to-https"
+        ]
+      },
+      "https-easypanel-default": {
+        "rule": "Host(`f5rg2q.easypanel.host`)",
+        "service": "easypanel",
+        "tls": {
+          "certResolver": "letsencrypt"
+        },
+        "entryPoints": [
+          "https"
+        ],
+        "middlewares": []
+      },
+      "http-traefik-dashboard": {
+        "middlewares": [
+          "redirect-to-https",
+          "forward-auth-traefik"
+        ],
+        "rule": "Host(`traefik.f5rg2q.easypanel.host`)",
+        "service": "traefik-dashboard",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-traefik-dashboard": {
+        "middlewares": [
+          "forward-auth-traefik"
+        ],
+        "rule": "Host(`traefik.f5rg2q.easypanel.host`)",
+        "service": "traefik-dashboard",
+        "tls": {
+          "certResolver": "letsencrypt"
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_eleitateck-0": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`eleitechn2026.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_eleitateck-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_eleitateck-0": {
+        "middlewares": [
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`eleitechn2026.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_eleitateck-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "eleitechn2026.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_escritorio-app-0": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`appjuridico.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_escritorio-app-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_escritorio-app-0": {
+        "middlewares": [
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`appjuridico.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_escritorio-app-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "appjuridico.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_esperancar-0": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page"
+        ],
+        "priority": 100,
+        "rule": "Host(`esperancar.f5rg2q.easypanel.host`) && PathPrefix(`/api`)",
+        "service": "legal-legis_esperancar-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_esperancar-0": {
+        "middlewares": [
+          "bad-gateway-error-page"
+        ],
+        "priority": 100,
+        "rule": "Host(`esperancar.f5rg2q.easypanel.host`) && PathPrefix(`/api`)",
+        "service": "legal-legis_esperancar-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "esperancar.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_evolution-api-0": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`legal-legis-evolution-api.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_evolution-api-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_evolution-api-0": {
+        "middlewares": [
+          "bad-gateway-error-page"
+        ],
+        "priority": 0,
+        "rule": "Host(`legal-legis-evolution-api.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_evolution-api-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "legal-legis-evolution-api.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_n8n-0": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page",
+          "basic-auth-legal-legis_n8n"
+        ],
+        "priority": 0,
+        "rule": "Host(`legal-legis-n8n.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_n8n-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_n8n-0": {
+        "middlewares": [
+          "bad-gateway-error-page",
+          "basic-auth-legal-legis_n8n"
+        ],
+        "priority": 0,
+        "rule": "Host(`legal-legis-n8n.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_n8n-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "legal-legis-n8n.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-legal-legis_esperancar-frontend": {
+        "middlewares": [
+          "redirect-to-https",
+          "bad-gateway-error-page"
+        ],
+        "priority": 10,
+        "rule": "Host(`esperancar.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_esperancar-frontend-0",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-legal-legis_esperancar-frontend": {
+        "middlewares": [
+          "bad-gateway-error-page"
+        ],
+        "priority": 10,
+        "rule": "Host(`esperancar.f5rg2q.easypanel.host`) && PathPrefix(`/`)",
+        "service": "legal-legis_esperancar-frontend-0",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "esperancar.f5rg2q.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      },
+      "http-custom-cmplfuwdu000207pgh1q26lit": {
+        "middlewares": [
+          "redirect-to-https"
+        ],
+        "priority": 0,
+        "rule": "Host(`appjuridico.easypanel.host`) && PathPrefix(`/`)",
+        "service": "custom-cmplfuwdu000207pgh1q26lit",
+        "entryPoints": [
+          "http"
+        ]
+      },
+      "https-custom-cmplfuwdu000207pgh1q26lit": {
+        "middlewares": [],
+        "priority": 0,
+        "rule": "Host(`appjuridico.easypanel.host`) && PathPrefix(`/`)",
+        "service": "custom-cmplfuwdu000207pgh1q26lit",
+        "tls": {
+          "certResolver": "letsencrypt",
+          "domains": [
+            {
+              "main": "appjuridico.easypanel.host"
+            }
+          ]
+        },
+        "entryPoints": [
+          "https"
+        ]
+      }
+    },
+    "services": {
+      "easypanel": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://easypanel:3000"
+            }
+          ]
+        }
+      },
+      "traefik-dashboard": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://easypanel-traefik:8080"
+            }
+          ]
+        }
+      },
+      "legal-legis_eleitateck-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://legal-legis_eleitateck:8000/"
+            }
+          ]
+        }
+      },
+      "legal-legis_escritorio-app-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://legal-legis_escritorio-app:8000/"
+            }
+          ]
+        }
+      },
+      "legal-legis_esperancar-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://esperancar-backend:3001/"
+            }
+          ]
+        }
+      },
+      "legal-legis_evolution-api-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://legal-legis_evolution-api:8080/"
+            }
+          ]
+        }
+      },
+      "legal-legis_n8n-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://legal-legis_n8n:5678/"
+            }
+          ]
+        }
+      },
+      "legal-legis_esperancar-frontend-0": {
+        "loadBalancer": {
+          "passHostHeader": true,
+          "servers": [
+            {
+              "url": "http://esperancar-frontend:80/"
+            }
+          ]
+        }
+      },
+      "custom-cmplfuwdu000207pgh1q26lit": {
+        "loadBalancer": {
+          "passHostHeader": false,
+          "servers": [
+            {
+              "url": "https://69.62.67.78/",
+              "weight": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  "tls": {
+    "certificates": [
+      {
+        "certFile": "/data/default-domain.crt",
+        "keyFile": "/data/default-domain.key"
+      }
+    ],
+    "stores": {
+      "default": {
+        "defaultCertificate": {
+          "certFile": "/data/default.cert",
+          "keyFile": "/data/default.key"
+        }
+      }
+    }
+  }
+}
