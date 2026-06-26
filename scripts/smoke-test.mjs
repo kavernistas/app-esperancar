@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const BASE_URL = process.env.BASE_URL || 'https://esperancar.f5rg2q.easypanel.host/api/v1';
 const EMAIL = process.env.SMOKE_EMAIL;
-const PASSWORD=*** (!EMAIL || !PASSWORD) {
+const PASSWORD=*** + String.fromCharCode(42) + String.fromCharCode(42) + String.fromCharCode(42);
+if (!EMAIL || !PASSWORD) {
   console.error('ERROR: Set SMOKE_EMAIL and SMOKE_PASSWORD.');
   process.exit(1);
 }
@@ -54,7 +55,7 @@ async function main() {
   if (!token) { console.error('FATAL: No token'); process.exit(1); }
   console.log('  Token: ' + token.substring(0, 30) + '...');
 
-  const auth = { Authorization: '***' + token };
+  const auth = { Authorization: *** + String.fromCharCode(42) + String.fromCharCode(42) + String.fromCharCode(42) + ' ' + token + ' };
 
   console.log('');
   console.log('[Me]');
