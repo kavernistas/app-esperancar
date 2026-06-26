@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Disable SSL verification for self-signed certs
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const BASE_URL = process.env.BASE_URL || 'https://esperancar.f5rg2q.easypanel.host/api/v1';
 const EMAIL = process.env.SMOKE_EMAIL;
 if (!EMAIL || !process.env.SMOKE_PASSWORD) {
@@ -35,9 +37,10 @@ function assert(name, result, expected) {
 
 async function main() {
   console.log('');
-  console.log('Smoke Test - Esperancar V2');
-  console.log('Base URL: ' + BASE_URL);
-  console.log('');
+  console.log(`\nSmoke Test — Esperancar V2`);
+  console.log(`Base URL: ${BASE_URL}`);
+  console.log(`Email: ${EMAIL}`);
+  console.log(`Password length: ${process.env.SMOKE_PASSWORD?.length}\n`);
 
   console.log('[Health]');
   assert('GET /health', await request('/health'), [200]);
