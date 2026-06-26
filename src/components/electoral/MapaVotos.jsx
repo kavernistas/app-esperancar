@@ -1,3 +1,4 @@
+import { tseApi } from "@/api/client";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from "react-leaflet";

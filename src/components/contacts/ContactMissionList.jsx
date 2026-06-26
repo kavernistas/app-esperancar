@@ -28,7 +28,7 @@ export default function ContactMissionList({ contactId }) {
   const loadMissions = async () => {
     setLoading(true);
     try {
-      const all = await missionsApi.listMissions("-created_date", 200);
+      const all = await missionsApi.listMissions({ sort: "-created_date", limit: 200 });
       const filtered = all.filter(m =>
         (m.participant_ids || []).includes(contactId) || m.leader_id === contactId
       );

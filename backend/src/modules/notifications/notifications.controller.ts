@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { NotificationService } from './notifications.service';
 import { CreateNotificationDto, UpdateNotificationDto, ListNotificationDto } from './dto';
 
@@ -37,6 +38,12 @@ export class NotificationController {
   @ApiOperation({ summary: 'Atualizar notifications' })
   async update(@Param('id') id: string, @Body() dto: UpdateNotificationDto) {
     return this.service.update(id, dto);
+  }
+
+  @Post('mark-all-read')
+  @ApiOperation({ summary: 'Marcar todas as notificacoes como lidas' })
+  async markAllRead(@CurrentUser() user: any) {
+    return this.service.markAllRead(user?.id);
   }
 
   @Delete(':id')

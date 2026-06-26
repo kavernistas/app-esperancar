@@ -118,6 +118,26 @@ export class AuthService {
     return { success: true };
   }
 
+  async updateProfile(userId: string, data: any) {
+    const allowedFields = ['full_name', 'phone', 'avatar_url', 'ui_dark_mode', 'notif_email', 'whatsapp_status', 'metas', 'profile'];
+    const updateData: any = {};
+    for (const field of allowedFields) {
+      if (data[field] !== undefined) updateData[field] = data[field];
+    }
+    // Handle password change separately
+    if (data.password && data.current_password) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new UnauthorizedException('Usuario nao encontrado');
+      const valid = await bcrypt.compare(data.current_password, user.password_hash);
+      if (!valid) throw new UnauthorizedException('Senha atual incorreta');
+      const newHash = await bcrypt.hash(data.password, 12);
+      updateData.password_hash = newHash;
+    }
+    if (Object.keys(updateData).length === 0) throw new BadRequestException('Nenhum campo para atualizar');
+    await this.prisma.user.update({ where: { id: userId }, data: updateData });
+    return this.getMe(userId);
+  }
+
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

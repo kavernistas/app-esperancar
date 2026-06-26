@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/AuthContext";
  *   if (!canAccess("leaders")) return <Redirect .../>;
  */
 
-// Roles da plataforma Base44
+// Roles da plataforma
 const ROLES = {
   ADMIN: "admin",
   USER: "user",

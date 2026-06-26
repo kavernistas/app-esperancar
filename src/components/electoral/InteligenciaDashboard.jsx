@@ -1,3 +1,4 @@
+import { tseApi } from "@/api/client";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -23,9 +24,9 @@ export default function InteligenciaDashboard({ syncStatuses, filters }) {
       const [syncStatus, leaders, missions, contacts, demands] = await Promise.all([
         tseApi.getSyncStatus(0, ""),
         leadersApi.listLeaders({ limit: 200 }),
-        missionsApi.listMissions("-created_date", 200),
-        contactsApi.listContacts("-created_date", 200),
-        demandsApi.listDemands("-created_date", 200),
+        missionsApi.listMissions({ sort: "-created_date", limit: 200 }),
+        contactsApi.listContacts({ sort: "-created_date", limit: 200 }),
+        demandsApi.listDemands({ sort: "-created_date", limit: 200 }),
       ]);
 
       const statuses = syncStatus.data?.statuses || [];

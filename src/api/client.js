@@ -1,5 +1,5 @@
 // src/api/client.js
-// API Client com suporte a BASE44 e BACKEND_PROPRIO via VITE_API_MODE
+// API Client
 
 const API_MODE = import.meta.env.VITE_API_MODE || 'BACKEND';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -28,11 +28,8 @@ export function getAccessToken() {
 
 // HTTP Client
 async function request(method, path, data = null, options = {}) {
-  if (API_MODE === 'BASE44') {
-    throw new Error('BASE44 mode not supported in this client. Set VITE_API_MODE=BACKEND');
-  }
-
-  const url = `${API_BASE_URL}/api/v1${path}`;
+  const base = `${API_BASE_URL}/api/v1${path}`;
+  const urlWithParams = options.params ? base + '?' + new URLSearchParams(options.params).toString() : base;
   const headers = { 'Content-Type': 'application/json' };
 
   if (accessToken) {
@@ -44,12 +41,13 @@ async function request(method, path, data = null, options = {}) {
     headers,
     ...options,
   };
+  delete config.params; // Don't pass params to fetch config
 
   if (data && method !== 'GET') {
     config.body = JSON.stringify(data);
   }
 
-  let response = await fetch(url, config);
+  let response = await fetch(urlWithParams, config);
 
   // Try to refresh token on 401
   if (response.status === 401 && refreshToken && !path.includes('/auth/')) {
@@ -106,6 +104,42 @@ export const api = {
   post: (path, data) => request('POST', path, data),
   patch: (path, data) => request('PATCH', path, data),
   delete: (path) => request('DELETE', path),
+};
+
+// TSE API
+export const tseApi = {
+  getData: (params = {}) => request('/v1/tse/query', { method: 'GET', params }),
+  getSyncStatus: (limit = 50, uf = '') => request('/v1/tse/sync-status', { method: 'GET', params: { limit, uf } }),
+  listSyncStatus: () => request('/v1/tse/sync-status/list'),
+  queryVotes: (params = {}) => request('/v1/tse/votes', { method: 'GET', params }),
+  getCandidates: (params = {}) => request('/v1/tse/candidates', { method: 'GET', params }),
+  getPollingPlaces: (params = {}) => request('/v1/tse/polling-places', { method: 'GET', params }),
+  getElectorateProfiles: (params = {}) => request('/v1/tse/electorate-profiles', { method: 'GET', params }),
+  import: (data) => request('/v1/tse/import', { method: 'POST', data }),
+};
+
+// Strategic Actions API (modulo backend ainda nao implementado — retorna stub)
+export const strategicActionsApi = {
+  list: async (sort = '-created_date', limit = 100) => {
+    try { return await request('/v1/strategic-actions', { method: 'GET', params: { sort, limit } }); }
+    catch (e) { console.warn('[strategicActionsApi] Backend nao implementado, retornando vazio.'); return { data: [] }; }
+  },
+  get: async (id) => {
+    try { return await request(`/v1/strategic-actions/${id}`); }
+    catch (e) { return { data: null }; }
+  },
+  create: async (data) => {
+    try { return await request('/v1/strategic-actions', { method: 'POST', data }); }
+    catch (e) { console.warn('[strategicActionsApi] create nao implementado.'); return { data: null, error: 'Nao implementado' }; }
+  },
+  update: async (id, data) => {
+    try { return await request(`/v1/strategic-actions/${id}`, { method: 'PATCH', data }); }
+    catch (e) { console.warn('[strategicActionsApi] update nao implementado.'); return { data: null, error: 'Nao implementado' }; }
+  },
+  delete: async (id) => {
+    try { return await request(`/v1/strategic-actions/${id}`, { method: 'DELETE' }); }
+    catch (e) { console.warn('[strategicActionsApi] delete nao implementado.'); return { data: null, error: 'Nao implementado' }; }
+  },
 };
 
 export default api;

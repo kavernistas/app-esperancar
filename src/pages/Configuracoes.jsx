@@ -759,7 +759,7 @@ export default function Configuracoes() {
               <div className="space-y-2 text-sm">
                 <p className="text-slate-700"><strong>Nome:</strong> Esperançar</p>
                 <p className="text-slate-700"><strong>Versão:</strong> 2.0.0</p>
-                <p className="text-slate-700"><strong>Stack:</strong> React + Tailwind CSS + Base44 BaaS</p>
+                <p className="text-slate-700"><strong>Stack:</strong> React + Tailwind CSS + NestJS + PostgreSQL</p>
                 <p className="text-slate-700"><strong>Módulos:</strong> CRM Político, Gestão Territorial, Missões, Gamificação, Inteligência Eleitoral (TSE), Sofia IA</p>
                 <div className="flex items-center gap-2 mt-3">
                   <div className="w-3 h-3 rounded-full bg-[#7AC943]" />

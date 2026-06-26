@@ -29,6 +29,10 @@ export async function logout() {
   }
 }
 
+export async function updateProfile(data) {
+  return api.patch('/auth/me', data);
+}
+
 export async function getMe() {
   return api.get('/auth/me');
 }

@@ -40,7 +40,7 @@ export default function NavigationTracker() {
         }
 
         if (isAuthenticated && pageName) {
-          // Logging desabilitado — sem Base44
+          // Logging desabilitado
         }
     }, [location, isAuthenticated, Pages, mainPageKey]);
 

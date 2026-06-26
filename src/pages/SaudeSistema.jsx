@@ -1,3 +1,4 @@
+import { tseApi } from "@/api/client";
 import { useState, useEffect } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,7 +120,7 @@ export default function SaudeSistema() {
       {/* Status Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: Server, label: "Plataforma Base44", value: health?.platform.status === "ok" ? "Online" : "Erro", sub: health?.platform.responseTime, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { icon: Server, label: "Plataforma", value: health?.platform?.status === "ok" ? "Online" : "Erro", sub: health?.platform?.responseTime, color: "text-emerald-600", bg: "bg-emerald-50" },
           { icon: Database, label: "Banco de Dados", value: "Online", sub: `${health?.database.entities} · ${(health?.database.recordCount || 0).toLocaleString()} registros`, color: "text-blue-600", bg: "bg-blue-50" },
           { icon: HardDrive, label: "Backup", value: health?.backup.status || "—", sub: health?.backup.lastCheck || "—", color: "text-teal-600", bg: "bg-teal-50" },
           { icon: FileText, label: "AuditLog", value: `${health?.auditLog.recentEntries || 0} eventos`, sub: "logs estruturados", color: "text-slate-600", bg: "bg-slate-50" },

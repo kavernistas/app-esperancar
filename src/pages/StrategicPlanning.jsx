@@ -1,3 +1,4 @@
+import { strategicActionsApi } from "@/api/client";
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -92,7 +93,7 @@ export default function StrategicPlanning() {
 
   const { data: actions = [], isLoading } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => strategicActionsApi.list("-start_date", 200),
+    queryFn: () => strategicActionsApi.list({ sort: "-start_date", limit: 200 }),
   });
 
   const createMutation = useMutation({

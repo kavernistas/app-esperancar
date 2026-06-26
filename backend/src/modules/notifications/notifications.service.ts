@@ -29,4 +29,9 @@ export class NotificationService {
   async remove(id: string) {
     return { id, deleted: true };
   }
+
+  async markAllRead(userId: string) {
+    // Notifications model not fully implemented — stub response
+    return { success: true, message: 'Notifications marked as read', affected: 0 };
+  }
 }

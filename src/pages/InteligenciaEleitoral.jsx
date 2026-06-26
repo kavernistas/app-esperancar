@@ -1,3 +1,4 @@
+import { tseApi } from "@/api/client";
 import { useState, useEffect, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -123,12 +124,12 @@ export default function CentralInteligencia() {
       // Paginação: carregar apenas contagens e amostras para o dashboard,
       // não todos os registros
       const [leaders, missions, contacts, demands, gamificationProfiles, actions] = await Promise.all([
-        leadersApi.listLeaders("-created_date", 50),
-        missionsApi.listMissions("-created_date", 50),
-        contactsApi.listContacts("-created_date", 100),
-        demandsApi.listDemands("-created_date", 50),
-        gamificationApi.listProfiles("-total_points", 30),
-        strategicActionsApi.list("-created_date", 20),
+        leadersApi.listLeaders({ sort: "-created_date", limit: 50 }),
+        missionsApi.listMissions({ sort: "-created_date", limit: 50 }),
+        contactsApi.listContacts({ sort: "-created_date", limit: 100 }),
+        demandsApi.listDemands({ sort: "-created_date", limit: 50 }),
+        gamificationApi.listProfiles({ sort: "-total_points", limit: 30 }),
+        strategicActionsApi.list({ sort: "-created_date", limit: 20 }),
       ]);
 
       const activeLeaders = leaders.filter(l => l.status === "active");

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '@/api/auth';
-import { getAccessToken } from '@/api/client';
+import { getAccessToken, clearTokens } from '@/api/client';
 
 const AuthContext = createContext();
 
@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const navigate = useNavigate();
 
@@ -28,9 +29,11 @@ export const AuthProvider = ({ children }) => {
           setUser(userData);
           setIsAuthenticated(true);
         } catch (e) {
+          // Token invalido — limpar tokens velhos e forcar login
+          clearTokens();
           setUser(null);
           setIsAuthenticated(false);
-          setAuthError({ type: 'auth_required', message: 'Sessao expirada' });
+          setAuthError({ type: 'auth_required', message: 'Sessao expirada — faca login novamente' });
         }
       } else {
         setUser(null);
@@ -38,6 +41,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      clearTokens();
       setUser(null);
       setIsAuthenticated(false);
       setAuthError({ type: 'auth_required', message: 'Autenticacao necessaria' });
@@ -75,16 +79,22 @@ export const AuthProvider = ({ children }) => {
     return updated;
   };
 
+  const navigateToLogin = () => {
+    navigate('/login');
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       isLoadingAuth,
+      isLoadingPublicSettings,
       authError,
       login,
       logout,
       updateProfile,
       checkAuth,
+      navigateToLogin,
     }}>
       {children}
     </AuthContext.Provider>

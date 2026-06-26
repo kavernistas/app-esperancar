@@ -1,3 +1,4 @@
+import { strategicActionsApi } from "@/api/client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -59,7 +60,7 @@ export default function Reports() {
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => strategicActionsApi.list("-created_date", 200),
+    queryFn: () => strategicActionsApi.list({ sort: "-created_date", limit: 200 }),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingElectoral || loadingActions;

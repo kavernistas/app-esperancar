@@ -1,3 +1,4 @@
+import { tseApi } from "@/api/client";
 import { useState, useEffect, useCallback } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,7 +83,7 @@ export default function DiagnosticoTSE() {
             </div>
             <p className="text-slate-300 text-sm max-w-2xl">
               Os dados eleitorais oficiais são processados por um serviço externo de ETL e armazenados localmente para consultas rápidas.
-              O Base44 atua como consumidor dos dados já normalizados — sem processar arquivos ZIP ou CSV.
+              O sistema atua como consumidor dos dados já normalizados — sem processar arquivos ZIP ou CSV.
             </p>
           </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
@@ -90,7 +91,7 @@ export default function DiagnosticoTSE() {
             <span>ETL externo</span>
             <ArrowRight className="w-3 h-3" />
             <Database className="w-4 h-4 text-blue-400" />
-            <span className="text-blue-400">Base44</span>
+            <span className="text-blue-400">Esperançar</span>
           </div>
         </div>
       </div>
@@ -171,7 +172,7 @@ export default function DiagnosticoTSE() {
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
                 Esta base ainda não foi importada. Os dados serão processados pelo serviço externo de ETL
-                e enviados em lotes para o Base44. Consulte a documentação do <strong>esperancar-tse-etl</strong>.
+                e enviados em lotes para o backend. Consulte a documentação do <strong>esperancar-tse-etl</strong>.
               </p>
             </div>
           )}
@@ -236,7 +237,7 @@ export default function DiagnosticoTSE() {
               <p className="text-sm font-medium text-slate-700">Serviço Externo de ETL</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 O processamento dos arquivos do TSE (download, descompressão ZIP, parsing CSV, filtro por UF/município)
-                é feito pelo <strong>esperancar-tse-etl</strong> — um serviço Python/Node.js rodando fora do Base44.
+                é feito pelo <strong>esperancar-tse-etl</strong> — um serviço Python/Node.js rodando fora do sistema principal.
                 Os dados normalizados são enviados em lotes via <code className="bg-slate-200 px-1 rounded">receiveTSEBatch</code>.
               </p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">

@@ -1,3 +1,4 @@
+import { strategicActionsApi } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 
 import { Users, UserCheck, ClipboardList, TrendingUp } from "lucide-react";
@@ -14,7 +15,7 @@ import * as contactsApi from '@/api/contacts';
 export default function Dashboard() {
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
@@ -29,7 +30,7 @@ export default function Dashboard() {
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => strategicActionsApi.list("-created_date", 100),
+    queryFn: () => strategicActionsApi.list({ sort: "-created_date", limit: 100 }),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingActions;

@@ -43,7 +43,7 @@ export default function ImportPanel({ syncStatuses }) {
               <p className="text-xs text-blue-600 mt-0.5">
                 Os dados do TSE são processados pelo <strong>esperancar-tse-etl</strong> —
                 um serviço dedicado que baixa, descompacta e normaliza os arquivos oficiais
-                antes de enviá-los em lotes para o Base44.
+                antes de enviá-los em lotes para o backend.
               </p>
             </div>
           </div>

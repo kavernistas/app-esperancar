@@ -160,6 +160,8 @@ model Leader {
   segment            String?
   notes              String?       @db.Text
   photo_url          String?       @map("photo_url")
+  latitude           Float?
+  longitude          Float?
   status             LeaderStatus  @default(ACTIVE)
   
   // Timestamps
