@@ -122,7 +122,7 @@ export default function Campaigns() {
   });
 
   // Stats
-  const activeCampaigns = campaigns.filter((c) => c.status === "active").length;
+  const activeCampaigns = campaigns.filter((c) => c.status === "ACTIVE" || c.status === "active").length;
   const totalVoteGoal = campaigns.reduce((sum, c) => sum + (c.vote_goal || 0), 0);
   const totalCurrentVotes = campaigns.reduce((sum, c) => sum + (c.current_votes_estimate || 0), 0);
   const totalBudget = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
@@ -210,7 +210,7 @@ export default function Campaigns() {
 
             return (
               <Card key={campaign.id} className="group border-0 shadow-sm hover:shadow-md transition-all overflow-hidden">
-                <div className={`h-2 ${campaign.status === "active" ? "bg-gradient-to-r from-emerald-500 to-emerald-600" : campaign.status === "planning" ? "bg-gradient-to-r from-slate-400 to-slate-500" : "bg-gradient-to-r from-blue-500 to-blue-600"}`} />
+                <div className={`h-2 ${campaign.status === "ACTIVE" || campaign.status === "active" ? "bg-gradient-to-r from-emerald-500 to-emerald-600" : campaign.status === "PLANNING" || campaign.status === "planning" ? "bg-gradient-to-r from-slate-400 to-slate-500" : "bg-gradient-to-r from-blue-500 to-blue-600"}`} />
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div>

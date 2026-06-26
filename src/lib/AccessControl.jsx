@@ -70,16 +70,25 @@ const ROLE_PERMISSIONS = {
 };
 
 /**
+ * Normaliza o role para uppercase e trim.
+ * Backend retorna: ADMIN, COORDENADOR, LIDERANCA, USER
+ */
+export function normalizeRole(role) {
+  return String(role || '').trim().toUpperCase();
+}
+
+/**
  * Determina o perfil efetivo do usuário baseado em role + metadata
  */
 export function getEffectiveRole(user) {
-  if (!user) return "user";
-  if (user.role === "admin") return "admin";
+  if (!user) return "USER";
+  const r = normalizeRole(user.role);
+  if (r === "ADMIN") return "admin";
 
   // Verificar metadata para perfis estendidos
-  const profile = user.profile || user.metadata?.profile;
-  if (profile === "coordenador") return "coordenador";
-  if (profile === "lideranca") return "lideranca";
+  const profile = normalizeRole(user.profile || user.metadata?.profile);
+  if (profile === "COORDENADOR") return "coordenador";
+  if (profile === "LIDERANCA") return "lideranca";
 
   return "user";
 }

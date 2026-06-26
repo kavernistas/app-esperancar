@@ -123,9 +123,9 @@ export default function Demands() {
   });
 
   // Stats
-  const openCount = demands.filter(d => d.status === "open").length;
-  const inProgressCount = demands.filter(d => d.status === "in_progress").length;
-  const resolvedCount = demands.filter(d => d.status === "resolved").length;
+  const openCount = demands.filter(d => d.status === "OPEN" || d.status === "open").length;
+  const inProgressCount = demands.filter(d => d.status === "IN_PROGRESS" || d.status === "in_progress").length;
+  const resolvedCount = demands.filter(d => d.status === "RESOLVED" || d.status === "resolved").length;
   const urgentCount = demands.filter(d => d.priority === "urgent" && d.status !== "resolved").length;
 
   if (isLoading) {
@@ -256,7 +256,7 @@ export default function Demands() {
             <TabsTrigger value="all">Todas ({demands.length})</TabsTrigger>
             <TabsTrigger value="open">Abertas ({openCount})</TabsTrigger>
             <TabsTrigger value="in_progress">Em Andamento ({inProgressCount})</TabsTrigger>
-            <TabsTrigger value="pending">Pendentes ({demands.filter(d => d.status === "pending").length})</TabsTrigger>
+            <TabsTrigger value="pending">Pendentes ({demands.filter(d => d.status === "PENDING" || d.status === "pending").length})</TabsTrigger>
             <TabsTrigger value="resolved">Resolvidas ({resolvedCount})</TabsTrigger>
           </TabsList>
         </Tabs>

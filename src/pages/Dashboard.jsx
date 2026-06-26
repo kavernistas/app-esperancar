@@ -37,8 +37,8 @@ export default function Dashboard() {
 
   // Calculate stats
   const totalContacts = contacts.length;
-  const activeLeaders = leaders.filter(l => l.status === "active").length;
-  const openDemands = demands.filter(d => d.status === "open" || d.status === "in_progress").length;
+  const activeLeaders = leaders.filter(l => l.status === "ACTIVE" || l.status === "active").length;
+  const openDemands = demands.filter(d => d.status === "OPEN" || d.status === "open" || d.status === "IN_PROGRESS" || d.status === "in_progress").length;
   const totalSupporters = leaders.reduce((sum, l) => sum + (l.supporters_count || 0), 0);
 
   // Demands by status

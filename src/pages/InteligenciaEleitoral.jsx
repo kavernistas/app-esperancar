@@ -132,13 +132,13 @@ export default function CentralInteligencia() {
         strategicActionsApi.list({ sort: "-created_date", limit: 20 }),
       ]);
 
-      const activeLeaders = leaders.filter(l => l.status === "active");
-      const inactiveLeaders = leaders.filter(l => l.status !== "active");
-      const completedMissions = missions.filter(m => m.status === "completed");
-      const pendingMissions = missions.filter(m => m.status === "pending" || m.status === "in_progress");
-      const overdueMissions = missions.filter(m => m.status === "overdue");
-      const openDemands = demands.filter(d => d.status === "open" || d.status === "in_progress");
-      const resolvedDemands = demands.filter(d => d.status === "resolved");
+      const activeLeaders = leaders.filter(l => (l.status || "").toUpperCase() === "ACTIVE");
+      const inactiveLeaders = leaders.filter(l => (l.status || "").toUpperCase() !== "ACTIVE");
+      const completedMissions = missions.filter(m => (m.status || "").toUpperCase() === "COMPLETED");
+      const pendingMissions = missions.filter(m => ["PENDING", "IN_PROGRESS"].includes((m.status || "").toUpperCase()));
+      const overdueMissions = missions.filter(m => (m.status || "").toUpperCase() === "OVERDUE");
+      const openDemands = demands.filter(d => ["OPEN", "IN_PROGRESS"].includes((d.status || "").toUpperCase()));
+      const resolvedDemands = demands.filter(d => (d.status || "").toUpperCase() === "RESOLVED");
 
       // Engagement distribution
       const engagementDist = ENGAGEMENT_BANDS.map(band => ({
@@ -209,7 +209,7 @@ export default function CentralInteligencia() {
         recentActivities,
         totalSupporters: leaders.reduce((sum, l) => sum + (l.supporters_count || 0), 0),
       });
-    } catch (e) { console.error("Erro ao carregar dados:", e); }
+    } catch (e) { console.error("Erro ao carregar dados:", e); setCrmLoading(false); }
     setCrmLoading(false);
   }, []);
 

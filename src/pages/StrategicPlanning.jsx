@@ -129,8 +129,8 @@ export default function StrategicPlanning() {
 
   // Stats
   const plannedCount = actions.filter((a) => a.status === "planned").length;
-  const inProgressCount = actions.filter((a) => a.status === "in_progress").length;
-  const completedCount = actions.filter((a) => a.status === "completed").length;
+  const inProgressCount = actions.filter((a) => a.status === "IN_PROGRESS" || a.status === "in_progress").length;
+  const completedCount = actions.filter((a) => a.status === "COMPLETED" || a.status === "completed").length;
   const totalExpectedReach = actions.reduce((sum, a) => sum + (a.expected_reach || 0), 0);
   const totalActualReach = actions.reduce((sum, a) => sum + (a.actual_reach || 0), 0);
 

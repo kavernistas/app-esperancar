@@ -82,10 +82,10 @@ export default function MissionCenter() {
       case "group": return filtered.filter((m) => m.is_group_mission);
       case "neighborhood": return filtered.filter((m) => m.assignment_type === "neighborhood_group");
       case "segment": return filtered.filter((m) => m.assignment_type === "segment_group");
-      case "pending": return filtered.filter((m) => m.status === "pending");
-      case "in_progress": return filtered.filter((m) => m.status === "in_progress");
-      case "completed": return filtered.filter((m) => m.status === "completed");
-      case "overdue": return filtered.filter((m) => m.status === "overdue");
+      case "pending": return filtered.filter((m) => m.status === "PENDING" || m.status === "pending");
+      case "in_progress": return filtered.filter((m) => m.status === "IN_PROGRESS" || m.status === "in_progress");
+      case "completed": return filtered.filter((m) => m.status === "COMPLETED" || m.status === "completed");
+      case "overdue": return filtered.filter((m) => m.status === "OVERDUE" || m.status === "overdue");
       case "recurring": return filtered.filter((m) => m.recurrence?.enabled);
       default: return filtered;
     }

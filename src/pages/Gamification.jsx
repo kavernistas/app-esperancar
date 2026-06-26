@@ -52,10 +52,10 @@ export default function Gamification() {
 
   const stats = {
     totalPoints: profiles.reduce((s, p) => s + (p.total_points || 0), 0),
-    missionsCompleted: missions.filter((m) => m.status === "completed").length,
+    missionsCompleted: missions.filter((m) => m.status === "COMPLETED" || m.status === "completed").length,
     missionsPending: missions.filter((m) => m.status === "pending").length,
     missionsOverdue: missions.filter((m) => m.status === "overdue").length,
-    completionRate: missions.length > 0 ? Math.round((missions.filter((m) => m.status === "completed").length / missions.length) * 100) : 0,
+    completionRate: missions.length > 0 ? Math.round((missions.filter((m) => m.status === "COMPLETED" || m.status === "completed").length / missions.length) * 100) : 0,
     activeLeaders: profiles.length,
   };
 

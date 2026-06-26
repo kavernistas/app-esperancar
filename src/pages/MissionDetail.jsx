@@ -205,7 +205,7 @@ export default function MissionDetail() {
             <Card>
               <CardContent className="p-4">
                 {submissions
-                  .filter((s) => s.status === "completed")
+                  .filter((s) => s.status === "COMPLETED" || s.status === "completed")
                   .sort((a, b) => new Date(a.completed_date) - new Date(b.completed_date))
                   .slice(0, 20)
                   .map((sub, idx) => (
@@ -218,7 +218,7 @@ export default function MissionDetail() {
                       <Badge variant="outline">+{sub.points || mission.points} pts</Badge>
                     </div>
                   ))}
-                {submissions.filter((s) => s.status === "completed").length === 0 && (
+                {submissions.filter((s) => s.status === "COMPLETED" || s.status === "completed").length === 0 && (
                   <p className="text-center text-slate-400 py-4 text-sm">Nenhuma liderança concluiu ainda.</p>
                 )}
               </CardContent>

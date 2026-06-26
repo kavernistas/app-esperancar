@@ -34,8 +34,8 @@ export default function SaudeSistema() {
         Promise.resolve([]),
       ]);
 
-      const overdueMissions = Array.isArray(missions) ? missions.filter(m => m.status === "overdue").length : 0;
-      const pendingMissions = Array.isArray(missions) ? missions.filter(m => m.status === "pending" || m.status === "in_progress").length : 0;
+      const overdueMissions = Array.isArray(missions) ? missions.filter(m => m.status === "OVERDUE" || m.status === "overdue").length : 0;
+      const pendingMissions = Array.isArray(missions) ? missions.filter(m => m.status === "PENDING" || m.status === "pending" || m.status === "in_progress").length : 0;
       const inactiveLeaders = Array.isArray(leaders) ? leaders.filter(l => l.status !== "active").length : 0;
 
       // TSE sync stats
@@ -50,7 +50,7 @@ export default function SaudeSistema() {
       const staleMissions = Array.isArray(missions)
         ? missions.filter(m => {
             const updated = new Date(m.updated_date);
-            return (Date.now() - updated.getTime()) > 7 * 24 * 60 * 60 * 1000 && m.status === "pending";
+            return (Date.now() - updated.getTime()) > 7 * 24 * 60 * 60 * 1000 && m.status === "PENDING" || m.status === "pending";
           }).length
         : 0;
 
