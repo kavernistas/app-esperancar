@@ -33,7 +33,7 @@ export default function ComparativoPanel({ syncStatuses }) {
   const [comparison, setComparison] = useState(null);
 
   const isSynced = syncStatuses?.some(s =>
-    s.ano === parseInt(ano1) && s.uf === uf && s.status === "importado"
+    s.ano === parseInt(ano1) && s.uf === uf && (s.status || "").toUpperCase() === "IMPORTADO"
   );
 
   const handleCompare = async () => {

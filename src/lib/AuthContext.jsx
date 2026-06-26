@@ -25,11 +25,15 @@ export const AuthProvider = ({ children }) => {
       const token = getAccessToken();
       if (token) {
         try {
-          const userData = await authApi.getMe();
-          setUser(userData);
-          setIsAuthenticated(true);
+          const response = await authApi.getMe();
+          // Normalizar resposta: { data: { data: user } } ou { data: user } ou user direto
+          const currentUser =
+            response?.data?.data ??
+            response?.data ??
+            response;
+          setUser(currentUser);
+          setIsAuthenticated(Boolean(currentUser));
         } catch (e) {
-          // Token invalido — limpar tokens velhos e forcar login
           clearTokens();
           setUser(null);
           setIsAuthenticated(false);
@@ -88,6 +92,7 @@ export const AuthProvider = ({ children }) => {
       user,
       isAuthenticated,
       isLoadingAuth,
+      isLoading: isLoadingAuth,
       isLoadingPublicSettings,
       authError,
       login,

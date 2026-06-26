@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "./utils";
+import { createPageUrl } from "./lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import * as notificationsApi from "@/api/notifications";
 import {
@@ -43,7 +43,19 @@ export default function Layout({ children, currentPageName }) {
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const { canAccessPage, isLideranca } = useAccessControl();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
+
+  // Não renderizar menu enquanto user não está disponível
+  if (isLoading || !user) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FA]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#7AC943] rounded-full animate-spin"></div>
+          <p className="text-sm text-slate-500 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Carregar notificacoes
   useEffect(() => {

@@ -232,7 +232,7 @@ export default function CentralInteligencia() {
   };
 
   const currentSync = syncStatuses.find(s => s.ano === parseInt(filters.ano) && s.uf === filters.uf?.toUpperCase());
-  const isSynced = currentSync?.status === "importado";
+  const isSynced = (currentSync?.status || "").toUpperCase() === "IMPORTADO";
   const activeModulo = MODULOS.find(m => m.id === activeTab);
 
   // ========================================================================

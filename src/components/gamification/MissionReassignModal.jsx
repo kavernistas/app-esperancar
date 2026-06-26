@@ -29,7 +29,7 @@ export default function MissionReassignModal({ open, onClose, mission, leaders, 
       case "individual": return targetLeader ? [targetLeader] : [];
       case "neighborhood_group": return leaders.filter((l) => targetNeighborhoods.includes(l.neighborhood)).map((l) => l.id);
       case "segment_group": return leaders.filter((l) => targetSegments.includes(l.segment)).map((l) => l.id);
-      case "all": return leaders.filter((l) => l.status === "active").map((l) => l.id);
+      case "all": return leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => l.id);
       default: return [];
     }
   };

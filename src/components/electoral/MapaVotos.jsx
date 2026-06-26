@@ -52,7 +52,7 @@ export default function MapaVotos({ filters, syncStatuses }) {
   };
 
   const center = CAPITAIS[uf?.toUpperCase()] || CAPITAIS["DF"];
-  const isSynced = syncStatuses?.some(s => s.ano === parseInt(ano) && s.uf === uf?.toUpperCase() && s.status === "importado");
+  const isSynced = syncStatuses?.some(s => s.ano === parseInt(ano) && s.uf === uf?.toUpperCase() && (s.status || "").toUpperCase() === "IMPORTADO");
 
   if (!isSynced) {
     return (

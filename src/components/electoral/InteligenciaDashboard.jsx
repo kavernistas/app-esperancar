@@ -30,13 +30,13 @@ export default function InteligenciaDashboard({ syncStatuses, filters }) {
       ]);
 
       const statuses = syncStatus.data?.statuses || [];
-      const imported = statuses.filter(s => s.status === "importado");
+      const imported = statuses.filter(s => (s.status || "").toUpperCase() === "IMPORTADO");
 
       setDashboard({
         basesImportadas: imported.length,
         totalBases: 27 * 7, // 27 UFs × 7 anos
         totalRegistros: imported.reduce((sum, s) => sum + (s.total_linhas || 0), 0),
-        liderancasAtivas: leaders.filter(l => l.status === "active").length,
+        liderancasAtivas: leaders.filter(l => (l.status || "").toUpperCase() === "ACTIVE").length,
         liderancasTotal: leaders.length,
         missoesConcluidas: missions.filter(m => m.status === "completed").length,
         missoesPendentes: missions.filter(m => m.status === "pending" || m.status === "in_progress").length,

@@ -93,7 +93,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
 
   // Filter leaders based on assignment type
   const previewRecipients = useMemo(() => {
-    let filtered = leaders.filter((l) => l.status === "active");
+    let filtered = leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE");
     switch (assignmentType) {
       case "individual":
         return selectedLeader ? filtered.filter((l) => l.id === selectedLeader) : [];
@@ -291,7 +291,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
               <Select value={selectedLeader} onValueChange={setSelectedLeader}>
                 <SelectTrigger><SelectValue placeholder="Escolher liderança" /></SelectTrigger>
                 <SelectContent>
-                  {leaders.filter((l) => l.status === "active").map((l) => (
+                  {leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => (
                     <SelectItem key={l.id} value={l.id}>{l.name} {l.neighborhood ? `(${l.neighborhood})` : ""}</SelectItem>
                   ))}
                 </SelectContent>

@@ -78,10 +78,11 @@ export function normalizeRole(role) {
 }
 
 /**
- * Determina o perfil efetivo do usuário baseado em role + metadata
+ * Determina o perfil efetivo do usuário baseado em role + metadata.
+ * Retorna null se user não está disponível (ainda carregando).
  */
 export function getEffectiveRole(user) {
-  if (!user) return "USER";
+  if (!user) return null;
   const r = normalizeRole(user.role);
   if (r === "ADMIN") return "admin";
 
@@ -123,7 +124,7 @@ const PAGE_TO_MODULE = {
 export function useAccessControl() {
   const { user } = useAuth();
   const role = getEffectiveRole(user);
-  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.user;
+  const permissions = ROLE_PERMISSIONS[role || "user"] || ROLE_PERMISSIONS.user;
 
   /**
    * Verifica se o usuário pode acessar um módulo específico

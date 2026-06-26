@@ -67,7 +67,7 @@ function DemandaItem({ d, onComment }) {
 export default function MinhasDemandas({ demands, onComment }) {
   const [tab, setTab] = useState("open");
   const tabs = ["open", "in_progress", "resolved", "pending"];
-  const overdue = (demands || []).filter(d => d.status === "open" && d.due_date && new Date(d.due_date) < new Date());
+  const overdue = (demands || []).filter(d => (d.status || "").toUpperCase() === "OPEN" && d.due_date && new Date(d.due_date) < new Date());
   const filtered = tab === "overdue" ? overdue : (demands || []).filter(d => d.status === tab);
 
   return (

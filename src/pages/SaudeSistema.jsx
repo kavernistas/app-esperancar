@@ -40,7 +40,7 @@ export default function SaudeSistema() {
 
       // TSE sync stats
       const tseStatuses = syncStatuses?.data?.statuses || [];
-      const tseSynced = tseStatuses.filter(s => s.status === "importado").length;
+      const tseSynced = tseStatuses.filter(s => (s.status || "").toUpperCase() === "IMPORTADO").length;
       const tseTotal = tseStatuses.length;
 
       // WhatsApp status
@@ -262,7 +262,7 @@ export default function SaudeSistema() {
             ].map((int, i) => (
               <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
                 <span className="text-sm text-slate-700">{int.name}</span>
-                <Badge className={`text-[10px] ${int.status === "online" ? "bg-emerald-100 text-emerald-700" : int.status === "pendente" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                <Badge className={`text-[10px] ${(int.status || "").toUpperCase() === "ONLINE" ? "bg-emerald-100 text-emerald-700" : (int.status || "").toUpperCase() === "PENDENTE" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
                   {int.status}
                 </Badge>
               </div>

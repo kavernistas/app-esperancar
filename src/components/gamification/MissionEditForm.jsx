@@ -28,7 +28,7 @@ export default function MissionEditForm({ open, onClose, mission, onSave, leader
   const [adminNote, setAdminNote] = useState("");
 
   const rule = mission ? (RULES[mission.status] || RULES.pending) : RULES.pending;
-  const isLocked = mission?.status === "completed" || mission?.status === "cancelled";
+  const isLocked = (mission?.status || "").toUpperCase() === "COMPLETED" || (mission?.status || "").toUpperCase() === "CANCELLED";
 
   useEffect(() => {
     if (open && mission) {
@@ -107,7 +107,7 @@ export default function MissionEditForm({ open, onClose, mission, onSave, leader
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2 text-sm text-amber-800">
             <Lock className="w-4 h-4 mt-0.5 shrink-0" />
             <div>
-              <p className="font-medium">Missão {mission.status === "completed" ? "concluída" : "cancelada"} — edição bloqueada</p>
+              <p className="font-medium">Missão {(mission.status || "").toUpperCase() === "COMPLETED" ? "concluída" : "cancelada"} — edição bloqueada</p>
               <p className="text-xs text-amber-600 mt-0.5">Apenas observações administrativas são permitidas.</p>
             </div>
           </div>

@@ -71,7 +71,7 @@ function MissionItem({ mission, onAccept, onStart, onComplete, onComment }) {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-1">
-          {mission.status === "pending" && (
+          {(mission.status || "").toUpperCase() === "PENDING" && (
             <>
               <Button size="sm" variant="outline" className="text-[10px] h-6 text-blue-600" onClick={() => onStart?.(mission)}>
                 Iniciar
@@ -123,7 +123,7 @@ export default function MinhasMissoes({ missions, onAccept, onStart, onComplete,
 
   const now = new Date();
   const withOverdue = (missions || []).map(m => {
-    if (m.status === "pending" && m.deadline && new Date(m.deadline) < now) return { ...m, status: "overdue" };
+    if ((m.status || "").toUpperCase() === "PENDING" && m.deadline && new Date(m.deadline) < now) return { ...m, status: "OVERDUE" };
     return m;
   });
 

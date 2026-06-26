@@ -29,7 +29,7 @@ export default function MissionCard({ mission, onComplete, onSendWhatsApp, showL
   const status = isOverdue && mission.status !== "completed" ? STATUS_CONFIG.overdue : STATUS_CONFIG[mission.status] || STATUS_CONFIG.pending;
 
   return (
-    <Card className={`border-slate-200 hover:shadow-md transition-shadow ${mission.status === "completed" ? "opacity-75" : ""}`}>
+    <Card className={`border-slate-200 hover:shadow-md transition-shadow ${(mission.status || "").toUpperCase() === "COMPLETED" ? "opacity-75" : ""}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
