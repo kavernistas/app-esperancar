@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { createPageUrl } from "./lib/utils";
 import { useAuth } from "@/lib/AuthContext";
 import * as notificationsApi from "@/api/notifications";
@@ -45,8 +45,13 @@ export default function Layout({ children, currentPageName }) {
   const { canAccessPage, isLideranca } = useAccessControl();
   const { user, logout, isLoading } = useAuth();
 
-  // Não renderizar menu enquanto user não está disponível
-  if (isLoading || !user) {
+  // Redirecionar para login se não estiver autenticado
+  if (!isLoading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Mostrar loading enquanto carrega
+  if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FA]">
         <div className="flex flex-col items-center gap-4">

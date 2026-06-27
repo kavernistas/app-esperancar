@@ -5,7 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import MissionDetail from './pages/MissionDetail';
 import DiagnosticoTSE from './pages/DiagnosticoTSE';
@@ -13,6 +13,7 @@ import InteligenciaEleitoral from './pages/InteligenciaEleitoral';
 import PortalLideranca from './pages/PortalLideranca';
 import Configuracoes from './pages/Configuracoes';
 import SaudeSistema from './pages/SaudeSistema';
+import Login from './pages/Login';
 import { RouteGuard } from '@/lib/AccessControl';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -47,8 +48,12 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
-    navigateToLogin();
-    return null;
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
   return (
