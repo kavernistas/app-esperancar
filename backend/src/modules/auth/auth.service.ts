@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/common/prisma.service';
+import { AuditService } from '@/modules/audit/audit.service';
+import { EventsService } from '@/modules/events/events.service';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { LoginDto, RefreshTokenDto, AuthResponseDto } from './dto';
@@ -12,6 +14,8 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private audit: AuditService,
+    private events: EventsService,
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponseDto> {
@@ -39,6 +43,27 @@ export class AuthService {
     });
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    // Audit + Event
+    await this.audit.log({
+      action: 'login',
+      entity: 'User',
+      entity_id: user.id,
+      entity_label: user.email,
+      user_id: user.id,
+      user_name: user.full_name,
+      organization_id: user.organization_id,
+      module: 'auth',
+    });
+    await this.events.emit({
+      type: 'user.login',
+      title: `Login: ${user.email}`,
+      userId: user.id,
+      organizationId: user.organization_id,
+      entityType: 'user',
+      entityId: user.id,
+      entityLabel: user.email,
+    });
 
     return {
       ...tokens,

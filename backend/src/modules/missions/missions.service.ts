@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma.service';
-import { Prisma } from '@prisma/client';
 import { CreateMissionDto, UpdateMissionDto, ListMissionDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 
@@ -13,14 +12,11 @@ export class MissionsService {
 
   async findAll(query: ListMissionDto, userId?: string) {
     const { page = 1, limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', status, type, leader_id, priority } = query;
-    const where: Prisma.MissionWhereInput = { deleted_at: null };
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    const where: any = { deleted_at: null };
+    if (search) where.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+    ];
     if (status) where.status = status as any;
     if (type) where.type = type as any;
     if (leader_id) where.leader_id = leader_id;
@@ -31,7 +27,6 @@ export class MissionsService {
       this.prisma.mission.findMany({ where, orderBy: { [sortBy]: sortOrder }, skip, take: limit, include: { leader: { select: { id: true, name: true } } } }),
       this.prisma.mission.count({ where }),
     ]);
-
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 

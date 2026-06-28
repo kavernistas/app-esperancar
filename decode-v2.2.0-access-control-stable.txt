@@ -1,0 +1,6 @@
+DATE: 2026-06-28T20:52:59+00:00
+COMMIT: 60e2948
+BACKEND_IMAGE: 127.0.0.1:5000/esperancar-backend:e5a2158-v2
+FRONTEND_IMAGE: 127.0.0.1:5000/esperancar-frontend:e5a2158
+DATABASE_BACKUP: /root/backups/esperancar-pre-phase2-20260628-194033.sql
+ROLLBACK_TAG: v2.1.0-foundation-stable

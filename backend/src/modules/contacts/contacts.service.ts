@@ -3,12 +3,14 @@ import { PrismaService } from '@/common/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateContactDto, UpdateContactDto, ListContactDto } from './dto';
 import { AuditService } from '../audit/audit.service';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class ContactsService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private events: EventsService,
   ) {}
 
   async findAll(query: ListContactDto, userId?: string) {

@@ -1,6 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma.service';
-import { Prisma } from '@prisma/client';
 import { CreateDemandDto, UpdateDemandDto, ListDemandDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 
@@ -13,15 +12,12 @@ export class DemandsService {
 
   async findAll(query: ListDemandDto, userId?: string) {
     const { page = 1, limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', status, type, priority, city, neighborhood } = query;
-    const where: Prisma.DemandWhereInput = { deleted_at: null };
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { protocol: { contains: search } },
-        { requester_name: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+    const where: any = { deleted_at: null };
+    if (search) where.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { protocol: { contains: search } },
+      { requester_name: { contains: search, mode: 'insensitive' } },
+    ];
     if (status) where.status = status as any;
     if (type) where.type = type as any;
     if (priority) where.priority = priority as any;
@@ -33,7 +29,6 @@ export class DemandsService {
       this.prisma.demand.findMany({ where, orderBy: { [sortBy]: sortOrder }, skip, take: limit, include: { contact: { select: { id: true, full_name: true } } } }),
       this.prisma.demand.count({ where }),
     ]);
-
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
@@ -44,14 +39,9 @@ export class DemandsService {
   }
 
   async create(dto: CreateDemandDto, userId?: string, userName?: string) {
-    // Generate protocol number
     const count = await this.prisma.demand.count();
     const protocol = `ESP-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-
-    const demand = await this.prisma.demand.create({
-      data: { ...dto, protocol, created_by_user_id: userId } as any,
-    });
-
+    const demand = await this.prisma.demand.create({ data: { ...dto, protocol, created_by_user_id: userId } as any });
     await this.audit.log({ action: 'create', entity: 'Demand', entity_id: demand.id, entity_label: demand.title, user_id: userId, user_name: userName, module: 'crm' });
     return demand;
   }
