@@ -26,14 +26,40 @@ export function getAccessToken() {
   return accessToken;
 }
 
+// Normalize sort params: convert { sort: "-field" } to { sortBy: "field", sortOrder: "desc" }
+// Also strips undefined/null values and filters empty search params
+function normalizeSortParams(params = {}) {
+  // Strip undefined, null, and empty string values
+  const clean = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      // If value is an object (e.g. { created_by_leader_id: "abc" }), stringify won't help
+      // Convert objects to empty string so URLSearchParams drops them, or keep primitive values
+      if (typeof value !== 'object') {
+        clean[key] = value;
+      }
+    }
+  }
+  const { sort, ...rest } = clean;
+  if (sort && typeof sort === 'string') {
+    const field = sort.startsWith('-') ? sort.substring(1) : sort;
+    const order = sort.startsWith('-') ? 'desc' : 'asc';
+    return { ...rest, sortBy: field, sortOrder: order };
+  }
+  return rest;
+}
+
 // HTTP Client
 async function request(method, path, data = null, options = {}) {
   const base = `${API_BASE_URL}/api/v1${path}`;
-  const urlWithParams = options.params ? base + '?' + new URLSearchParams(options.params).toString() : base;
+  const normalizedParams = normalizeSortParams(options.params);
+  const urlWithParams = normalizedParams ? base + '?' + new URLSearchParams(normalizedParams).toString() : base;
   const headers = { 'Content-Type': 'application/json' };
 
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
+  // Always read fresh token from localStorage
+  const currentToken = localStorage.getItem('access_token');
+  if (currentToken) {
+    headers['Authorization'] = `Bearer ${currentToken}`;
   }
 
   const config = {
@@ -50,11 +76,15 @@ async function request(method, path, data = null, options = {}) {
   let response = await fetch(urlWithParams, config);
 
   // Try to refresh token on 401
-  if (response.status === 401 && refreshToken && !path.includes('/auth/')) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-      response = await fetch(url, config);
+  if (response.status === 401 && !path.includes('/auth/')) {
+    const currentRefresh = localStorage.getItem('refresh_token');
+    if (currentRefresh) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        const newToken = localStorage.getItem('access_token');
+        headers['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(urlWithParams, config);
+      }
     }
   }
 
@@ -67,15 +97,23 @@ async function request(method, path, data = null, options = {}) {
     throw error;
   }
 
-  return responseData?.data ?? responseData;
+  // Backend returns { success: true, data: { data: [...], meta: {...} } }
+  // Extract the inner array for convenience
+  const innerData = responseData?.data;
+  if (innerData && typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+    return innerData.data;
+  }
+  return innerData ?? responseData;
 }
 
 async function refreshAccessToken() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+    const currentRefreshToken = localStorage.getItem('refresh_token');
+    if (!currentRefreshToken) return false;
+    const response = await fetch('/api/v1/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: currentRefreshToken }),
     });
 
     if (!response.ok) {
@@ -97,10 +135,7 @@ async function refreshAccessToken() {
 
 // Generic HTTP methods
 export const api = {
-  get: (path, params) => {
-    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
-    return request('GET', path + queryString);
-  },
+  get: (path, params) => request('GET', path, null, { params }),
   post: (path, data) => request('POST', path, data),
   patch: (path, data) => request('PATCH', path, data),
   delete: (path) => request('DELETE', path),
@@ -108,7 +143,7 @@ export const api = {
 
 // TSE API
 export const tseApi = {
-  getData: (params = {}) => request('/v1/tse/query', { method: 'GET', params }),
+  getData: (params = {}) => request('/tse/sync-status', { method: 'GET', params }),
   getSyncStatus: (limit = 50, uf = '') => request('/v1/tse/sync-status', { method: 'GET', params: { limit, uf } }),
   listSyncStatus: () => request('/v1/tse/sync-status/list'),
   queryVotes: (params = {}) => request('/v1/tse/votes', { method: 'GET', params }),

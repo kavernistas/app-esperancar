@@ -20,12 +20,12 @@ export default function Dashboard() {
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => leadersApi.listLeaders("-supporters_count", 100),
+    queryFn: () => leadersApi.listLeaders({ sort: "-supporters_count", limit: 100 }),
   });
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands("-created_date", 500),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 500 }),
   });
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({

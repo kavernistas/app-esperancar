@@ -54,7 +54,7 @@ export default function Demands() {
 
   const { data: demands = [], isLoading } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands("-created_date", 500),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 500 }),
   });
 
   const createMutation = useMutation({

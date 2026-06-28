@@ -39,12 +39,12 @@ export default function MissionDetail() {
         const m = await missionsApi.getMission(id);
         setMission(m);
         if (m.is_group_mission) {
-          const subs = await missionsApi.listMissions({ parent_mission_id: m.id }, "leader_name", 500);
-          setSubmissions(subs);
-          const leaderIds = [...new Set(subs.map((s) => s.leader_id).filter(Boolean))];
+          const subs = await missionsApi.listMissions({ parent_mission_id: m.id, sort: "leader_name", limit: 500 });
+          setSubmissions(Array.isArray(subs) ? subs : []);
+          const leaderIds = [...new Set((Array.isArray(subs) ? subs : []).map((s) => s.leader_id).filter(Boolean))];
           if (leaderIds.length > 0) {
-            const profs = await gamificationApi.listProfiles("-total_points", 500);
-            setProfiles(profs.filter((p) => leaderIds.includes(p.leader_id)));
+            const profs = await gamificationApi.listProfiles({ sort: "-total_points", limit: 500 });
+            setProfiles(Array.isArray(profs) ? profs : []);
           }
         }
       } catch (e) {

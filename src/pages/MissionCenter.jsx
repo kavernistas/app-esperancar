@@ -51,8 +51,8 @@ export default function MissionCenter() {
 
   const loadMissions = useCallback(async () => {
     setLoading(true);
-    const data = await missionsApi.listMissions("-created_date", 200);
-    setMissions(data);
+    const result = await missionsApi.listMissions({ sort: "-created_date", limit: 200 });
+    setMissions(Array.isArray(result) ? result : []);
     setLoading(false);
   }, []);
 

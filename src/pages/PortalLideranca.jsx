@@ -74,10 +74,10 @@ export default function PortalLideranca() {
         demandsApi.listDemands({ created_by_leader_id: leaderId }, "-created_date"),
         missionsApi.listMissions({ leader_id: leaderId }, "-created_date"),
         gamificationApi.listProfiles({ leader_id: leaderId }),
-        gamificationApi.listProfiles("-total_points", 50),
+        gamificationApi.listProfiles({ sort: "-total_points", limit: 50 }),
         authApi.getMe().then(async (me) => {
           if (!me) return null;
-          const contacts = await contactsApi.listContacts({ is_leader: true, full_name: me.full_name }, "-created_date", 1);
+          const contacts = await contactsApi.listContacts({ is_leader: true, full_name: me.full_name, sort: "-created_date", limit: 1 });
           return contacts[0] || null;
         }),
       ]);

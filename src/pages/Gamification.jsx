@@ -37,13 +37,13 @@ export default function Gamification() {
     setLoading(true);
     try {
       const [missionsData, profilesData, leadersData] = await Promise.all([
-        missionsApi.listMissions("-created_date", 200),
-        gamificationApi.listProfiles("-total_points", 100),
-        leadersApi.listLeaders({ status: "active" }, "name", 200),
+        missionsApi.listMissions({ sort: "-created_date", limit: 200 }),
+        gamificationApi.listProfiles({ sort: "-total_points", limit: 100 }),
+        leadersApi.listLeaders({ status: "active", sort: "name", limit: 200 }),
       ]);
-      setMissions(missionsData);
-      setProfiles(profilesData);
-      setLeaders(leadersData);
+      setMissions(Array.isArray(missionsData) ? missionsData : []);
+      setProfiles(Array.isArray(profilesData) ? profilesData : []);
+      setLeaders(Array.isArray(leadersData) ? leadersData : []);
     } catch (e) { console.error("Erro ao carregar dados:", e); }
     setLoading(false);
   }, []);
@@ -179,7 +179,7 @@ export default function Gamification() {
     if (mission.parent_mission_id) {
       // Atualizar contador da missão pai
       const parent = await missionsApi.getMission(mission.parent_mission_id);
-      const subs = await missionsApi.listMissions({ parent_mission_id: mission.parent_mission_id }, "", 500);
+      const subs = await missionsApi.listMissions({ parent_mission_id: mission.parent_mission_id, limit: 500 });
       await missionsApi.updateMission(mission.parent_mission_id, {
         completed_recipients: subs.filter((s) => s.status === "completed").length,
       });

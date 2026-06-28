@@ -1,8 +1,7 @@
 # frontend/Dockerfile
-# Copia o build já gerado localmente e serve via Nginx
-
+# Build: docker build -t esperancar-frontend -f frontend/Dockerfile .
 FROM nginx:alpine AS production
-COPY nginx-frontend.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx-frontend.conf /etc/nginx/conf.d/default.conf
 COPY dist /usr/share/nginx/html
 
 EXPOSE 80

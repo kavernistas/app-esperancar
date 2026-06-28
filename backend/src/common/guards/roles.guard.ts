@@ -16,7 +16,10 @@ export class RolesGuard implements CanActivate {
     if (!user) throw new ForbiddenException('Usuário não autenticado');
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Acesso negado — permissão insuficiente');
+      const userRoleLower = user.role?.toLowerCase();
+      if (!userRoleLower || !requiredRoles.includes(userRoleLower)) {
+        throw new ForbiddenException('Acesso negado — permissão insuficiente');
+      }
     }
     return true;
   }

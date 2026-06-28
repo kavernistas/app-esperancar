@@ -1,4 +1,4 @@
-import { tseApi } from "@/api/client";
+import { tseApi, strategicActionsApi } from "@/api/client";
 import { useState, useEffect, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";

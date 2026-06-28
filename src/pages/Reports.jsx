@@ -40,17 +40,17 @@ export default function Reports() {
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts("-created_date", 1000),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => leadersApi.listLeaders("-supporters_count", 200),
+    queryFn: () => leadersApi.listLeaders({ sort: "-supporters_count", limit: 200 }),
   });
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands("-created_date", 500),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 500 }),
   });
 
   const { data: electoralData = [], isLoading: loadingElectoral } = useQuery({

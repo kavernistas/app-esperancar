@@ -93,7 +93,7 @@ export default function Campaigns() {
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ["campaigns"],
-    queryFn: () => campaignsApi.listCampaigns("-created_date", 100),
+    queryFn: () => campaignsApi.listCampaigns({ sort: "-created_date", limit: 100 }),
   });
 
   const createMutation = useMutation({

@@ -54,7 +54,7 @@ export default function Leaders() {
 
   const { data: leaders = [], isLoading } = useQuery({
     queryKey: ["leaders"],
-    queryFn: () => leadersApi.listLeaders("-supporters_count", 200),
+    queryFn: () => leadersApi.listLeaders({ sort: "-supporters_count", limit: 200 }),
   });
 
   const createMutation = useMutation({
