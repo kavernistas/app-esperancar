@@ -16,6 +16,7 @@ import { ElectoralModule } from './modules/electoral/electoral.module';
 import { TseModule } from './modules/tse/tse.module';
 import { NotificationModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { SofiaModule } from './modules/sofia/sofia.module';
 import { FilesModule } from './modules/files/files.module';
@@ -40,6 +41,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     TseModule,
     NotificationModule,
     AuditModule,
+    OrganizationsModule,
     WhatsAppModule,
     SofiaModule,
     FilesModule,

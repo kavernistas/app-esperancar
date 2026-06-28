@@ -9,6 +9,8 @@ interface AuditLogData {
   entity_label?: string;
   user_id?: string;
   user_name?: string;
+  organization_id?: string;
+  campaign_id?: string;
   changes?: any;
   ip_address?: string;
   user_agent?: string;
@@ -31,6 +33,8 @@ export class AuditService {
           entity_label: data.entity_label,
           user_id: data.user_id,
           user_name: data.user_name,
+          organization_id: data.organization_id,
+          campaign_id: data.campaign_id,
           changes: data.changes,
           ip_address: data.ip_address,
           user_agent: data.user_agent,
