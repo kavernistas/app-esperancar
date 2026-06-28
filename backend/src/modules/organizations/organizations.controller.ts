@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -17,7 +17,7 @@ export class OrganizationsController {
   @Get()
   @ApiOperation({ summary: 'Listar organizações do usuário' })
   async findAll(@CurrentUser() user: any) {
-    return this.service.findAll(user?.organization_id);
+    return this.service.findAll(user?.id);
   }
 
   @Post()
@@ -30,23 +30,19 @@ export class OrganizationsController {
   @Get(':id')
   @ApiOperation({ summary: 'Obter organização por ID' })
   async findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.service.findOne(id, user?.organization_id);
+    return this.service.findOne(id, user?.id);
   }
 
   @Patch(':id')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Atualizar organização' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateOrganizationDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.service.update(id, dto, user?.organization_id, user?.id, user?.full_name || user?.email);
+  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto, @CurrentUser() user: any) {
+    return this.service.update(id, dto, user?.id, user?.full_name || user?.email);
   }
 
   @Get(':id/members')
   @ApiOperation({ summary: 'Listar membros da organização' })
   async getMembers(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.service.getMembers(id, user?.organization_id);
+    return this.service.getMembers(id, user?.id);
   }
 }
