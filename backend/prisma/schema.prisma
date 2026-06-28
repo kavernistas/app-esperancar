@@ -47,8 +47,10 @@ model Organization {
   contacts   Contact[]
   demands    Demand[]
   missions   Mission[]
-  memberships Membership[]
-  audit_logs AuditLog[]
+  teams                  Team[]
+  memberships            Membership[]
+  invitations            Invitation[]
+  audit_logs             AuditLog[]
   events     InternalEvent[]
 
   // Timestamps
@@ -79,6 +81,81 @@ model Membership {
   @@index([campaign_id])
   @@index([organization_id])
   @@map("memberships")
+}
+
+// =============================================
+// FOUNDATION V2 — TEAMS & PERMISSIONS
+// =============================================
+
+model Team {
+  id              String   @id @default(uuid())
+  organization_id String   @map("organization_id")
+  campaign_id     String?  @map("campaign_id")
+  name            String
+  description     String?
+  active          Boolean  @default(true)
+  created_by      String?
+
+  created_at      DateTime @default(now()) @map("created_at")
+  updated_at      DateTime @updatedAt @map("updated_at")
+  deleted_at      DateTime? @map("deleted_at")
+
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  campaign        Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  members         TeamMembership[]
+
+  @@index([organization_id])
+  @@index([campaign_id])
+  @@map("teams")
+}
+
+model TeamMembership {
+  id         String   @id @default(uuid())
+  team_id    String   @map("team_id")
+  user_id    String   @map("user_id")
+  role       String?  @default("MEMBER")
+  active     Boolean  @default(true)
+  joined_at  DateTime @default(now()) @map("joined_at")
+  left_at    DateTime? @map("left_at")
+
+  team       Team     @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([team_id, user_id])
+  @@index([user_id])
+  @@map("team_memberships")
+}
+
+model Invitation {
+  id              String    @id @default(uuid())
+  organization_id String    @map("organization_id")
+  campaign_id     String?   @map("campaign_id")
+  email           String
+  role            String    @default("OPERADOR")
+  token_hash      String    @unique @map("token_hash")
+  expires_at      DateTime  @map("expires_at")
+  accepted_at     DateTime? @map("accepted_at")
+  invited_by      String
+
+  created_at      DateTime  @default(now()) @map("created_at")
+
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  campaign        Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@index([email])
+  @@map("invitations")
+}
+
+model RolePermission {
+  id        String   @id @default(uuid())
+  role      String
+  permission String
+  created_at DateTime @default(now()) @map("created_at")
+
+  @@unique([role, permission])
+  @@index([role])
+  @@map("role_permissions")
 }
 
 enum AuditAction {
@@ -161,9 +238,10 @@ model User {
   audit_logs     AuditLog[]
   sent_messages  WhatsAppLog[]    @relation("SentBy")
   files          File[]
-  internal_events InternalEvent[]
+  team_memberships  TeamMembership[]
+  internal_events   InternalEvent[]
 
-  @@index([organization_id])
+  // Preferences
   @@index([active_campaign_id])
   @@map("users")
 }
@@ -186,6 +264,9 @@ enum Role {
   COORDENADOR
   LIDERANCA
   OPERADOR
+  FINANCEIRO
+  COMUNICACAO
+  LEITURA
   USER
 }
 
@@ -237,6 +318,8 @@ model Contact {
   created_by_leader_id      String?  @map("created_by_leader_id")
   created_by_leader_name    String?  @map("created_by_leader_name")
   created_by_user_id        String?  @map("created_by_user_id")
+  assigned_to_id            String?  @map("assigned_to_id")
+  assigned_to_name          String?  @map("assigned_to_name")
 
   // Foundation V2
   organization_id           String?  @map("organization_id")
@@ -558,6 +641,8 @@ model Campaign {
   organization           Organization?  @relation(fields: [organization_id], references: [id], onDelete: SetNull)
   active_users           User[]         @relation("ActiveCampaign")
   memberships            Membership[]
+  teams                  Team[]
+  invitations            Invitation[]
   contacts               Contact[]
   demands                Demand[]
   missions               Mission[]

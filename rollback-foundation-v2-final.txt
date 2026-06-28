@@ -1,0 +1,6 @@
+DATE=2026-06-28T19:07:56+00:00
+VERSION=aaee863
+BACKEND_IMAGE=127.0.0.1:5000/esperancar-backend:aaee863
+FRONTEND_IMAGE=127.0.0.1:5000/esperancar-frontend:65cbe12
+DATABASE_BACKUP=/root/backups/esperancar-pre-v2-2026-06-28-173455.sql
+GIT_TAG=v2.0.0-base-estavel

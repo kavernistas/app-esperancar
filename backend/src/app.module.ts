@@ -17,6 +17,9 @@ import { TseModule } from './modules/tse/tse.module';
 import { NotificationModule } from './modules/notifications/notifications.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
+import { AccessControlModule } from './modules/access-control/access-control.module';
+import { TeamsModule } from './modules/teams/teams.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { SofiaModule } from './modules/sofia/sofia.module';
 import { FilesModule } from './modules/files/files.module';
@@ -42,6 +45,9 @@ import { JobsModule } from './modules/jobs/jobs.module';
     NotificationModule,
     AuditModule,
     OrganizationsModule,
+    AccessControlModule,
+    TeamsModule,
+    InvitationsModule,
     WhatsAppModule,
     SofiaModule,
     FilesModule,
