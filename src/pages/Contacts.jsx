@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,7 +27,7 @@ const exportContactsCSV = (contacts) => {
     c.electoral_zone || "", c.electoral_section || "", c.voting_location || "", c.position || "",
     c.engagement_level || 0, c.status || "", c.is_leader ? "Sim" : "Não", (c.tags || []).join("; ")
   ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(","));
-  const csv = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+  const csv = "﻿" + headers.join(",") + "\n" + rows.join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = "contatos.csv"; a.click();
@@ -62,21 +63,35 @@ export default function Contacts() {
 
   const contacts = contactsResponse?.data || contactsResponse || [];
 
+  const closeForm = useCallback(() => {
+    setFormOpen(false);
+    setEditingContact(null);
+  }, []);
+
   const createMutation = useMutation({
     mutationFn: (data) => contactsApi.createContact(data),
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      setFormOpen(false);
-      setEditingContact(null);
+      toast.success("Contato cadastrado com sucesso");
+      closeForm();
+    },
+    onError: (error) => {
+      console.error("Erro ao cadastrar contato:", error);
+      toast.error(error?.message || "Não foi possível cadastrar o contato");
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => contactsApi.updateContact(id, data),
-    onSuccess: () => {
+    onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      setFormOpen(false);
-      setEditingContact(null);
+      queryClient.invalidateQueries({ queryKey: ["contact", updated?.id] });
+      toast.success("Contato atualizado com sucesso");
+      closeForm();
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar contato:", error);
+      toast.error(error?.message || "Não foi possível atualizar o contato");
     },
   });
 
@@ -85,34 +100,47 @@ export default function Contacts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       setDeleteContact(null);
+      toast.success("Contato excluído");
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Não foi possível excluir");
     },
   });
 
-  const handleSave = (data) => {
-    if (editingContact) {
+  const handleSave = useCallback((data) => {
+    if (editingContact?.id) {
       updateMutation.mutate({ id: editingContact.id, data });
     } else {
       createMutation.mutate(data);
     }
-  };
+  }, [editingContact, createMutation, updateMutation]);
 
-  const handleEdit = (contact) => {
+  const handleEdit = useCallback((contact) => {
     setEditingContact(contact);
     setFormOpen(true);
-  };
+    setViewingContact(null);
+  }, []);
 
-  const handleDelete = (contact) => {
+  const handleNew = useCallback(() => {
+    setEditingContact(null);
+    setFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback((contact) => {
     setDeleteContact(contact);
-  };
+  }, []);
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   const filteredContacts = contacts.filter((contact) => {
-    const matchesSearch = !search || 
+    const matchesSearch = !search ||
       contact.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       contact.phone?.includes(search) ||
       contact.email?.toLowerCase().includes(search.toLowerCase()) ||
       contact.city?.toLowerCase().includes(search.toLowerCase()) ||
       contact.neighborhood?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || contact.status === statusFilter;
+    const matchesStatus = statusFilter === "all" ||
+      (contact.status || "").toUpperCase() === statusFilter.toUpperCase();
     const matchesLeader = leaderFilter === "all" ||
       (leaderFilter === "yes" && contact.is_leader) ||
       (leaderFilter === "no" && !contact.is_leader);
@@ -146,7 +174,7 @@ export default function Contacts() {
           <Button variant="outline" onClick={() => setWhatsappModalOpen(true)} className="border-green-200 text-green-700 hover:bg-green-50">
             <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
           </Button>
-          <Button onClick={() => { setEditingContact(null); setFormOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleNew} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" /> Novo Contato
           </Button>
         </div>
@@ -154,7 +182,7 @@ export default function Contacts() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Total</p><p className="text-2xl font-bold text-slate-900">{contacts.length}</p></div>
-        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Ativos</p><p className="text-2xl font-bold text-emerald-600">{contacts.filter(c => c.status === "ACTIVE").length}</p></div>
+        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Ativos</p><p className="text-2xl font-bold text-emerald-600">{contacts.filter(c => (c.status||"").toUpperCase() === "ACTIVE").length}</p></div>
         <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Liderancas</p><p className="text-2xl font-bold text-blue-600">{contacts.filter(c => c.is_leader).length}</p></div>
         <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Engajamento Medio</p><p className="text-2xl font-bold text-purple-600">{contacts.length > 0 ? Math.round(contacts.reduce((sum, c) => sum + (c.engagement_level || 0), 0) / contacts.length) : 0}%</p></div>
       </div>
@@ -192,11 +220,22 @@ export default function Contacts() {
 
       <ContactsTable contacts={filteredContacts} onEdit={handleEdit} onDelete={handleDelete} onView={setViewingContact} />
 
-      <ContactForm open={formOpen} onOpenChange={setFormOpen} contact={editingContact} onSave={handleSave} isLoading={createMutation.isPending || updateMutation.isPending} />
+      <ContactForm
+        open={formOpen}
+        onOpenChange={(open) => { if (!open && !isPending) closeForm(); }}
+        contact={editingContact}
+        onSave={handleSave}
+        isLoading={isPending}
+      />
 
       <TSEImportModal open={tseModalOpen} onOpenChange={setTseModalOpen} onImportComplete={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })} />
 
-      <ContactDetailSheet contact={viewingContact} open={!!viewingContact} onOpenChange={(open) => { if (!open) setViewingContact(null); }} />
+      <ContactDetailSheet
+        contact={viewingContact}
+        open={!!viewingContact && !formOpen}
+        onOpenChange={(open) => { if (!open) setViewingContact(null); }}
+        onEdit={handleEdit}
+      />
 
       <WhatsAppModal open={whatsappModalOpen} onOpenChange={setWhatsappModalOpen} selectedContacts={selectedContacts} />
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,16 +19,22 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Search, MapPin } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
+import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
 
 export default function ContactForm({ open, onOpenChange, contact, onSave, isLoading }) {
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
     email: "",
-    city: "",
+    cep: "",
+    address_street: "",
+    address_number: "",
+    complement: "",
     neighborhood: "",
+    city: "",
+    state: "",
     electoral_zone: "",
     electoral_section: "",
     voting_location: "",
@@ -43,6 +49,57 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
   });
 
   const [tagInput, setTagInput] = useState("");
+  const [cepInput, setCepInput] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState(null);
+  const [cepManual, setCepManual] = useState(false);
+
+  // CEP handlers
+  const handleCepChange = (value) => {
+    setCepInput(formatCep(value));
+  };
+
+  const handleCepBlur = async () => {
+    if (cepManual || !isCepComplete(cepInput)) return;
+    await runCepLookup();
+  };
+
+  const handleCepSearch = async () => {
+    if (!isCepComplete(cepInput)) {
+      setCepError("Informe 8 dígitos para buscar.");
+      return;
+    }
+    await runCepLookup();
+  };
+
+  const runCepLookup = async () => {
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const data = await fetchCep(cepInput);
+      if (!data) {
+        setCepError("CEP não encontrado. Preencha manualmente.");
+        return;
+      }
+      const merge = (newVal, oldVal) => (newVal && String(newVal).trim() ? newVal : oldVal);
+      setFormData((prev) => ({
+        ...prev,
+        cep: data.cep || normalizeCep(cepInput),
+        address_street: merge(data.street, prev.address_street),
+        complement: merge(data.complement, prev.complement),
+        neighborhood: merge(data.neighborhood, prev.neighborhood),
+        city: merge(data.city, prev.city),
+        state: merge(data.state, prev.state),
+        address_number: prev.address_number || "",
+      }));
+    } catch (e) {
+      setCepError("Erro ao consultar CEP — preencha manualmente.");
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  useEffect(() => () => cancelPendingCep(), []);
 
   useEffect(() => {
     if (contact) {
@@ -51,14 +108,25 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         tags: contact.tags || [],
         latitude: contact.latitude || null,
         longitude: contact.longitude || null,
+        cep: contact.cep || "",
+        address_street: contact.address_street || "",
+        address_number: contact.address_number || "",
+        complement: contact.complement || "",
+        state: contact.state || "",
       });
+      setCepInput(formatCep(contact.cep || ""));
     } else {
       setFormData({
         full_name: "",
         phone: "",
         email: "",
-        city: "",
+        cep: "",
+        address_street: "",
+        address_number: "",
+        complement: "",
         neighborhood: "",
+        city: "",
+        state: "",
         electoral_zone: "",
         electoral_section: "",
         voting_location: "",
@@ -71,6 +139,10 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         latitude: null,
         longitude: null,
       });
+      setCepInput("");
+      setCepLoading(false);
+      setCepError(null);
+      setCepManual(false);
     }
   }, [contact, open]);
 
@@ -147,17 +219,74 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
             </div>
           </div>
 
-          {/* Location */}
+          {/* CEP + Address */}
           <div className="space-y-4">
-            <h3 className="font-medium text-sm text-slate-700">Localização</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="city">Cidade</Label>
+            <h3 className="font-medium text-sm text-slate-700">Endereço</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1">
+                <Label htmlFor="cep">CEP</Label>
+                <div className="flex gap-1.5">
+                  <Input
+                    id="cep"
+                    value={cepInput}
+                    onChange={(e) => handleCepChange(e.target.value)}
+                    onBlur={handleCepBlur}
+                    placeholder="00000-000"
+                    className="text-xs"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCepSearch}
+                    disabled={cepLoading || !cepInput.trim()}
+                    className="h-8 w-8 p-0 flex-shrink-0"
+                  >
+                    {cepLoading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Search className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+                {cepError && (
+                  <p className="text-[10px] text-red-500 mt-1">{cepError}</p>
+                )}
+                <button
+                  type="button"
+                  className="text-[10px] text-blue-600 mt-0.5 underline"
+                  onClick={() => setCepManual(m => !m)}
+                >
+                  {cepManual ? "Buscar automaticamente" : "Não sei meu CEP"}
+                </button>
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="address_street">Logradouro</Label>
                 <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleChange("city", e.target.value)}
-                  placeholder="Cidade"
+                  id="address_street"
+                  value={formData.address_street}
+                  onChange={(e) => handleChange("address_street", e.target.value)}
+                  placeholder="Rua, avenida..."
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="address_number">Número</Label>
+                <Input
+                  id="address_number"
+                  value={formData.address_number}
+                  onChange={(e) => handleChange("address_number", e.target.value)}
+                  placeholder="Nº"
+                />
+              </div>
+              <div>
+                <Label htmlFor="complement">Complemento</Label>
+                <Input
+                  id="complement"
+                  value={formData.complement}
+                  onChange={(e) => handleChange("complement", e.target.value)}
+                  placeholder="Apto, bloco..."
                 />
               </div>
               <div>
@@ -170,6 +299,28 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => handleChange("city", e.target.value)}
+                  placeholder="Cidade"
+                />
+              </div>
+              <div>
+                <Label htmlFor="state">UF</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => handleChange("state", e.target.value)}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Map Picker */}
@@ -178,9 +329,15 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
             <LocationPicker
               value={{ latitude: formData.latitude, longitude: formData.longitude }}
               onChange={handleLocation}
-              height={200}
-              placeholder="Buscar endereço..."
+              height={220}
+              placeholder="Buscar endereço ou CEP..."
             />
+            {formData.latitude && formData.longitude && (
+              <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+              </p>
+            )}
           </div>
 
           {/* Electoral Info */}

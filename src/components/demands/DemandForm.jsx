@@ -17,8 +17,9 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Search, MapPin } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
+import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
 
 const DEMAND_TYPES = [
   { value: "health", label: "Saúde" },
@@ -43,6 +44,8 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     requester_name: "",
     requester_phone: "",
     requester_email: "",
+    cep: "",
+    address: "",
     city: "",
     neighborhood: "",
     priority: "medium",
@@ -51,8 +54,44 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     due_date: "",
     latitude: null,
     longitude: null,
-    address: "",
   });
+
+  const [cepInput, setCepInput] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState(null);
+
+  const handleCepChange = (value) => setCepInput(formatCep(value));
+
+  const runCepLookup = async () => {
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const data = await fetchCep(cepInput);
+      if (!data) {
+        setCepError("CEP não encontrado.");
+        return;
+      }
+      const merge = (n, o) => (n && String(n).trim() ? n : o);
+      setFormData((prev) => ({
+        ...prev,
+        cep: data.cep || normalizeCep(cepInput),
+        address: merge(data.street, prev.address),
+        neighborhood: merge(data.neighborhood, prev.neighborhood),
+        city: merge(data.city, prev.city),
+      }));
+    } catch (e) {
+      setCepError("Erro ao consultar CEP.");
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const handleCepBlur = async () => {
+    if (!isCepComplete(cepInput)) return;
+    await runCepLookup();
+  };
+
+  useEffect(() => () => cancelPendingCep(), []);
 
   useEffect(() => {
     if (demand) {
@@ -60,8 +99,10 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         ...demand,
         latitude: demand.latitude || null,
         longitude: demand.longitude || null,
+        cep: demand.cep || "",
         address: demand.address || "",
       });
+      setCepInput(formatCep(demand.cep || ""));
     } else {
       setFormData({
         title: "",
@@ -70,6 +111,8 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         requester_name: "",
         requester_phone: "",
         requester_email: "",
+        cep: "",
+        address: "",
         city: "",
         neighborhood: "",
         priority: "medium",
@@ -78,8 +121,9 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         due_date: "",
         latitude: null,
         longitude: null,
-        address: "",
       });
+      setCepInput("");
+      setCepError(null);
     }
   }, [demand, open]);
 
@@ -203,6 +247,44 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
           {/* Location */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-slate-700">Localização</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="cep">CEP</Label>
+                <div className="flex gap-1.5">
+                  <Input
+                    id="cep"
+                    value={cepInput}
+                    onChange={(e) => handleCepChange(e.target.value)}
+                    onBlur={handleCepBlur}
+                    placeholder="00000-000"
+                    className="text-xs"
+                    maxLength={9}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={runCepLookup}
+                    disabled={cepLoading || !cepInput.trim()}
+                    className="h-8 w-8 p-0 flex-shrink-0"
+                  >
+                    {cepLoading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Search className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+                {cepError && <p className="text-[10px] text-red-500 mt-1">{cepError}</p>}
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="address">Endereço</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  placeholder="Rua, avenida..."
+                />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="city">Cidade</Label>
@@ -224,21 +306,21 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
               </div>
             </div>
             <div>
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-                placeholder="Endereço completo"
-              />
-            </div>
-            <div>
               <LocationPicker
                 value={{ latitude: formData.latitude, longitude: formData.longitude }}
-                onChange={({ latitude, longitude }) => { handleChange("latitude", latitude); handleChange("longitude", longitude); }}
+                onChange={({ latitude, longitude }) => {
+                  handleChange("latitude", latitude);
+                  handleChange("longitude", longitude);
+                }}
                 height={200}
                 placeholder="Buscar endereço da demanda..."
               />
+              {formData.latitude && formData.longitude && (
+                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                  <MapPin className="w-3 h-3" />
+                  {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </p>
+              )}
             </div>
           </div>
 

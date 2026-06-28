@@ -1,6 +1,7 @@
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,13 +18,26 @@ const statusColors = {
 
 const statusLabels = { active: "Ativo", inactive: "Inativo", pending: "Pendente" };
 
-export default function ContactDetailSheet({ contact, open, onOpenChange }) {
+export default function ContactDetailSheet({ contact, open, onOpenChange, onEdit }) {
   if (!contact) return null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <SheetTitle>Detalhes do Contato</SheetTitle>
+            {onEdit && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(contact)}
+                className="text-xs"
+              >
+                Editar
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-3 mb-4">
             <Avatar className="w-14 h-14">
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xl">

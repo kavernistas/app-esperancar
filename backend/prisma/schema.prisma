@@ -91,6 +91,8 @@ model Contact {
   neighborhood              String?
   address_street            String?  @map("address_street")
   address_number            String?  @map("address_number")
+  complement                String?  @map("complement")
+  state                     String?  @map("state")
   electoral_zone            String?  @map("electoral_zone")
   electoral_section         String?  @map("electoral_section")
   voting_location           String?  @map("voting_location")
@@ -197,6 +199,7 @@ model Demand {
   requester_name         String?      @map("requester_name")
   requester_phone        String?      @map("requester_phone")
   requester_email        String?      @map("requester_email")
+  cep                    String?      @map("cep")
   address                String?
   city                   String?
   neighborhood           String?

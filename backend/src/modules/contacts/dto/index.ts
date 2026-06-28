@@ -51,6 +51,14 @@ export class CreateContactDto {
   @IsOptional() @IsString()
   address_number?: string;
 
+  @ApiPropertyOptional({ example: 'Apto 32' })
+  @IsOptional() @IsString()
+  complement?: string;
+
+  @ApiPropertyOptional({ example: 'SP' })
+  @IsOptional() @IsString() @Length(2, 2)
+  state?: string;
+
   @ApiPropertyOptional({ example: '010' })
   @IsOptional() @IsString()
   electoral_zone?: string;

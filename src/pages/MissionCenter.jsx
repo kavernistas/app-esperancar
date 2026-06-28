@@ -46,14 +46,24 @@ const TYPE_LABELS = {
 export default function MissionCenter() {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
 
   const loadMissions = useCallback(async () => {
     setLoading(true);
-    const result = await missionsApi.listMissions({ sort: "-created_date", limit: 200 });
-    setMissions(Array.isArray(result) ? result : []);
-    setLoading(false);
+    setError(null);
+    try {
+      const result = await missionsApi.listMissions({ sort: "-created_date", limit: 200 });
+      const data = result?.data || (Array.isArray(result) ? result : []);
+      setMissions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro ao carregar missões:", err);
+      setError(err);
+      setMissions([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadMissions(); }, [loadMissions]);

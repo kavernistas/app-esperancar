@@ -1,6 +1,6 @@
 import { IsString, IsEmail, IsOptional, IsInt, IsEnum, IsNumber, IsDateString, Length, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform as ClassTransform, Type } from 'class-transformer';
 
 export enum DemandType {
   HEALTH = 'HEALTH', EDUCATION = 'EDUCATION', INFRASTRUCTURE = 'INFRASTRUCTURE',
@@ -18,6 +18,7 @@ export class CreateDemandDto {
   title: string;
 
   @ApiProperty({ enum: DemandType })
+  @ClassTransform(({ value }) => typeof value === 'string' ? value.trim().toUpperCase() : value)
   @IsEnum(DemandType)
   type: string;
 
@@ -36,6 +37,10 @@ export class CreateDemandDto {
   @ApiPropertyOptional()
   @IsOptional() @IsEmail()
   requester_email?: string;
+
+  @ApiPropertyOptional({ example: '01001000' })
+  @IsOptional() @IsString() @Length(8, 8)
+  cep?: string;
 
   @ApiPropertyOptional()
   @IsOptional() @IsString()
