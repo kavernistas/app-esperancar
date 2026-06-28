@@ -62,7 +62,43 @@ export class CreateMissionDto {
   segment?: string;
 }
 
-export class UpdateMissionDto extends CreateMissionDto {}
+export class UpdateMissionDto {
+  @IsOptional() @IsString() @Length(3, 300)
+  title?: string;
+
+  @IsOptional() @IsEnum(MissionType)
+  type?: string;
+
+  @IsOptional() @IsString()
+  description?: string;
+
+  @IsOptional() @IsString()
+  neighborhood?: string;
+
+  @IsOptional() @IsString()
+  city?: string;
+
+  @IsOptional() @IsString()
+  leader_id?: string;
+
+  @IsOptional() @IsString()
+  leader_name?: string;
+
+  @IsOptional() @IsDateString()
+  deadline?: string;
+
+  @IsOptional() @IsEnum(MissionPriority)
+  priority?: string;
+
+  @IsOptional() @IsInt() @Min(0)
+  points?: number;
+
+  @IsOptional() @IsEnum(MissionStatus)
+  status?: string;
+
+  @IsOptional() @IsString()
+  segment?: string;
+}
 
 export class ListMissionDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1)
