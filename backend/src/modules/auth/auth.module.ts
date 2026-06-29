@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthUserSerializer } from './auth-user.serializer';
 import { JwtStrategy } from './jwt.strategy';
 import { AuditModule } from '../audit/audit.module';
 import { EventsModule } from '../events/events.module';
@@ -25,7 +26,7 @@ import { EventsModule } from '../events/events.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, AuthUserSerializer, JwtStrategy],
+  exports: [AuthService, AuthUserSerializer],
 })
 export class AuthModule {}

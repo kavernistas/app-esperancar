@@ -4,9 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/common/prisma.service';
 import { AuditService } from '@/modules/audit/audit.service';
 import { EventsService } from '@/modules/events/events.service';
+import { AuthUserSerializer } from './auth-user.serializer';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { LoginDto, RefreshTokenDto, AuthResponseDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -16,9 +16,10 @@ export class AuthService {
     private config: ConfigService,
     private audit: AuditService,
     private events: EventsService,
+    private serializer: AuthUserSerializer,
   ) {}
 
-  async login(dto: LoginDto): Promise<AuthResponseDto> {
+  async login(dto: { email: string; password: string }) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -34,6 +35,16 @@ export class AuthService {
     const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
     if (!passwordValid) {
       throw new UnauthorizedException('Credenciais invalidas');
+    }
+
+    // Check membership is active
+    if (user.organization_id) {
+      const membership = await this.prisma.membership.findFirst({
+        where: { user_id: user.id, organization_id: user.organization_id, is_active: true },
+      });
+      if (!membership) {
+        throw new UnauthorizedException('Membro sem acesso ativo nesta organizacao');
+      }
     }
 
     // Update last login
@@ -65,20 +76,16 @@ export class AuthService {
       entityLabel: user.email,
     });
 
+    const authenticatedUser = await this.serializer.build(user.id);
+
     return {
-      ...tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        role: user.role,
-        profile: user.profile,
-        avatarUrl: user.avatar_url,
-      },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: authenticatedUser,
     };
   }
 
-  async refresh(dto: RefreshTokenDto): Promise<AuthResponseDto> {
+  async refresh(dto: { refreshToken: string }) {
     const storedToken = await this.prisma.refreshToken.findUnique({
       where: { token: dto.refreshToken },
       include: { user: true },
@@ -96,8 +103,21 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token expirado');
     }
 
-    if (storedToken.user.status !== 'ACTIVE') {
+    const user = storedToken.user;
+
+    // Re-validate status from DB (not old token)
+    if (user.status !== 'ACTIVE') {
       throw new UnauthorizedException('Conta inativa ou suspensa');
+    }
+
+    // Re-validate membership
+    if (user.organization_id) {
+      const membership = await this.prisma.membership.findFirst({
+        where: { user_id: user.id, organization_id: user.organization_id, is_active: true },
+      });
+      if (!membership) {
+        throw new UnauthorizedException('Membro sem acesso ativo nesta organizacao');
+      }
     }
 
     // Revoke old refresh token (rotation)
@@ -106,39 +126,36 @@ export class AuthService {
       data: { revoked_at: new Date() },
     });
 
-    const tokens = await this.generateTokens(
-      storedToken.user.id,
-      storedToken.user.email,
-      storedToken.user.role,
-    );
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const authenticatedUser = await this.serializer.build(user.id);
 
     return {
-      ...tokens,
-      user: {
-        id: storedToken.user.id,
-        email: storedToken.user.email,
-        fullName: storedToken.user.full_name,
-        role: storedToken.user.role,
-        profile: storedToken.user.profile,
-        avatarUrl: storedToken.user.avatar_url,
-      },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: authenticatedUser,
     };
   }
 
   async logout(userId: string, refreshToken?: string): Promise<{ success: boolean }> {
     if (refreshToken) {
-      // Revoke specific refresh token
       await this.prisma.refreshToken.updateMany({
         where: { token: refreshToken, user_id: userId },
         data: { revoked_at: new Date() },
       });
     } else {
-      // Revoke all refresh tokens for user
       await this.prisma.refreshToken.updateMany({
         where: { user_id: userId, revoked_at: null },
         data: { revoked_at: new Date() },
       });
     }
+
+    await this.audit.log({
+      action: 'logout',
+      entity: 'User',
+      entity_id: userId,
+      user_id: userId,
+      module: 'auth',
+    });
 
     return { success: true };
   }
@@ -149,7 +166,6 @@ export class AuthService {
     for (const field of allowedFields) {
       if (data[field] !== undefined) updateData[field] = data[field];
     }
-    // Handle password change separately
     if (data.password && data.current_password) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new UnauthorizedException('Usuario nao encontrado');
@@ -164,33 +180,16 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        full_name: true,
-        phone: true,
-        avatar_url: true,
-        role: true,
-        profile: true,
-        status: true,
-        lgpd_consent: true,
-        notif_email: true,
-        sofia_enabled: true,
-        ui_dark_mode: true,
-        whatsapp_status: true,
-        metas: true,
-        created_at: true,
-        last_login_at: true,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Usuario nao encontrado');
-    }
-
+    const user = await this.serializer.build(userId);
+    if (!user) throw new UnauthorizedException('Usuario nao encontrado');
     return user;
+  }
+
+  async validateUserById(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, status: true, organization_id: true, active_campaign_id: true },
+    });
   }
 
   private async generateTokens(userId: string, email: string, role: string) {
