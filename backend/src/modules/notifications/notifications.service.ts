@@ -34,4 +34,33 @@ export class NotificationService {
     // Notifications model not fully implemented — stub response
     return { success: true, message: 'Notifications marked as read', affected: 0 };
   }
+
+  /** Cria notificação deduplicada.
+   *
+   *  Mantém a assinatura usada por NotificationHandlersService,
+   *  porém realiza a lógica real de deduplication.
+   */
+  async createDeduplicated(input: any): Promise<any> {
+    const { eventId, userId, type } = input;
+    if (!eventId || !userId || !type) {
+      const err = new Error('createDeduplicated requires eventId, userId and type');
+      console.error('[NotificationService] createDeduplicated missing required fields', err);
+      throw err;
+    }
+    try {
+      const existing = await this.prisma.notification.findFirst({
+        where: { event_id: eventId, user_id: userId, type },
+      });
+      if (existing) {
+        return existing;
+      }
+      const created = await this.prisma.notification.create({
+        data: input,
+      });
+      return created;
+    } catch (error) {
+      console.error('[NotificationService] createDeduplicated failed', error);
+      throw error;
+    }
+  }
 }
