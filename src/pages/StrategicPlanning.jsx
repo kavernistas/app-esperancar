@@ -131,16 +131,16 @@ export default function StrategicPlanning() {
     },
   });
 
-  const filteredActions = actionsList.filter((action) => {
+  const filteredActions = normalizeList(actions).filter((action) => {
     const matchesStatus = statusFilter === "all" || action.status === statusFilter;
     const matchesType = typeFilter === "all" || action.type === typeFilter;
     return matchesStatus && matchesType;
   });
 
   // Stats
-  const plannedCount = actionsList.filter((a) => a.status === "planned").length;
-  const inProgressCount = actionsList.filter((a) => a.status === "IN_PROGRESS" || a.status === "in_progress").length;
-  const completedCount = actionsList.filter((a) => a.status === "COMPLETED" || a.status === "completed").length;
+  const plannedCount = normalizeList(actions).filter((a) => a.status === "planned").length;
+  const inProgressCount = normalizeList(actions).filter((a) => a.status === "IN_PROGRESS" || a.status === "in_progress").length;
+  const completedCount = normalizeList(actions).filter((a) => a.status === "COMPLETED" || a.status === "completed").length;
   const totalExpectedReach = actions.reduce((sum, a) => sum + (a.expected_reach || 0), 0);
   const totalActualReach = actions.reduce((sum, a) => sum + (a.actual_reach || 0), 0);
 
@@ -241,7 +241,7 @@ export default function StrategicPlanning() {
       </div>
 
       {/* Calendar */}
-      {actionsList.length > 0 && <PlanningCalendar actions={actions} />}
+      {normalizeList(actions).length > 0 && <PlanningCalendar actions={actions} />}
 
       {/* Actions Grid */}
       {filteredActions.length === 0 ? (
