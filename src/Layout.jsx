@@ -67,7 +67,7 @@ export default function Layout({ children, currentPageName }) {
     if (!user?.id) return;
     const loadNotifications = async () => {
       try {
-        const notifs = await notificationsApi.listNotifications({ userId: user.id });
+        const notifs = await notificationsApi.listNotifications();
         setNotifications(notifs?.data || notifs || []);
       } catch (_) {}
     };

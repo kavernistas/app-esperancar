@@ -20,6 +20,17 @@ import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as contactsApi from "@/api/contacts";
 
+const normalizeContactStatus = (status) => {
+  if (!status) return undefined;
+  const value = String(status).toUpperCase();
+  if (["ACTIVE", "INACTIVE", "PENDING"].includes(value)) return value;
+  if (["ATIVO", "ACTIVE"].includes(value)) return "ACTIVE";
+  if (["INATIVO", "INACTIVE"].includes(value)) return "INACTIVE";
+  if (["PENDENTE", "PENDING"].includes(value)) return "PENDING";
+  return undefined;
+};
+
+
 const sanitizeContactPayload = (contact) => {
   const allowed = [
     "full_name",
@@ -48,8 +59,9 @@ const sanitizeContactPayload = (contact) => {
     }
   }
 
-  if (typeof payload.status === "string") {
-    payload.status = payload.status.toUpperCase();
+  if (Object.prototype.hasOwnProperty.call(payload, "status")) {
+    payload.status = normalizeContactStatus(payload.status);
+    if (!payload.status) delete payload.status;
   }
 
   return payload;
@@ -118,7 +130,12 @@ export default function Contacts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => contactsApi.updateContact(id, sanitizeContactPayload(data)),
+    mutationFn: ({ id, data }) => {
+      const payload = sanitizeContactPayload(data);
+      payload.status = normalizeContactStatus(payload.status);
+      if (!payload.status) delete payload.status;
+      return contactsApi.updateContact(id, payload);
+    },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contact", updated?.id] });

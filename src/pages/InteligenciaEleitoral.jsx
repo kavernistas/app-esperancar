@@ -123,8 +123,8 @@ export default function CentralInteligencia() {
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await tseApi.getData({ action: "status", ano: "", uf: "" });
-      if (res.data?.success) setSyncStatuses(res.data.statuses || []);
+      const res = await fetch("/api/v1/tse/sync-status").then(r => r.ok ? r.json() : { data: { success: false, statuses: [] } });
+      if (res?.data?.success) setSyncStatuses(res.data.statuses || []); else if (res?.success) setSyncStatuses(res.statuses || []);
     } catch (e) { console.error("Erro ao carregar status:", e); }
   }, []);
 
