@@ -4,6 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Target } from "lucide-react";
 import * as missionsApi from '@/api/missions';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const statusColors = {
   pending: "bg-amber-100 text-amber-700",
   in_progress: "bg-blue-100 text-blue-700",
@@ -29,7 +39,7 @@ export default function ContactMissionList({ contactId }) {
     setLoading(true);
     try {
       const all = await missionsApi.listMissions({ sort: "-created_at", limit: 200 });
-      const filtered = all.filter(m =>
+      const filtered = normalizeList(all).filter(m =>
         (m.participant_ids || []).includes(contactId) || m.leader_id === contactId
       );
       setMissions(filtered);

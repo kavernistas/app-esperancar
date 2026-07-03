@@ -20,6 +20,42 @@ import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as contactsApi from "@/api/contacts";
 
+const sanitizeContactPayload = (contact) => {
+  const allowed = [
+    "full_name",
+    "phone",
+    "email",
+    "status",
+    "cep",
+    "address",
+    "number",
+    "complement",
+    "neighborhood",
+    "city",
+    "state",
+    "birth_date",
+    "gender",
+    "notes",
+    "tags",
+    "source",
+    "leader_id"
+  ];
+
+  const payload = {};
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(contact || {}, key)) {
+      payload[key] = contact[key];
+    }
+  }
+
+  if (typeof payload.status === "string") {
+    payload.status = payload.status.toUpperCase();
+  }
+
+  return payload;
+};
+
+
 const exportContactsCSV = (contacts) => {
   const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Secao","Local de Votacao","Cargo","Engajamento","Status","E Lideranca","Tags"];
   const rows = contacts.map(c => [
@@ -82,7 +118,7 @@ export default function Contacts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => contactsApi.updateContact(id, data),
+    mutationFn: ({ id, data }) => contactsApi.updateContact(id, sanitizeContactPayload(data)),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contact", updated?.id] });
