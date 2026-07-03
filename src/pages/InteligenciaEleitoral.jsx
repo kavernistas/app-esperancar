@@ -124,12 +124,12 @@ export default function CentralInteligencia() {
       // Paginação: carregar apenas contagens e amostras para o dashboard,
       // não todos os registros
       const [leaders, missions, contacts, demands, gamificationProfiles, actions] = await Promise.all([
-        leadersApi.listLeaders({ sort: "-created_date", limit: 50 }),
-        missionsApi.listMissions({ sort: "-created_date", limit: 50 }),
-        contactsApi.listContacts({ sort: "-created_date", limit: 100 }),
-        demandsApi.listDemands({ sort: "-created_date", limit: 50 }),
+        leadersApi.listLeaders({ sort: "-created_at", limit: 50 }),
+        missionsApi.listMissions({ sort: "-created_at", limit: 50 }),
+        contactsApi.listContacts({ sort: "-created_at", limit: 100 }),
+        demandsApi.listDemands({ sort: "-created_at", limit: 50 }),
         gamificationApi.listProfiles({ sort: "-total_points", limit: 30 }),
-        strategicActionsApi.list({ sort: "-created_date", limit: 20 }),
+        strategicActionsApi.list({ sort: "-created_at", limit: 20 }),
       ]);
 
       const activeLeaders = leaders.filter(l => (l.status || "").toUpperCase() === "ACTIVE");
@@ -183,8 +183,8 @@ export default function CentralInteligencia() {
 
       // Recent activities
       const recentActivities = [
-        ...contacts.slice(0, 4).map(c => ({ type: "contact", title: `Novo contato: ${c.full_name}`, description: c.neighborhood || c.city || "", date: c.created_date })),
-        ...demands.slice(0, 4).map(d => ({ type: "demand", title: d.title, description: `Status: ${d.status}`, date: d.created_date })),
+        ...contacts.slice(0, 4).map(c => ({ type: "contact", title: `Novo contato: ${c.full_name}`, description: c.neighborhood || c.city || "", date: c.created_at })),
+        ...demands.slice(0, 4).map(d => ({ type: "demand", title: d.title, description: `Status: ${d.status}`, date: d.created_at })),
       ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 
       setCrmData({

@@ -24,9 +24,9 @@ export default function InteligenciaDashboard({ syncStatuses, filters }) {
       const [syncStatus, leaders, missions, contacts, demands] = await Promise.all([
         tseApi.getSyncStatus(0, ""),
         leadersApi.listLeaders({ limit: 200 }),
-        missionsApi.listMissions({ sort: "-created_date", limit: 200 }),
-        contactsApi.listContacts({ sort: "-created_date", limit: 200 }),
-        demandsApi.listDemands({ sort: "-created_date", limit: 200 }),
+        missionsApi.listMissions({ sort: "-created_at", limit: 200 }),
+        contactsApi.listContacts({ sort: "-created_at", limit: 200 }),
+        demandsApi.listDemands({ sort: "-created_at", limit: 200 }),
       ]);
 
       const statuses = syncStatus.data?.statuses || [];

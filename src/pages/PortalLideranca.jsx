@@ -70,14 +70,14 @@ export default function PortalLideranca() {
     setLoading(true);
     try {
       const [cs, ds, ms, gs, allG, myContact] = await Promise.all([
-        contactsApi.listContacts({ created_by_leader_id: leaderId }, "-created_date"),
-        demandsApi.listDemands({ created_by_leader_id: leaderId }, "-created_date"),
-        missionsApi.listMissions({ leader_id: leaderId }, "-created_date"),
+        contactsApi.listContacts({ created_by_leader_id: leaderId }, "-created_at"),
+        demandsApi.listDemands({ created_by_leader_id: leaderId }, "-created_at"),
+        missionsApi.listMissions({ leader_id: leaderId }, "-created_at"),
         gamificationApi.listProfiles({ leader_id: leaderId }),
         gamificationApi.listProfiles({ sort: "-total_points", limit: 50 }),
         authApi.getMe().then(async (me) => {
           if (!me) return null;
-          const contacts = await contactsApi.listContacts({ is_leader: true, full_name: me.full_name, sort: "-created_date", limit: 1 });
+          const contacts = await contactsApi.listContacts({ is_leader: true, full_name: me.full_name, sort: "-created_at", limit: 1 });
           return contacts[0] || null;
         }),
       ]);

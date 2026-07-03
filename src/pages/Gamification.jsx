@@ -37,7 +37,7 @@ export default function Gamification() {
     setLoading(true);
     try {
       const [missionsData, profilesData, leadersData] = await Promise.all([
-        missionsApi.listMissions({ sort: "-created_date", limit: 200 }),
+        missionsApi.listMissions({ sort: "-created_at", limit: 200 }),
         gamificationApi.listProfiles({ sort: "-total_points", limit: 100 }),
         leadersApi.listLeaders({ status: "active", sort: "name", limit: 200 }),
       ]);

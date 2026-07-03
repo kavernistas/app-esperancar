@@ -22,10 +22,10 @@ export default function IntegracaoCRMPanel({ syncStatuses, filters }) {
     setLoading(true);
     try {
       const [leaders, missions, contacts, demands] = await Promise.all([
-        leadersApi.listLeaders({ sort: "-created_date", limit: 100 }),
-        missionsApi.listMissions({ sort: "-created_date", limit: 100 }),
-        contactsApi.listContacts({ sort: "-created_date", limit: 100 }),
-        demandsApi.listDemands({ sort: "-created_date", limit: 100 }),
+        leadersApi.listLeaders({ sort: "-created_at", limit: 100 }),
+        missionsApi.listMissions({ sort: "-created_at", limit: 100 }),
+        contactsApi.listContacts({ sort: "-created_at", limit: 100 }),
+        demandsApi.listDemands({ sort: "-created_at", limit: 100 }),
       ]);
       setCrmData({
         totalLeaders: leaders.length,

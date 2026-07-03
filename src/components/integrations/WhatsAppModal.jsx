@@ -74,7 +74,7 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
 
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_at", limit: 1000 }),
     enabled: open,
   });
 

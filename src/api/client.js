@@ -155,7 +155,7 @@ export const tseApi = {
 
 // Strategic Actions API (modulo backend ainda nao implementado — retorna stub)
 export const strategicActionsApi = {
-  list: async (sort = '-created_date', limit = 100) => {
+  list: async (sort = '-created_at', limit = 100) => {
     try { return await request('/v1/strategic-actions', { method: 'GET', params: { sort, limit } }); }
     catch (e) { console.warn('[strategicActionsApi] Backend nao implementado, retornando vazio.'); return { data: [] }; }
   },

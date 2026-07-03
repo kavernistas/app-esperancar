@@ -375,7 +375,7 @@ export default function Layout({ children, currentPageName }) {
                           </div>
                           <p className="text-[12px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
                           <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] text-slate-400">
-                            <Clock className="w-3 h-3" />{timeAgo(n.created_date)}
+                            <Clock className="w-3 h-3" />{timeAgo(n.created_at)}
                           </span>
                         </div>
                         {n.link && (

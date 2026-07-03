@@ -15,7 +15,7 @@ import * as contactsApi from '@/api/contacts';
 export default function Dashboard() {
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_at", limit: 1000 }),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
@@ -25,12 +25,12 @@ export default function Dashboard() {
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 500 }),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_at", limit: 500 }),
   });
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => strategicActionsApi.list({ sort: "-created_date", limit: 100 }),
+    queryFn: () => strategicActionsApi.list({ sort: "-created_at", limit: 100 }),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingActions;
@@ -78,13 +78,13 @@ export default function Dashboard() {
       type: "contact",
       title: `Novo contato: ${c.full_name}`,
       description: c.neighborhood || c.city || "Sem localização",
-      date: c.created_date,
+      date: c.created_at,
     })),
     ...demands.slice(0, 3).map(d => ({
       type: "demand",
       title: d.title,
       description: `Status: ${d.status}`,
-      date: d.created_date,
+      date: d.created_at,
     })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 

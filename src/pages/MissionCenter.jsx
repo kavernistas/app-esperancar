@@ -54,7 +54,7 @@ export default function MissionCenter() {
     setLoading(true);
     setError(null);
     try {
-      const result = await missionsApi.listMissions({ sort: "-created_date", limit: 200 });
+      const result = await missionsApi.listMissions({ sort: "-created_at", limit: 200 });
       const data = result?.data || (Array.isArray(result) ? result : []);
       setMissions(Array.isArray(data) ? data : []);
     } catch (err) {

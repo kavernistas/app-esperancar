@@ -95,7 +95,7 @@ export default function ElectoralMap() {
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_at", limit: 1000 }),
   });
 
   const { data: leadersRaw = [], isLoading: loadingLeaders } = useQuery({
@@ -105,7 +105,7 @@ export default function ElectoralMap() {
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 1000 }),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_at", limit: 1000 }),
   });
 
   const isLoading = loadingElectoral || loadingContacts || loadingLeaders || loadingDemands;

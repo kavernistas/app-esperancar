@@ -40,7 +40,7 @@ export default function Reports() {
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
-    queryFn: () => contactsApi.listContacts({ sort: "-created_date", limit: 1000 }),
+    queryFn: () => contactsApi.listContacts({ sort: "-created_at", limit: 1000 }),
   });
 
   const { data: leaders = [], isLoading: loadingLeaders } = useQuery({
@@ -50,7 +50,7 @@ export default function Reports() {
 
   const { data: demands = [], isLoading: loadingDemands } = useQuery({
     queryKey: ["demands"],
-    queryFn: () => demandsApi.listDemands({ sort: "-created_date", limit: 500 }),
+    queryFn: () => demandsApi.listDemands({ sort: "-created_at", limit: 500 }),
   });
 
   const { data: electoralData = [], isLoading: loadingElectoral } = useQuery({
@@ -60,7 +60,7 @@ export default function Reports() {
 
   const { data: actions = [], isLoading: loadingActions } = useQuery({
     queryKey: ["actions"],
-    queryFn: () => strategicActionsApi.list({ sort: "-created_date", limit: 200 }),
+    queryFn: () => strategicActionsApi.list({ sort: "-created_at", limit: 200 }),
   });
 
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingElectoral || loadingActions;
