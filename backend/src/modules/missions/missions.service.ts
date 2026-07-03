@@ -3,6 +3,14 @@ import { PrismaService } from '@/common/prisma.service';
 import { CreateMissionDto, UpdateMissionDto, ListMissionDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 
+function normalizeSortBy(sortBy?: string): string {
+  if (!sortBy) return 'created_at';
+  if (sortBy === 'created_date') return 'created_at';
+  if (sortBy === 'updated_date') return 'updated_at';
+  return sortBy;
+}
+
+
 @Injectable()
 export class MissionsService {
   constructor(
@@ -24,7 +32,7 @@ export class MissionsService {
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.prisma.mission.findMany({ where, orderBy: { [sortBy]: sortOrder }, skip, take: limit, include: { leader: { select: { id: true, name: true } } } }),
+      this.prisma.mission.findMany({ where, orderBy: { [normalizeSortBy(sortBy)]: sortOrder }, skip, take: limit, include: { leader: { select: { id: true, name: true } } } }),
       this.prisma.mission.count({ where }),
     ]);
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };

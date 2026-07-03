@@ -6,7 +6,7 @@ export default function AuditLogsPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/audit-logs')
+    fetch('/api/v1/events/audit-logs')
       .then(res => {
         if (!res.ok) throw new Error('Network error');
         return res.json();

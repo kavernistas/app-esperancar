@@ -5,6 +5,14 @@ import { CreateContactDto, UpdateContactDto, ListContactDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 import { EventsService } from '../events/events.service';
 
+function normalizeSortBy(sortBy?: string): string {
+  if (!sortBy) return 'created_at';
+  if (sortBy === 'created_date') return 'created_at';
+  if (sortBy === 'updated_date') return 'updated_at';
+  return sortBy;
+}
+
+
 @Injectable()
 export class ContactsService {
   constructor(
@@ -45,7 +53,7 @@ export class ContactsService {
     const [data, total] = await Promise.all([
       this.prisma.contact.findMany({
         where,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [normalizeSortBy(sortBy)]: sortOrder },
         skip,
         take: limit,
       }),

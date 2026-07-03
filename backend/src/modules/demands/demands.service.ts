@@ -3,6 +3,14 @@ import { PrismaService } from '@/common/prisma.service';
 import { CreateDemandDto, UpdateDemandDto, ListDemandDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 
+function normalizeSortBy(sortBy?: string): string {
+  if (!sortBy) return 'created_at';
+  if (sortBy === 'created_date') return 'created_at';
+  if (sortBy === 'updated_date') return 'updated_at';
+  return sortBy;
+}
+
+
 @Injectable()
 export class DemandsService {
   constructor(
@@ -26,7 +34,7 @@ export class DemandsService {
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.prisma.demand.findMany({ where, orderBy: { [sortBy]: sortOrder }, skip, take: limit, include: { contact: { select: { id: true, full_name: true } } } }),
+      this.prisma.demand.findMany({ where, orderBy: { [normalizeSortBy(sortBy)]: sortOrder }, skip, take: limit, include: { contact: { select: { id: true, full_name: true } } } }),
       this.prisma.demand.count({ where }),
     ]);
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };

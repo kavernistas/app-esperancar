@@ -4,6 +4,14 @@ import { Prisma } from '@prisma/client';
 import { CreateLeaderDto, UpdateLeaderDto, ListLeaderDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 
+function normalizeSortBy(sortBy?: string): string {
+  if (!sortBy) return 'created_at';
+  if (sortBy === 'created_date') return 'created_at';
+  if (sortBy === 'updated_date') return 'updated_at';
+  return sortBy;
+}
+
+
 @Injectable()
 export class LeadersService {
   constructor(
@@ -29,7 +37,7 @@ export class LeadersService {
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.prisma.leader.findMany({ where, orderBy: { [sortBy]: sortOrder }, skip, take: limit }),
+      this.prisma.leader.findMany({ where, orderBy: { [normalizeSortBy(sortBy)]: sortOrder }, skip, take: limit }),
       this.prisma.leader.count({ where }),
     ]);
 

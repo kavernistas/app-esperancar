@@ -6,7 +6,7 @@ export default function NotificationBell() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/notifications')
+    fetch('/api/v1/notifications')
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();

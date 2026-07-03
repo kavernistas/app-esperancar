@@ -6,7 +6,7 @@ export default function EventTimeline() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/timeline')
+    fetch('/api/v1/events/timeline')
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();

@@ -6,7 +6,7 @@ export default function NotificationPanel() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/notifications/panel')
+    fetch('/api/v1/notifications')
       .then(res => {
         if (!res.ok) throw new Error('Network error');
         return res.json();
