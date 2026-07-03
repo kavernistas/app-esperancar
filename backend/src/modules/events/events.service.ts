@@ -18,26 +18,30 @@ export interface EventData {
 export class EventsService {
   constructor(private prisma: PrismaService) {}
 
-  async emit(event: EventData) {
+  async publish(event: EventData): Promise<string | null> {
     try {
-      return await this.prisma.internalEvent.create({
-        data: {
-          organization_id: event.organizationId,
-          campaign_id: event.campaignId,
-          user_id: event.userId,
-          type: event.type,
-          title: event.title,
-          description: event.description,
-          entity_type: event.entityType,
-          entity_id: event.entityId,
-          entity_label: event.entityLabel,
-          data: event.data || {},
-        },
+      const result = await this.prisma.internalEvent.create({
+        organization_id: event.organizationId,
+        campaign_id: event.campaignId,
+        user_id: event.userId,
+        type: event.type,
+        title: event.title,
+        description: event.description,
+        entity_type: event.entityType,
+        entity_id: event.entityId,
+        entity_label: event.entityLabel,
+        ...(event.data || {}),
       });
+      return result.id ?? null;
     } catch (e) {
-      console.error('Event emit failed:', e.message);
+      console.error('Event publish failed:', e.message);
       return null;
     }
+  }
+
+  /** @deprecated Use `publish` – kept only for backward compatibility. */
+  async emit(event: EventData): Promise<string | null> {
+    return this.publish(event);
   }
 
   async list(organizationId: string, params: any = {}) {
@@ -53,7 +57,7 @@ export class EventsService {
     const [data, total] = await Promise.all([
       this.prisma.internalEvent.findMany({
         where,
-        orderBy: { created_at: 'desc' },
+        orderBy: { occurred_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
         include: { user: { select: { id: true, full_name: true, email: true, avatar_url: true } } },
@@ -61,7 +65,15 @@ export class EventsService {
       this.prisma.internalEvent.count({ where }),
     ]);
 
-    return { data, meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
+    return {
+      data,
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
   }
 
   async listAudit(organizationId: string, params: any = {}) {
@@ -84,6 +96,14 @@ export class EventsService {
       this.prisma.auditLog.count({ where }),
     ]);
 
-    return { data, meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
+    return {
+      data,
+      meta: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
   }
 }
