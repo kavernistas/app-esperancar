@@ -59,6 +59,16 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const statusColors = {
   planned: "bg-slate-100 text-slate-600",
   in_progress: "bg-blue-100 text-blue-600",
@@ -121,16 +131,16 @@ export default function StrategicPlanning() {
     },
   });
 
-  const filteredActions = actions.filter((action) => {
+  const filteredActions = actionsList.filter((action) => {
     const matchesStatus = statusFilter === "all" || action.status === statusFilter;
     const matchesType = typeFilter === "all" || action.type === typeFilter;
     return matchesStatus && matchesType;
   });
 
   // Stats
-  const plannedCount = actions.filter((a) => a.status === "planned").length;
-  const inProgressCount = actions.filter((a) => a.status === "IN_PROGRESS" || a.status === "in_progress").length;
-  const completedCount = actions.filter((a) => a.status === "COMPLETED" || a.status === "completed").length;
+  const plannedCount = actionsList.filter((a) => a.status === "planned").length;
+  const inProgressCount = actionsList.filter((a) => a.status === "IN_PROGRESS" || a.status === "in_progress").length;
+  const completedCount = actionsList.filter((a) => a.status === "COMPLETED" || a.status === "completed").length;
   const totalExpectedReach = actions.reduce((sum, a) => sum + (a.expected_reach || 0), 0);
   const totalActualReach = actions.reduce((sum, a) => sum + (a.actual_reach || 0), 0);
 
@@ -231,7 +241,7 @@ export default function StrategicPlanning() {
       </div>
 
       {/* Calendar */}
-      {actions.length > 0 && <PlanningCalendar actions={actions} />}
+      {actionsList.length > 0 && <PlanningCalendar actions={actions} />}
 
       {/* Actions Grid */}
       {filteredActions.length === 0 ? (
