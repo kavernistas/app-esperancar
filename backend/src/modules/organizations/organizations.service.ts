@@ -73,7 +73,7 @@ export class OrganizationsService {
         phone: dto.phone,
         email: dto.email,
         plan: (dto.plan as OrgPlan) || 'free',
-        status: 'ACTIVE',
+        status: 'active',
         owner_id: userId,
       },
     });
