@@ -33,6 +33,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const ESTADOS = [
   { sigla: "AC", nome: "Acre" },{ sigla: "AL", nome: "Alagoas" },{ sigla: "AM", nome: "Amazonas" },
   { sigla: "AP", nome: "Amapá" },{ sigla: "BA", nome: "Bahia" },{ sigla: "CE", nome: "Ceará" },
@@ -132,24 +142,24 @@ export default function CentralInteligencia() {
         strategicActionsApi.list({ sort: "-created_at", limit: 20 }),
       ]);
 
-      const activeLeaders = leaders.filter(l => (l.status || "").toUpperCase() === "ACTIVE");
-      const inactiveLeaders = leaders.filter(l => (l.status || "").toUpperCase() !== "ACTIVE");
-      const completedMissions = missions.filter(m => (m.status || "").toUpperCase() === "COMPLETED");
-      const pendingMissions = missions.filter(m => ["PENDING", "IN_PROGRESS"].includes((m.status || "").toUpperCase()));
-      const overdueMissions = missions.filter(m => (m.status || "").toUpperCase() === "OVERDUE");
-      const openDemands = demands.filter(d => ["OPEN", "IN_PROGRESS"].includes((d.status || "").toUpperCase()));
-      const resolvedDemands = demands.filter(d => (d.status || "").toUpperCase() === "RESOLVED");
+      const activeLeaders = normalizeList(leaders).filter(l => (l.status || "").toUpperCase() === "ACTIVE");
+      const inactiveLeaders = normalizeList(leaders).filter(l => (l.status || "").toUpperCase() !== "ACTIVE");
+      const completedMissions = normalizeList(missions).filter(m => (m.status || "").toUpperCase() === "COMPLETED");
+      const pendingMissions = normalizeList(missions).filter(m => ["PENDING", "IN_PROGRESS"].includes((m.status || "").toUpperCase()));
+      const overdueMissions = normalizeList(missions).filter(m => (m.status || "").toUpperCase() === "OVERDUE");
+      const openDemands = normalizeList(demands).filter(d => ["OPEN", "IN_PROGRESS"].includes((d.status || "").toUpperCase()));
+      const resolvedDemands = normalizeList(demands).filter(d => (d.status || "").toUpperCase() === "RESOLVED");
 
       // Engagement distribution
       const engagementDist = ENGAGEMENT_BANDS.map(band => ({
         ...band,
-        count: contacts.filter(c => { const lvl = c.engagement_level || 0; return lvl >= band.min && lvl <= band.max; }).length,
+        count: normalizeList(contacts).filter(c => { const lvl = c.engagement_level || 0; return lvl >= band.min && lvl <= band.max; }).length,
       }));
       const maxBand = Math.max(...engagementDist.map(b => b.count), 1);
 
       // Leaders needing attention
       const leaderIdsWithOverdue = new Set(overdueMissions.map(m => m.leader_id).filter(Boolean));
-      const leadersWithOverdue = leaders.filter(l => leaderIdsWithOverdue.has(l.id));
+      const leadersWithOverdue = normalizeList(leaders).filter(l => leaderIdsWithOverdue.has(l.id));
       const sortedBySupporters = [...activeLeaders].sort((a, b) => (a.supporters_count || 0) - (b.supporters_count || 0));
       const lowSupportersThreshold = sortedBySupporters.length > 3 ? sortedBySupporters[Math.floor(sortedBySupporters.length * 0.25)]?.supporters_count || 0 : 0;
       const leadersLowSupporters = activeLeaders.filter(l => (l.supporters_count || 0) <= lowSupportersThreshold).slice(0, 5);
@@ -162,24 +172,24 @@ export default function CentralInteligencia() {
 
       // Territory data
       const contactsByNeighborhood = {};
-      contacts.forEach(c => { if (c.neighborhood) contactsByNeighborhood[c.neighborhood] = (contactsByNeighborhood[c.neighborhood] || 0) + 1; });
+      normalizeList(contacts).forEach(c => { if (c.neighborhood) contactsByNeighborhood[c.neighborhood] = (contactsByNeighborhood[c.neighborhood] || 0) + 1; });
       const demandsByType = {};
-      demands.forEach(d => { demandsByType[d.type] = (demandsByType[d.type] || 0) + 1; });
+      normalizeList(demands).forEach(d => { demandsByType[d.type] = (demandsByType[d.type] || 0) + 1; });
       const demandsByNeighborhood = {};
-      demands.forEach(d => { if (d.neighborhood) demandsByNeighborhood[d.neighborhood] = (demandsByNeighborhood[d.neighborhood] || 0) + 1; });
+      normalizeList(demands).forEach(d => { if (d.neighborhood) demandsByNeighborhood[d.neighborhood] = (demandsByNeighborhood[d.neighborhood] || 0) + 1; });
 
       // Top gamification
       const topGamification = (gamificationProfiles || []).sort((a, b) => (b.total_points || 0) - (a.total_points || 0)).slice(0, 5);
 
       // Neighborhood chart data (from Dashboard)
       const neighborhoodStats = {};
-      contacts.forEach(c => { if (c.neighborhood) { if (!neighborhoodStats[c.neighborhood]) neighborhoodStats[c.neighborhood] = { contacts: 0, leaders: 0 }; neighborhoodStats[c.neighborhood].contacts++; }});
-      leaders.forEach(l => { if (l.neighborhood && neighborhoodStats[l.neighborhood]) neighborhoodStats[l.neighborhood].leaders++; });
+      normalizeList(contacts).forEach(c => { if (c.neighborhood) { if (!neighborhoodStats[c.neighborhood]) neighborhoodStats[c.neighborhood] = { contacts: 0, leaders: 0 }; neighborhoodStats[c.neighborhood].contacts++; }});
+      normalizeList(leaders).forEach(l => { if (l.neighborhood && neighborhoodStats[l.neighborhood]) neighborhoodStats[l.neighborhood].leaders++; });
       const chartData = Object.entries(neighborhoodStats).sort((a, b) => b[1].contacts - a[1].contacts).slice(0, 8).map(([name, data]) => ({ name: name.length > 12 ? name.substring(0, 12) + "..." : name, contacts: data.contacts, leaders: data.leaders }));
 
       // Demands by status for chart
       const demandsByStatus = {};
-      demands.forEach(d => { demandsByStatus[d.status] = (demandsByStatus[d.status] || 0) + 1; });
+      normalizeList(demands).forEach(d => { demandsByStatus[d.status] = (demandsByStatus[d.status] || 0) + 1; });
 
       // Recent activities
       const recentActivities = [
@@ -188,10 +198,10 @@ export default function CentralInteligencia() {
       ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 
       setCrmData({
-        leaders: { total: leaders.length, active: activeLeaders.length, inactive: leaders.length - activeLeaders.length },
-        missions: { total: missions.length, completed: completedMissions.length, pending: pendingMissions.length, overdue: overdueMissions.length },
-        contacts: { total: contacts.length },
-        demands: { total: demands.length, open: openDemands.length, resolved: resolvedDemands.length },
+        leaders: { total: normalizeList(leaders).length, active: activeLeaders.length, inactive: normalizeList(leaders).length - activeLeaders.length },
+        missions: { total: normalizeList(missions).length, completed: completedMissions.length, pending: pendingMissions.length, overdue: overdueMissions.length },
+        contacts: { total: normalizeList(contacts).length },
+        demands: { total: normalizeList(demands).length, open: openDemands.length, resolved: resolvedDemands.length },
         gamification: gamificationProfiles || [],
         topGamification,
         contactsByNeighborhood,
@@ -199,15 +209,15 @@ export default function CentralInteligencia() {
         demandsByNeighborhood,
         demandsByStatus,
         totalNeighborhoods: Object.keys(contactsByNeighborhood).length,
-        taxaConclusao: missions.length > 0 ? Math.round((completedMissions.length / missions.length) * 100) : 0,
-        avgEngagement: contacts.length > 0 ? Math.round(contacts.reduce((s, c) => s + (c.engagement_level || 0), 0) / contacts.length) : 0,
-        highEngagement: contacts.filter(c => (c.engagement_level || 0) >= 61).length,
+        taxaConclusao: normalizeList(missions).length > 0 ? Math.round((completedMissions.length / normalizeList(missions).length) * 100) : 0,
+        avgEngagement: normalizeList(contacts).length > 0 ? Math.round(normalizeList(contacts).reduce((s, c) => s + (c.engagement_level || 0), 0) / normalizeList(contacts).length) : 0,
+        highEngagement: normalizeList(contacts).filter(c => (c.engagement_level || 0) >= 61).length,
         engagementDist,
         maxBand,
         attentionItems,
         chartData,
         recentActivities,
-        totalSupporters: leaders.reduce((sum, l) => sum + (l.supporters_count || 0), 0),
+        totalSupporters: normalizeList(leaders).reduce((sum, l) => sum + (l.supporters_count || 0), 0),
       });
     } catch (e) { console.error("Erro ao carregar dados:", e); setCrmLoading(false); }
     setCrmLoading(false);
