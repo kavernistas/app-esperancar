@@ -20,6 +20,16 @@ import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as contactsApi from "@/api/contacts";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const normalizeContactStatus = (status) => {
   if (!status) return undefined;
   const value = String(status).toUpperCase();
@@ -70,7 +80,7 @@ const sanitizeContactPayload = (contact) => {
 
 const exportContactsCSV = (contacts) => {
   const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Secao","Local de Votacao","Cargo","Engajamento","Status","E Lideranca","Tags"];
-  const rows = contacts.map(c => [
+  const rows = normalizeList(contacts).map(c => [
     c.full_name || "", c.phone || "", c.email || "", c.city || "", c.neighborhood || "",
     c.electoral_zone || "", c.electoral_section || "", c.voting_location || "", c.position || "",
     c.engagement_level || 0, c.status || "", c.is_leader ? "Sim" : "Não", (c.tags || []).join("; ")
@@ -185,7 +195,7 @@ export default function Contacts() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  const filteredContacts = contacts.filter((contact) => {
+  const filteredContacts = normalizeList(contacts).filter((contact) => {
     const matchesSearch = !search ||
       contact.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       contact.phone?.includes(search) ||
@@ -234,10 +244,10 @@ export default function Contacts() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Total</p><p className="text-2xl font-bold text-slate-900">{contacts.length}</p></div>
-        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Ativos</p><p className="text-2xl font-bold text-emerald-600">{contacts.filter(c => (c.status||"").toUpperCase() === "ACTIVE").length}</p></div>
-        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Liderancas</p><p className="text-2xl font-bold text-blue-600">{contacts.filter(c => c.is_leader).length}</p></div>
-        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Engajamento Medio</p><p className="text-2xl font-bold text-purple-600">{contacts.length > 0 ? Math.round(contacts.reduce((sum, c) => sum + (c.engagement_level || 0), 0) / contacts.length) : 0}%</p></div>
+        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Total</p><p className="text-2xl font-bold text-slate-900">{normalizeList(contacts).length}</p></div>
+        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Ativos</p><p className="text-2xl font-bold text-emerald-600">{normalizeList(contacts).filter(c => (c.status||"").toUpperCase() === "ACTIVE").length}</p></div>
+        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Liderancas</p><p className="text-2xl font-bold text-blue-600">{normalizeList(contacts).filter(c => c.is_leader).length}</p></div>
+        <div className="bg-white rounded-lg p-4 border"><p className="text-sm text-slate-500">Engajamento Medio</p><p className="text-2xl font-bold text-purple-600">{normalizeList(contacts).length > 0 ? Math.round(normalizeList(contacts).reduce((sum, c) => sum + (c.engagement_level || 0), 0) / normalizeList(contacts).length) : 0}%</p></div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg border">

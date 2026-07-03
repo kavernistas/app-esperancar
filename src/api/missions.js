@@ -66,7 +66,7 @@ export async function bulkCreate(missions) {
     }
   }
   const failures = results.filter(r => !r.success);
-  if (failures.length === missions.length) {
+  if (failures.length === normalizeList(missions).length) {
     throw new Error(`Falha ao criar ${failures.length} missões`);
   }
   return { data: results, created: results.filter(r => r.success).length, failed: failures.length };

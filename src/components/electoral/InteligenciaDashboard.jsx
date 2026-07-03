@@ -7,6 +7,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 import { TrendingUp, Target, Users, MapPin,
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   Zap, CheckCircle2, AlertTriangle, Loader2, Star, Flag, Database
 } from "lucide-react";
 
@@ -36,17 +46,17 @@ export default function InteligenciaDashboard({ syncStatuses, filters }) {
         basesImportadas: imported.length,
         totalBases: 27 * 7, // 27 UFs × 7 anos
         totalRegistros: imported.reduce((sum, s) => sum + (s.total_linhas || 0), 0),
-        liderancasAtivas: leaders.filter(l => (l.status || "").toUpperCase() === "ACTIVE").length,
-        liderancasTotal: leaders.length,
-        missoesConcluidas: missions.filter(m => m.status === "completed").length,
-        missoesPendentes: missions.filter(m => m.status === "pending" || m.status === "in_progress").length,
-        missoesTotal: missions.length,
-        contatosTotal: contacts.length,
-        demandasAbertas: demands.filter(d => d.status === "open" || d.status === "in_progress").length,
-        demandasResolvidas: demands.filter(d => d.status === "resolved").length,
-        coberturaTerritorial: new Set(contacts.filter(c => c.neighborhood).map(c => c.neighborhood)).size,
+        liderancasAtivas: normalizeList(leaders).filter(l => (l.status || "").toUpperCase() === "ACTIVE").length,
+        liderancasTotal: normalizeList(leaders).length,
+        missoesConcluidas: normalizeList(missions).filter(m => m.status === "completed").length,
+        missoesPendentes: normalizeList(missions).filter(m => m.status === "pending" || m.status === "in_progress").length,
+        missoesTotal: normalizeList(missions).length,
+        contatosTotal: normalizeList(contacts).length,
+        demandasAbertas: normalizeList(demands).filter(d => d.status === "open" || d.status === "in_progress").length,
+        demandasResolvidas: normalizeList(demands).filter(d => d.status === "resolved").length,
+        coberturaTerritorial: new Set(normalizeList(contacts).filter(c => c.neighborhood).map(c => c.neighborhood)).size,
         // Calculate growth from completed missions vs total
-        taxaConclusao: missions.length > 0 ? Math.round((missions.filter(m => m.status === "completed").length / missions.length) * 100) : 0,
+        taxaConclusao: normalizeList(missions).length > 0 ? Math.round((normalizeList(missions).filter(m => m.status === "completed").length / normalizeList(missions).length) * 100) : 0,
         taxaImportacao: Math.round((imported.length / (27 * 7)) * 100),
       });
     } catch (e) {

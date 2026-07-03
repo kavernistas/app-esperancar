@@ -27,9 +27,19 @@ import LeaderForm from "@/components/leaders/LeaderForm";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as leadersApi from '@/api/leaders';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const exportLeadersCSV = (leaders) => {
   const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Força Política","Apoiadores","Conversões","Meta Mensal","Status","Segmento"];
-  const rows = leaders.map(l => [
+  const rows = normalizeList(leaders).map(l => [
     l.name||"", l.phone||"", l.email||"", l.city||"", l.neighborhood||"",
     l.electoral_zone||"", l.political_strength||"", l.supporters_count||0, l.conversions||0,
     l.monthly_goal||0, l.status||"", l.segment||""
@@ -100,7 +110,7 @@ export default function Leaders() {
     setDeleteLeader(leader);
   };
 
-  const filteredLeaders = leaders.filter((leader) => {
+  const filteredLeaders = normalizeList(leaders).filter((leader) => {
     const matchesSearch =
       search === "" ||
       leader.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -114,16 +124,16 @@ export default function Leaders() {
   });
 
   // Stats
-  const totalSupporters = leaders.reduce((sum, l) => sum + (l.supporters_count || 0), 0);
-  const totalConversions = leaders.reduce((sum, l) => sum + (l.conversions || 0), 0);
-  const avgGoalProgress = leaders.length > 0
+  const totalSupporters = normalizeList(leaders).reduce((sum, l) => sum + (l.supporters_count || 0), 0);
+  const totalConversions = normalizeList(leaders).reduce((sum, l) => sum + (l.conversions || 0), 0);
+  const avgGoalProgress = normalizeList(leaders).length > 0
     ? Math.round(
-        leaders.reduce((sum, l) => {
+        normalizeList(leaders).reduce((sum, l) => {
           if (l.monthly_goal > 0) {
             return sum + Math.min(100, (l.conversions / l.monthly_goal) * 100);
           }
           return sum;
-        }, 0) / leaders.filter(l => l.monthly_goal > 0).length || 0
+        }, 0) / normalizeList(leaders).filter(l => l.monthly_goal > 0).length || 0
       )
     : 0;
 
@@ -185,7 +195,7 @@ export default function Leaders() {
             <UserCheck className="w-4 h-4" />
             <span className="text-sm">Total</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{leaders.length}</p>
+          <p className="text-2xl font-bold text-slate-900">{normalizeList(leaders).length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 border">
           <div className="flex items-center gap-2 text-slate-500 mb-1">

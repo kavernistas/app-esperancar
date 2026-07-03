@@ -7,6 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Lock } from "lucide-react";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const RULES = {
   pending: { canEditAll: true, label: "Pode editar tudo" },
   in_progress: { canEditAll: false, editableFields: ["deadline","description","priority","checklist","evidence","attachments"], label: "Edição limitada" },
@@ -174,7 +184,7 @@ export default function MissionEditForm({ open, onClose, mission, onSave, leader
             <Select value={leaderId} onValueChange={setLeaderId} disabled={!canEdit("leader_id")}>
               <SelectTrigger><SelectValue placeholder="Reatribuir" /></SelectTrigger>
               <SelectContent>
-                {leaders.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                {normalizeList(leaders).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

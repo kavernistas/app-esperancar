@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
 import {
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
   Loader2, Zap, Server, Database, Phone,
   RefreshCw, BellRing, HardDrive, FileText
@@ -34,9 +44,9 @@ export default function SaudeSistema() {
         Promise.resolve([]),
       ]);
 
-      const overdueMissions = Array.isArray(missions) ? missions.filter(m => m.status === "OVERDUE" || m.status === "overdue").length : 0;
-      const pendingMissions = Array.isArray(missions) ? missions.filter(m => m.status === "PENDING" || m.status === "pending" || m.status === "in_progress").length : 0;
-      const inactiveLeaders = Array.isArray(leaders) ? leaders.filter(l => l.status !== "active").length : 0;
+      const overdueMissions = Array.isArray(missions) ? normalizeList(missions).filter(m => m.status === "OVERDUE" || m.status === "overdue").length : 0;
+      const pendingMissions = Array.isArray(missions) ? normalizeList(missions).filter(m => m.status === "PENDING" || m.status === "pending" || m.status === "in_progress").length : 0;
+      const inactiveLeaders = Array.isArray(leaders) ? normalizeList(leaders).filter(l => l.status !== "active").length : 0;
 
       // TSE sync stats
       const tseStatuses = syncStatuses?.data?.statuses || [];
@@ -48,8 +58,8 @@ export default function SaudeSistema() {
 
       // Missions sem atualização (mais de 7 dias)
       const staleMissions = Array.isArray(missions)
-        ? missions.filter(m => {
-            const updated = new Date(m.updated_date);
+        ? normalizeList(missions).filter(m => {
+            const updated = new Date(m.updated_at);
             return (Date.now() - updated.getTime()) > 7 * 24 * 60 * 60 * 1000 && m.status === "PENDING" || m.status === "pending";
           }).length
         : 0;

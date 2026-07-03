@@ -27,9 +27,19 @@ import DemandCard from "@/components/demands/DemandCard";
 import DemandForm from "@/components/demands/DemandForm";
 import * as demandsApi from '@/api/demands';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const exportDemandsCSV = (demands) => {
   const headers = ["Título","Tipo","Descrição","Solicitante","Telefone","Email","Cidade","Bairro","Prioridade","Status","Responsável","Prazo"];
-  const rows = demands.map(d => [
+  const rows = normalizeList(demands).map(d => [
     d.title||"", d.type||"", d.description||"", d.requester_name||"", d.requester_phone||"",
     d.requester_email||"", d.city||"", d.neighborhood||"", d.priority||"", d.status||"",
     d.responsible||"", d.due_date||""
@@ -97,7 +107,7 @@ export default function Demands() {
   };
 
   const handleAddComment = async (demandId, text) => {
-    const demand = demands.find(d => d.id === demandId);
+    const demand = normalizeList(demands).find(d => d.id === demandId);
     if (!demand) return;
     const entry = { date: new Date().toISOString(), action: "comment", user: "Admin", new_value: text };
     await updateMutation.mutateAsync({ id: demandId, data: { history: [...(demand.history || []), entry] } });
@@ -107,7 +117,7 @@ export default function Demands() {
     setDeleteDemand(demand);
   };
 
-  const filteredDemands = demands.filter((demand) => {
+  const filteredDemands = normalizeList(demands).filter((demand) => {
     const matchesSearch =
       search === "" ||
       demand.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -123,10 +133,10 @@ export default function Demands() {
   });
 
   // Stats
-  const openCount = demands.filter(d => d.status === "OPEN" || d.status === "open").length;
-  const inProgressCount = demands.filter(d => d.status === "IN_PROGRESS" || d.status === "in_progress").length;
-  const resolvedCount = demands.filter(d => d.status === "RESOLVED" || d.status === "resolved").length;
-  const urgentCount = demands.filter(d => d.priority === "urgent" && d.status !== "resolved").length;
+  const openCount = normalizeList(demands).filter(d => d.status === "OPEN" || d.status === "open").length;
+  const inProgressCount = normalizeList(demands).filter(d => d.status === "IN_PROGRESS" || d.status === "in_progress").length;
+  const resolvedCount = normalizeList(demands).filter(d => d.status === "RESOLVED" || d.status === "resolved").length;
+  const urgentCount = normalizeList(demands).filter(d => d.priority === "urgent" && d.status !== "resolved").length;
 
   if (isLoading) {
     return (
@@ -253,10 +263,10 @@ export default function Demands() {
 
         <Tabs value={statusFilter} onValueChange={setStatusFilter}>
           <TabsList>
-            <TabsTrigger value="all">Todas ({demands.length})</TabsTrigger>
+            <TabsTrigger value="all">Todas ({normalizeList(demands).length})</TabsTrigger>
             <TabsTrigger value="open">Abertas ({openCount})</TabsTrigger>
             <TabsTrigger value="in_progress">Em Andamento ({inProgressCount})</TabsTrigger>
-            <TabsTrigger value="pending">Pendentes ({demands.filter(d => d.status === "PENDING" || d.status === "pending").length})</TabsTrigger>
+            <TabsTrigger value="pending">Pendentes ({normalizeList(demands).filter(d => d.status === "PENDING" || d.status === "pending").length})</TabsTrigger>
             <TabsTrigger value="resolved">Resolvidas ({resolvedCount})</TabsTrigger>
           </TabsList>
         </Tabs>

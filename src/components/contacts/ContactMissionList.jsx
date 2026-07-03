@@ -51,7 +51,7 @@ export default function ContactMissionList({ contactId }) {
     return <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 text-slate-400 animate-spin" /></div>;
   }
 
-  if (missions.length === 0) {
+  if (normalizeList(missions).length === 0) {
     return (
       <p className="text-sm text-slate-400 text-center py-4">
         Este contato não participa de nenhuma missão ativa.
@@ -61,7 +61,7 @@ export default function ContactMissionList({ contactId }) {
 
   return (
     <div className="space-y-2 max-h-64 overflow-y-auto">
-      {missions.map(m => (
+      {normalizeList(missions).map(m => (
         <div key={m.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 text-sm">
           <div className="flex items-center gap-2 min-w-0">
             <Target className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />

@@ -23,9 +23,18 @@ import * as missionsApi from '@/api/missions';
 import * as demandsApi from '@/api/demands';
 import * as contactsApi from '@/api/contacts';
 import {
+
   Home, UserPlus, Users, ClipboardList, Target, Trophy,
   Sparkles, BarChart3, Send, Plus, X, Star
 } from "lucide-react";
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
 
 export default function PortalLideranca() {
   const [user, setUser] = useState(null);
@@ -281,11 +290,11 @@ export default function PortalLideranca() {
 
   // Stats
   const stats = {
-    supporters: contacts.length,
-    openDemands: demands.filter(d => d.status === "open").length,
-    resolvedDemands: demands.filter(d => d.status === "resolved").length,
-    pendingMissions: missions.filter(m => m.status === "pending").length,
-    completedMissions: missions.filter(m => m.status === "completed").length,
+    supporters: normalizeList(contacts).length,
+    openDemands: normalizeList(demands).filter(d => d.status === "open").length,
+    resolvedDemands: normalizeList(demands).filter(d => d.status === "resolved").length,
+    pendingMissions: normalizeList(missions).filter(m => m.status === "pending").length,
+    completedMissions: normalizeList(missions).filter(m => m.status === "completed").length,
     points: gamification?.total_points || 0,
     weeklyPoints: gamification?.weekly_points || 0,
     neighborhood: gamification?.neighborhood,

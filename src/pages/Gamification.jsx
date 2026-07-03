@@ -18,6 +18,16 @@ import * as gamificationApi from '@/api/gamification';
 import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 export default function Gamification() {
   const [missions, setMissions] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -52,20 +62,20 @@ export default function Gamification() {
 
   const stats = {
     totalPoints: profiles.reduce((s, p) => s + (p.total_points || 0), 0),
-    missionsCompleted: missions.filter((m) => m.status === "COMPLETED" || m.status === "completed").length,
-    missionsPending: missions.filter((m) => m.status === "pending").length,
-    missionsOverdue: missions.filter((m) => m.status === "overdue").length,
-    completionRate: missions.length > 0 ? Math.round((missions.filter((m) => m.status === "COMPLETED" || m.status === "completed").length / missions.length) * 100) : 0,
+    missionsCompleted: normalizeList(missions).filter((m) => m.status === "COMPLETED" || m.status === "completed").length,
+    missionsPending: normalizeList(missions).filter((m) => m.status === "pending").length,
+    missionsOverdue: normalizeList(missions).filter((m) => m.status === "overdue").length,
+    completionRate: normalizeList(missions).length > 0 ? Math.round((normalizeList(missions).filter((m) => m.status === "COMPLETED" || m.status === "completed").length / normalizeList(missions).length) * 100) : 0,
     activeLeaders: profiles.length,
   };
 
-  const filteredMissions = missions.filter((m) => {
+  const filteredMissions = normalizeList(missions).filter((m) => {
     if (statusFilter !== "all" && m.status !== statusFilter) return false;
     if (neighborhoodFilter !== "all" && m.neighborhood !== neighborhoodFilter) return false;
     return true;
   });
 
-  const neighborhoods = [...new Set(missions.map((m) => m.neighborhood).filter(Boolean))];
+  const neighborhoods = [...new Set(normalizeList(missions).map((m) => m.neighborhood).filter(Boolean))];
 
   const getRankings = () => {
     let source = [...profiles];
@@ -119,7 +129,7 @@ export default function Gamification() {
           });
         }
         // Collect for WhatsApp notification
-        const leaderContact = leaders.find(l => l.id === leader.id);
+        const leaderContact = normalizeList(leaders).find(l => l.id === leader.id);
         if (leaderContact?.phone) {
           notifyRecipients.push({ phone: leaderContact.phone, name: leader.name, missionId: parent.id });
         }
@@ -136,7 +146,7 @@ export default function Gamification() {
           });
         }
         // Collect for WhatsApp notification
-        const leaderContact = leaders.find(l => l.id === data.leader_id);
+        const leaderContact = normalizeList(leaders).find(l => l.id === data.leader_id);
         if (leaderContact?.phone) {
           notifyRecipients.push({ phone: leaderContact.phone, name: data.leader_name, missionId: created.id });
         }
@@ -216,7 +226,7 @@ export default function Gamification() {
   };
 
   const handleEditSave = async (missionId, changes, historyEntries) => {
-    const existingMission = missions.find((m) => m.id === missionId);
+    const existingMission = normalizeList(missions).find((m) => m.id === missionId);
     const existingHistory = existingMission?.history || [];
     await missionsApi.updateMission(missionId, {
       ...changes,
@@ -250,18 +260,18 @@ export default function Gamification() {
 
   const handleReassign = async (missionId, { mode, leader_ids }) => {
     if (leader_ids.length === 1) {
-      const leader = leaders.find((l) => l.id === leader_ids[0]);
+      const leader = normalizeList(leaders).find((l) => l.id === leader_ids[0]);
       await missionsApi.updateMission(missionId, {
         leader_id: leader_ids[0],
         leader_name: leader?.name || "",
         neighborhood: leader?.neighborhood || "",
-        history: [...(missions.find((m) => m.id === missionId)?.history || []), { date: new Date().toISOString(), action: "Reatribuição", user_name: "Admin", field: "leader_id", old_value: missions.find((m) => m.id === missionId)?.leader_id || "", new_value: leader_ids[0] }],
+        history: [...(normalizeList(missions).find((m) => m.id === missionId)?.history || []), { date: new Date().toISOString(), action: "Reatribuição", user_name: "Admin", field: "leader_id", old_value: normalizeList(missions).find((m) => m.id === missionId)?.leader_id || "", new_value: leader_ids[0] }],
       });
     } else {
       // Reatribuir para múltiplas lideranças
-      const original = missions.find((m) => m.id === missionId);
+      const original = normalizeList(missions).find((m) => m.id === missionId);
       for (const lid of leader_ids) {
-        const leader = leaders.find((l) => l.id === lid);
+        const leader = normalizeList(leaders).find((l) => l.id === lid);
         await missionsApi.createMission({
           title: original?.title || "",
           description: original?.description || "",
@@ -280,7 +290,7 @@ export default function Gamification() {
   };
 
   const handleSendWhatsApp = (mission) => {
-    const leader = leaders.find((l) => l.id === mission.leader_id);
+    const leader = normalizeList(leaders).find((l) => l.id === mission.leader_id);
     setWhatsappMission(mission);
     setWhatsappLeader(leader || { name: mission.leader_name, phone: null });
   };

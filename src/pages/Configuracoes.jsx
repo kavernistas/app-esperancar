@@ -250,9 +250,9 @@ export default function Configuracoes() {
       const data = {
         export_date: new Date().toISOString(),
         user_profile: { full_name: user.full_name, email: user.email, role: user.role },
-        contacts: contacts.length,
-        demands: demands.length,
-        missions: missions.length,
+        contacts: normalizeList(contacts).length,
+        demands: normalizeList(demands).length,
+        missions: normalizeList(missions).length,
         raw: { contacts, demands, missions },
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });

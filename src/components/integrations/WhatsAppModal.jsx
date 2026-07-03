@@ -24,6 +24,16 @@ import {
 
 import * as contactsApi from '@/api/contacts';
 import {
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   AlertCircle,
   CheckCircle2,
   Eye,
@@ -78,7 +88,7 @@ export default function WhatsAppModal({ open, onOpenChange, selectedContacts = [
     enabled: open,
   });
 
-  const cities = [...new Set(contacts.map(c => c.city).filter(Boolean))];
+  const cities = [...new Set(normalizeList(contacts).map(c => c.city).filter(Boolean))];
 
   const charCount = message.length;
   const hasName = message.includes("{{nome}}");

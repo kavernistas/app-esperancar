@@ -22,6 +22,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 // Fix default marker
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -112,7 +122,7 @@ export default function ElectoralMap() {
 
   // --- Apply CRM filters ---
   const filteredContacts = useMemo(() => {
-    let result = contacts.filter(c => c.latitude && c.longitude);
+    let result = normalizeList(contacts).filter(c => c.latitude && c.longitude);
     if (filterBairro) result = result.filter(c => c.neighborhood === filterBairro);
     if (filterZona) result = result.filter(c => c.electoral_zone === filterZona);
     if (filterSecao) result = result.filter(c => c.electoral_section === filterSecao);
@@ -128,7 +138,7 @@ export default function ElectoralMap() {
   }, [leadersRaw, filterBairro, filterZona]);
 
   const filteredDemands = useMemo(() => {
-    let result = demands.filter(d => d.latitude && d.longitude);
+    let result = normalizeList(demands).filter(d => d.latitude && d.longitude);
     if (filterBairro) result = result.filter(d => d.neighborhood === filterBairro);
     if (filterLeaderId) result = result.filter(d => d.created_by_leader_id === filterLeaderId);
     return result;
@@ -153,30 +163,30 @@ export default function ElectoralMap() {
 
   // --- Extract filter options from data ---
   const bairros = useMemo(() => [...new Set([
-    ...contacts.map(c => c.neighborhood),
+    ...normalizeList(contacts).map(c => c.neighborhood),
     ...leadersRaw.map(l => l.neighborhood),
-    ...demands.map(d => d.neighborhood),
+    ...normalizeList(demands).map(d => d.neighborhood),
     ...Object.keys(neighborhoodStats),
   ].filter(Boolean))].sort(), [contacts, leadersRaw, demands, neighborhoodStats]);
 
   const zonas = useMemo(() => [...new Set([
-    ...contacts.map(c => c.electoral_zone),
+    ...normalizeList(contacts).map(c => c.electoral_zone),
     ...leadersRaw.map(l => l.electoral_zone),
   ].filter(Boolean))].sort(), [contacts, leadersRaw]);
 
   const secoes = useMemo(() => [...new Set(
-    contacts.map(c => c.electoral_section).filter(Boolean)
+    normalizeList(contacts).map(c => c.electoral_section).filter(Boolean)
   )].sort(), [contacts]);
 
   const leadersForFilter = useMemo(() => [
     ...leadersRaw.map(l => ({ id: l.id, name: l.name })),
-    ...contacts.filter(c => c.is_leader).map(c => ({ id: c.id, name: c.full_name })),
+    ...normalizeList(contacts).filter(c => c.is_leader).map(c => ({ id: c.id, name: c.full_name })),
   ], [leadersRaw, contacts]);
 
   // Contacts/leaders count by neighborhood for side panel
   const crmByNeighborhood = useMemo(() => {
     const map = {};
-    contacts.forEach(c => {
+    normalizeList(contacts).forEach(c => {
       if (!c.neighborhood) return;
       if (!map[c.neighborhood]) map[c.neighborhood] = { contacts: 0, leaders: 0, demands: 0 };
       map[c.neighborhood].contacts++;
@@ -186,7 +196,7 @@ export default function ElectoralMap() {
       if (!map[l.neighborhood]) map[l.neighborhood] = { contacts: 0, leaders: 0, demands: 0 };
       map[l.neighborhood].leaders++;
     });
-    demands.forEach(d => {
+    normalizeList(demands).forEach(d => {
       if (!d.neighborhood) return;
       if (!map[d.neighborhood]) map[d.neighborhood] = { contacts: 0, leaders: 0, demands: 0 };
       map[d.neighborhood].demands++;
@@ -243,8 +253,8 @@ export default function ElectoralMap() {
           { icon: Vote, label: "Votos Totais", value: totalVotes.toLocaleString(), color: "text-blue-600", bg: "bg-blue-50" },
           { icon: Users, label: "Eleitores", value: totalVoters.toLocaleString(), color: "text-emerald-600", bg: "bg-emerald-50" },
           { icon: MapPin, label: "Bairros Mapeados", value: uniqueNeighborhoods, color: "text-purple-600", bg: "bg-purple-50" },
-          { icon: UserCheck, label: "Contatos Geo", value: contacts.filter(c => c.latitude && c.longitude).length, color: "text-blue-600", bg: "bg-blue-50" },
-          { icon: ClipboardList, label: "Demandas Geo", value: demands.filter(d => d.latitude && d.longitude).length, color: "text-orange-600", bg: "bg-orange-50" },
+          { icon: UserCheck, label: "Contatos Geo", value: normalizeList(contacts).filter(c => c.latitude && c.longitude).length, color: "text-blue-600", bg: "bg-blue-50" },
+          { icon: ClipboardList, label: "Demandas Geo", value: normalizeList(demands).filter(d => d.latitude && d.longitude).length, color: "text-orange-600", bg: "bg-orange-50" },
         ].map((s, i) => (
           <Card key={i} className={`border-slate-200 ${s.bg} border-none`}>
             <CardContent className="p-3">

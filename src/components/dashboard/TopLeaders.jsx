@@ -27,7 +27,7 @@ export default function TopLeaders({ leaders }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {leaders.length === 0 ? (
+          {normalizeList(leaders).length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-8">
               Nenhuma liderança cadastrada
             </p>

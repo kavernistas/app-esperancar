@@ -8,6 +8,16 @@ import { Search, Phone, MapPin, Edit, MessageCircle, UserCheck, Car, Home, Targe
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const intentColors = {
   apoiador: "bg-emerald-100 text-emerald-700",
   indeciso: "bg-amber-100 text-amber-700",
@@ -29,7 +39,7 @@ export default function MinhaBase({ contacts, onEdit, onAddInteraction, onSendWh
   const [filterIntent, setFilterIntent] = useState("");
   const [filterPhone, setFilterPhone] = useState("");
 
-  const bairros = [...new Set(contacts.map(c => c.neighborhood).filter(Boolean))];
+  const bairros = [...new Set(normalizeList(contacts).map(c => c.neighborhood).filter(Boolean))];
   const allTags = [...new Set(contacts.flatMap(c => c.tags || []).filter(Boolean))];
 
   let filtered = contacts || [];

@@ -52,7 +52,7 @@ export default function ElectoralConsult() {
 
   const loadSyncStatus = useCallback(async () => {
     try {
-      const res = await tseApi.getData({ action: "status", ano: "", uf: "" });
+      const res = await fetch('/api/v1/tse/sync-status').then(r => r.ok ? r.json() : { success:false, statuses:[] });
       if (res.data?.success) setSyncStatuses(res.data.statuses || []);
     } catch (e) {
       console.error("Erro ao carregar status:", e);

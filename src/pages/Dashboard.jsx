@@ -12,6 +12,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 export default function Dashboard() {
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
     queryKey: ["contacts"],
@@ -36,19 +46,19 @@ export default function Dashboard() {
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingActions;
 
   // Calculate stats
-  const totalContacts = contacts.length;
-  const activeLeaders = leaders.filter(l => l.status === "ACTIVE" || l.status === "active").length;
-  const openDemands = demands.filter(d => d.status === "OPEN" || d.status === "open" || d.status === "IN_PROGRESS" || d.status === "in_progress").length;
-  const totalSupporters = leaders.reduce((sum, l) => sum + (l.supporters_count || 0), 0);
+  const totalContacts = normalizeList(contacts).length;
+  const activeLeaders = normalizeList(leaders).filter(l => l.status === "ACTIVE" || l.status === "active").length;
+  const openDemands = normalizeList(demands).filter(d => d.status === "OPEN" || d.status === "open" || d.status === "IN_PROGRESS" || d.status === "in_progress").length;
+  const totalSupporters = normalizeList(leaders).reduce((sum, l) => sum + (l.supporters_count || 0), 0);
 
   // Demands by status
-  const demandsByStatus = demands.reduce((acc, d) => {
+  const demandsByStatus = normalizeList(demands).reduce((acc, d) => {
     acc[d.status] = (acc[d.status] || 0) + 1;
     return acc;
   }, {});
 
   // Engagement by neighborhood
-  const neighborhoodData = contacts.reduce((acc, c) => {
+  const neighborhoodData = normalizeList(contacts).reduce((acc, c) => {
     if (c.neighborhood) {
       if (!acc[c.neighborhood]) {
         acc[c.neighborhood] = { contacts: 0, leaders: 0 };
@@ -58,7 +68,7 @@ export default function Dashboard() {
     return acc;
   }, {});
 
-  leaders.forEach(l => {
+  normalizeList(leaders).forEach(l => {
     if (l.neighborhood && neighborhoodData[l.neighborhood]) {
       neighborhoodData[l.neighborhood].leaders++;
     }

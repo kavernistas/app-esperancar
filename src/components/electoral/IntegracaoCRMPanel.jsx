@@ -7,6 +7,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 import {
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   Link2, Users, UserCheck, ClipboardList, Target, Phone, MapPin, Loader2, BarChart3
 } from "lucide-react";
 
@@ -28,16 +38,16 @@ export default function IntegracaoCRMPanel({ syncStatuses, filters }) {
         demandsApi.listDemands({ sort: "-created_at", limit: 100 }),
       ]);
       setCrmData({
-        totalLeaders: leaders.length,
-        activeLeaders: leaders.filter(l => l.status === "active").length,
-        totalMissions: missions.length,
-        completedMissions: missions.filter(m => m.status === "completed").length,
-        pendingMissions: missions.filter(m => m.status === "pending").length,
-        totalContacts: contacts.length,
-        totalDemands: demands.length,
-        openDemands: demands.filter(d => d.status === "open").length,
-        demandsByType: demands.reduce((acc, d) => { acc[d.type] = (acc[d.type] || 0) + 1; return acc; }, {}),
-        contactsByNeighborhood: contacts.reduce((acc, c) => { if (c.neighborhood) { acc[c.neighborhood] = (acc[c.neighborhood] || 0) + 1; } return acc; }, {}),
+        totalLeaders: normalizeList(leaders).length,
+        activeLeaders: normalizeList(leaders).filter(l => l.status === "active").length,
+        totalMissions: normalizeList(missions).length,
+        completedMissions: normalizeList(missions).filter(m => m.status === "completed").length,
+        pendingMissions: normalizeList(missions).filter(m => m.status === "pending").length,
+        totalContacts: normalizeList(contacts).length,
+        totalDemands: normalizeList(demands).length,
+        openDemands: normalizeList(demands).filter(d => d.status === "open").length,
+        demandsByType: normalizeList(demands).reduce((acc, d) => { acc[d.type] = (acc[d.type] || 0) + 1; return acc; }, {}),
+        contactsByNeighborhood: normalizeList(contacts).reduce((acc, c) => { if (c.neighborhood) { acc[c.neighborhood] = (acc[c.neighborhood] || 0) + 1; } return acc; }, {}),
       });
     } catch (e) {
       console.error("Erro ao carregar dados CRM:", e);

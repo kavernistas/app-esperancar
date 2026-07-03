@@ -4,7 +4,7 @@
 import api from './client';
 
 export async function getSyncStatus(ano, uf) {
-  return api.get('/tse/sync-status', { ano, uf });
+  return api.get('/api/v1/tse/sync-status', { ano, uf });
 }
 
 export async function queryVotes(params) {

@@ -13,6 +13,16 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   Users, MapPin, Tag, Send, X, Eye, Filter, Plus,
   ListChecks
 } from "lucide-react";
@@ -88,12 +98,12 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
   const [showPreview, setShowPreview] = useState(false);
 
   const neighborhoods = useMemo(() =>
-    [...new Set(leaders.map((l) => l.neighborhood).filter(Boolean))].sort(),
+    [...new Set(normalizeList(leaders).map((l) => l.neighborhood).filter(Boolean))].sort(),
   [leaders]);
 
   // Filter leaders based on assignment type
   const previewRecipients = useMemo(() => {
-    let filtered = leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE");
+    let filtered = normalizeList(leaders).filter((l) => (l.status || "").toUpperCase() === "ACTIVE");
     switch (assignmentType) {
       case "individual":
         return selectedLeader ? filtered.filter((l) => l.id === selectedLeader) : [];
@@ -291,7 +301,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
               <Select value={selectedLeader} onValueChange={setSelectedLeader}>
                 <SelectTrigger><SelectValue placeholder="Escolher liderança" /></SelectTrigger>
                 <SelectContent>
-                  {leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => (
+                  {normalizeList(leaders).filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => (
                     <SelectItem key={l.id} value={l.id}>{l.name} {l.neighborhood ? `(${l.neighborhood})` : ""}</SelectItem>
                   ))}
                 </SelectContent>

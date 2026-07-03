@@ -6,6 +6,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Users, MapPin, Tag } from "lucide-react";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 export default function MissionReassignModal({ open, onClose, mission, leaders, onReassign }) {
   const [mode, setMode] = useState("individual");
   const [targetLeader, setTargetLeader] = useState("");
@@ -13,7 +23,7 @@ export default function MissionReassignModal({ open, onClose, mission, leaders, 
   const [targetSegments, setTargetSegments] = useState([]);
 
   const SEGMENTS = ["Juventude","Mulheres","Saúde","Educação","Cultura","Esporte","Religião","Sindical","Comerciantes","Servidores públicos","Lideranças comunitárias","Influenciadores digitais"];
-  const neighborhoods = [...new Set(leaders.map((l) => l.neighborhood).filter(Boolean))].sort();
+  const neighborhoods = [...new Set(normalizeList(leaders).map((l) => l.neighborhood).filter(Boolean))].sort();
 
   useEffect(() => {
     if (open) {
@@ -27,9 +37,9 @@ export default function MissionReassignModal({ open, onClose, mission, leaders, 
   const getTargetLeaders = () => {
     switch (mode) {
       case "individual": return targetLeader ? [targetLeader] : [];
-      case "neighborhood_group": return leaders.filter((l) => targetNeighborhoods.includes(l.neighborhood)).map((l) => l.id);
-      case "segment_group": return leaders.filter((l) => targetSegments.includes(l.segment)).map((l) => l.id);
-      case "all": return leaders.filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => l.id);
+      case "neighborhood_group": return normalizeList(leaders).filter((l) => targetNeighborhoods.includes(l.neighborhood)).map((l) => l.id);
+      case "segment_group": return normalizeList(leaders).filter((l) => targetSegments.includes(l.segment)).map((l) => l.id);
+      case "all": return normalizeList(leaders).filter((l) => (l.status || "").toUpperCase() === "ACTIVE").map((l) => l.id);
       default: return [];
     }
   };
@@ -76,7 +86,7 @@ export default function MissionReassignModal({ open, onClose, mission, leaders, 
               <Select value={targetLeader} onValueChange={setTargetLeader}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
-                  {leaders.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                  {normalizeList(leaders).map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

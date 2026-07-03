@@ -27,6 +27,16 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 import {
+
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
   BarChart3,
   Users,
   Vote,
@@ -66,7 +76,7 @@ export default function Reports() {
   const isLoading = loadingContacts || loadingLeaders || loadingDemands || loadingElectoral || loadingActions;
 
   // Data processing
-  const contactsByCity = contacts.reduce((acc, c) => {
+  const contactsByCity = normalizeList(contacts).reduce((acc, c) => {
     const city = c.city || "Não informado";
     acc[city] = (acc[city] || 0) + 1;
     return acc;
@@ -77,7 +87,7 @@ export default function Reports() {
     .slice(0, 10)
     .map(([name, value]) => ({ name, value }));
 
-  const demandsByType = demands.reduce((acc, d) => {
+  const demandsByType = normalizeList(demands).reduce((acc, d) => {
     const type = d.type || "other";
     acc[type] = (acc[type] || 0) + 1;
     return acc;
@@ -88,7 +98,7 @@ export default function Reports() {
     value,
   }));
 
-  const demandsByStatus = demands.reduce((acc, d) => {
+  const demandsByStatus = normalizeList(demands).reduce((acc, d) => {
     const status = d.status || "open";
     acc[status] = (acc[status] || 0) + 1;
     return acc;
@@ -99,7 +109,7 @@ export default function Reports() {
     value,
   }));
 
-  const leadersByStrength = leaders.reduce((acc, l) => {
+  const leadersByStrength = normalizeList(leaders).reduce((acc, l) => {
     const strength = l.political_strength || "medium";
     acc[strength] = (acc[strength] || 0) + 1;
     return acc;
@@ -122,10 +132,10 @@ export default function Reports() {
     .map(([name, votes]) => ({ name, votes }));
 
   const engagementDistribution = [
-    { name: "0-25%", value: contacts.filter((c) => (c.engagement_level || 0) <= 25).length },
-    { name: "26-50%", value: contacts.filter((c) => (c.engagement_level || 0) > 25 && (c.engagement_level || 0) <= 50).length },
-    { name: "51-75%", value: contacts.filter((c) => (c.engagement_level || 0) > 50 && (c.engagement_level || 0) <= 75).length },
-    { name: "76-100%", value: contacts.filter((c) => (c.engagement_level || 0) > 75).length },
+    { name: "0-25%", value: normalizeList(contacts).filter((c) => (c.engagement_level || 0) <= 25).length },
+    { name: "26-50%", value: normalizeList(contacts).filter((c) => (c.engagement_level || 0) > 25 && (c.engagement_level || 0) <= 50).length },
+    { name: "51-75%", value: normalizeList(contacts).filter((c) => (c.engagement_level || 0) > 50 && (c.engagement_level || 0) <= 75).length },
+    { name: "76-100%", value: normalizeList(contacts).filter((c) => (c.engagement_level || 0) > 75).length },
   ];
 
   if (isLoading) {
@@ -163,7 +173,7 @@ export default function Reports() {
               </div>
               <div>
                 <p className="text-sm text-slate-500">Contatos</p>
-                <p className="text-2xl font-bold">{contacts.length}</p>
+                <p className="text-2xl font-bold">{normalizeList(contacts).length}</p>
               </div>
             </div>
           </CardContent>
@@ -176,7 +186,7 @@ export default function Reports() {
               </div>
               <div>
                 <p className="text-sm text-slate-500">Lideranças</p>
-                <p className="text-2xl font-bold">{leaders.length}</p>
+                <p className="text-2xl font-bold">{normalizeList(leaders).length}</p>
               </div>
             </div>
           </CardContent>
@@ -189,7 +199,7 @@ export default function Reports() {
               </div>
               <div>
                 <p className="text-sm text-slate-500">Demandas</p>
-                <p className="text-2xl font-bold">{demands.length}</p>
+                <p className="text-2xl font-bold">{normalizeList(demands).length}</p>
               </div>
             </div>
           </CardContent>

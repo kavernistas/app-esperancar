@@ -3,6 +3,16 @@ import { Calendar as CalIcon } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const statusColors = {
@@ -20,7 +30,7 @@ export default function PlanningCalendar({ actions }) {
   const startDay = getDay(monthStart);
 
   const actionsByDate = {};
-  actions.forEach(a => {
+  normalizeList(actions).forEach(a => {
     if (a.start_date) {
       const key = a.start_date.split("T")[0];
       if (!actionsByDate[key]) actionsByDate[key] = [];

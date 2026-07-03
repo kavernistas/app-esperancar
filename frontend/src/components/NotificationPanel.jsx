@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  return [];
+};
+
+
 export default function NotificationPanel() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +37,8 @@ export default function NotificationPanel() {
   return (
     <div>
       <h2>Notification Panel</h2>
-      {notifications.length > 0 ? (
-        <ul>{notifications.map(n => <li key={n.id}>{n.title || `Notificação ${n.id}`}</li>)}</ul>
+      {normalizeList(notifications).length > 0 ? (
+        <ul>{normalizeList(notifications).map(n => <li key={n.id}>{n.title || `Notificação ${n.id}`}</li>)}</ul>
       ) : (
         <p>Nenhuma notificação.</p>
       )}

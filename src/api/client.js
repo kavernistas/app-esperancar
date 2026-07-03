@@ -143,7 +143,7 @@ export const api = {
 
 // TSE API
 export const tseApi = {
-  getData: (params = {}) => request('/tse/sync-status', { method: 'GET', params }),
+  getData: (params = {}) => request('/api/v1/tse/sync-status', { method: 'GET', params }),
   getSyncStatus: (limit = 50, uf = '') => request('/v1/tse/sync-status', { method: 'GET', params: { limit, uf } }),
   listSyncStatus: () => request('/v1/tse/sync-status/list'),
   queryVotes: (params = {}) => request('/v1/tse/votes', { method: 'GET', params }),
