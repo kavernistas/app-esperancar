@@ -28,54 +28,56 @@ enum OrgStatus {
 }
 
 model Organization {
-  id         String    @id @default(uuid())
-  name       String
-  slug       String    @unique
-  document   String?
-  address    String?
-  phone      String?
-  email      String?
-  logo_url   String?
-  plan       OrgPlan   @default(free)
-  status     OrgStatus @default(active)
-  settings   Json?     @default("{}")
-  owner_id   String?
+  id       String    @id @default(uuid())
+  name     String
+  slug     String    @unique
+  document String?
+  address  String?
+  phone    String?
+  email    String?
+  logo_url String?
+  plan     OrgPlan   @default(free)
+  status   OrgStatus @default(active)
+  settings Json?     @default("{}")
+  owner_id String?
 
   // Relations
-  users      User[]
-  campaigns  Campaign[]
-  contacts   Contact[]
-  demands    Demand[]
-  missions   Mission[]
-  teams                  Team[]
-  memberships            Membership[]
-  invitations            Invitation[]
-  audit_logs             AuditLog[]
-  events     InternalEvent[]
+  users       User[]
+  campaigns   Campaign[]
+  contacts    Contact[]
+  demands     Demand[]
+  missions    Mission[]
+  teams       Team[]
+  memberships Membership[]
+  invitations Invitation[]
+  audit_logs  AuditLog[]
+  events      InternalEvent[]
 
   // Timestamps
-  created_at DateTime  @default(now()) @map("created_at")
-  updated_at DateTime  @updatedAt @map("updated_at")
+  created_at             DateTime                 @default(now()) @map("created_at")
+  updated_at             DateTime                 @updatedAt @map("updated_at")
+  Notification           Notification[]
+  NotificationPreference NotificationPreference[]
 
   @@index([slug])
   @@map("organizations")
 }
 
 model Membership {
-  id              String   @id @default(uuid())
-  user_id         String   @map("user_id")
-  campaign_id     String?  @map("campaign_id")
-  organization_id String?  @map("organization_id")
-  role            String   @default("OPERATOR")
-  permissions     Json?    @default("[]")
-  territories     Json?    @default("[]")
-  is_active       Boolean  @default(true)
-  joined_at       DateTime @default(now()) @map("joined_at")
+  id              String    @id @default(uuid())
+  user_id         String    @map("user_id")
+  campaign_id     String?   @map("campaign_id")
+  organization_id String?   @map("organization_id")
+  role            String    @default("OPERATOR")
+  permissions     Json?     @default("[]")
+  territories     Json?     @default("[]")
+  is_active       Boolean   @default(true)
+  joined_at       DateTime  @default(now()) @map("joined_at")
   left_at         DateTime? @map("left_at")
 
-  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  campaign  Campaign?  @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
-  org       Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaign Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  org      Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([campaign_id])
@@ -88,21 +90,21 @@ model Membership {
 // =============================================
 
 model Team {
-  id              String   @id @default(uuid())
-  organization_id String   @map("organization_id")
-  campaign_id     String?  @map("campaign_id")
+  id              String  @id @default(uuid())
+  organization_id String  @map("organization_id")
+  campaign_id     String? @map("campaign_id")
   name            String
   description     String?
-  active          Boolean  @default(true)
+  active          Boolean @default(true)
   created_by      String?
 
-  created_at      DateTime @default(now()) @map("created_at")
-  updated_at      DateTime @updatedAt @map("updated_at")
-  deleted_at      DateTime? @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
-  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  campaign        Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
-  members         TeamMembership[]
+  organization Organization?    @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  campaign     Campaign?        @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  members      TeamMembership[]
 
   @@index([organization_id])
   @@index([campaign_id])
@@ -110,16 +112,16 @@ model Team {
 }
 
 model TeamMembership {
-  id         String   @id @default(uuid())
-  team_id    String   @map("team_id")
-  user_id    String   @map("user_id")
-  role       String?  @default("MEMBER")
-  active     Boolean  @default(true)
-  joined_at  DateTime @default(now()) @map("joined_at")
-  left_at    DateTime? @map("left_at")
+  id        String    @id @default(uuid())
+  team_id   String    @map("team_id")
+  user_id   String    @map("user_id")
+  role      String?   @default("MEMBER")
+  active    Boolean   @default(true)
+  joined_at DateTime  @default(now()) @map("joined_at")
+  left_at   DateTime? @map("left_at")
 
-  team       Team     @relation(fields: [team_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([team_id, user_id])
   @@index([user_id])
@@ -137,10 +139,10 @@ model Invitation {
   accepted_at     DateTime? @map("accepted_at")
   invited_by      String
 
-  created_at      DateTime  @default(now()) @map("created_at")
+  created_at DateTime @default(now()) @map("created_at")
 
-  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  campaign        Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  campaign     Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
 
   @@index([organization_id])
   @@index([email])
@@ -148,8 +150,8 @@ model Invitation {
 }
 
 model RolePermission {
-  id        String   @id @default(uuid())
-  role      String
+  id         String   @id @default(uuid())
+  role       String
   permission String
   created_at DateTime @default(now()) @map("created_at")
 
@@ -171,27 +173,35 @@ enum AuditAction {
 }
 
 model InternalEvent {
-  id              String   @id @default(uuid())
-  organization_id String?  @map("organization_id")
-  campaign_id     String?  @map("campaign_id")
-  user_id         String?  @map("user_id")
-  type            String
-  title           String?
-  description     String?
-  entity_type     String?
-  entity_id       String?
-  entity_label    String?
-  data            Json?
-  created_at      DateTime @default(now()) @map("created_at")
+  id              String  @id @default(uuid())
+  organization_id String? @map("organization_id")
+  campaign_id     String? @map("campaign_id")
+  user_id         String? @map("user_id")
 
-  org       Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  campaign  Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
-  user      User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  event_name       String    @map("event_name")
+  event_version    Int       @default(1) @map("event_version")
+  aggregate_type   String?   @map("aggregate_type")
+  aggregate_id     String?   @map("aggregate_id")
+  payload          Json?
+  metadata         Json?
+  correlation_id   String?   @map("correlation_id")
+  request_id       String?   @map("request_id")
+  occurred_at      DateTime  @default(now()) @map("occurred_at")
+  processed_at     DateTime? @map("processed_at")
+  processing_error String?   @map("processing_error")
+
+  org           Organization?  @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign      Campaign?      @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  notifications Notification[]
 
   @@index([organization_id])
   @@index([campaign_id])
-  @@index([type])
-  @@index([created_at])
+  @@index([event_name])
+  @@index([aggregate_type, aggregate_id])
+  @@index([correlation_id])
+  @@index([request_id])
+  @@index([occurred_at])
   @@map("internal_events")
 }
 
@@ -200,46 +210,47 @@ model InternalEvent {
 // =============================================
 
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  password_hash     String    @map("password_hash")
-  full_name         String    @map("full_name")
-  phone             String?
-  avatar_url        String?   @map("avatar_url")
-  role              Role      @default(USER)
-  profile           String?   // extended role: coordenador, lideranca, operador
-  status            UserStatus @default(ACTIVE)
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password_hash String     @map("password_hash")
+  full_name     String     @map("full_name")
+  phone         String?
+  avatar_url    String?    @map("avatar_url")
+  role          Role       @default(USER)
+  profile       String? // extended role: coordenador, lideranca, operador
+  status        UserStatus @default(ACTIVE)
 
   // Foundation V2 — organization + active campaign context
-  organization_id   String?   @map("organization_id")
-  active_campaign_id String?  @map("active_campaign_id")
+  organization_id    String? @map("organization_id")
+  active_campaign_id String? @map("active_campaign_id")
 
-  organization      Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  active_campaign   Campaign?    @relation("ActiveCampaign", fields: [active_campaign_id], references: [id], onDelete: SetNull)
-  memberships       Membership[]
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  active_campaign Campaign?     @relation("ActiveCampaign", fields: [active_campaign_id], references: [id], onDelete: SetNull)
+  memberships     Membership[]
 
   // Preferences (stored in User for simplicity, could be separate table)
-  lgpd_consent   Boolean   @default(false) @map("lgpd_consent")
-  notif_email    Boolean   @default(true) @map("notif_email")
-  sofia_enabled  Boolean   @default(true) @map("sofia_enabled")
-  ui_dark_mode   Boolean   @default(false) @map("ui_dark_mode")
-  whatsapp_status String?  @map("whatsapp_status")
-  metas          Json?     // user metadata/goals
+  lgpd_consent    Boolean @default(false) @map("lgpd_consent")
+  notif_email     Boolean @default(true) @map("notif_email")
+  sofia_enabled   Boolean @default(true) @map("sofia_enabled")
+  ui_dark_mode    Boolean @default(false) @map("ui_dark_mode")
+  whatsapp_status String? @map("whatsapp_status")
+  metas           Json? // user metadata/goals
 
   // Timestamps
-  created_at     DateTime  @default(now()) @map("created_at")
-  updated_at     DateTime  @updatedAt @map("updated_at")
-  last_login_at  DateTime? @map("last_login_at")
-  deleted_at     DateTime? @map("deleted_at")
+  created_at    DateTime  @default(now()) @map("created_at")
+  updated_at    DateTime  @updatedAt @map("updated_at")
+  last_login_at DateTime? @map("last_login_at")
+  deleted_at    DateTime? @map("deleted_at")
 
   // Relations
-  refresh_tokens RefreshToken[]
-  notifications  Notification[]
-  audit_logs     AuditLog[]
-  sent_messages  WhatsAppLog[]    @relation("SentBy")
-  files          File[]
-  team_memberships  TeamMembership[]
-  internal_events   InternalEvent[]
+  refresh_tokens           RefreshToken[]
+  notifications            Notification[]
+  notification_preferences NotificationPreference[]
+  audit_logs               AuditLog[]
+  sent_messages            WhatsAppLog[]            @relation("SentBy")
+  files                    File[]
+  team_memberships         TeamMembership[]
+  internal_events          InternalEvent[]
 
   // Preferences
   @@index([active_campaign_id])
@@ -247,12 +258,12 @@ model User {
 }
 
 model RefreshToken {
-  id          String   @id @default(uuid())
-  user_id     String   @map("user_id")
-  token       String   @unique
-  expires_at  DateTime @map("expires_at")
-  created_at  DateTime @default(now()) @map("created_at")
-  revoked_at  DateTime? @map("revoked_at")
+  id         String    @id @default(uuid())
+  user_id    String    @map("user_id")
+  token      String    @unique
+  expires_at DateTime  @map("expires_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  revoked_at DateTime? @map("revoked_at")
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -282,59 +293,59 @@ enum UserStatus {
 // =============================================
 
 model Contact {
-  id                        String   @id @default(uuid())
-  full_name                 String   @map("full_name")
-  phone                     String?
-  email                     String?
-  cep                       String?
-  city                      String?
-  neighborhood              String?
-  address_street            String?  @map("address_street")
-  address_number            String?  @map("address_number")
-  complement                String?  @map("complement")
-  state                     String?  @map("state")
-  electoral_zone            String?  @map("electoral_zone")
-  electoral_section         String?  @map("electoral_section")
-  voting_location           String?  @map("voting_location")
-  position                  String?
-  segment                   String?
-  support_intent            String?  @map("support_intent") // apoiador, indeciso, contrario, lideranca_potencial
-  contact_authorized        Boolean  @default(true) @map("contact_authorized")
-  is_leader                 Boolean  @default(false) @map("is_leader")
-  vote_goal                 Int      @default(0) @map("vote_goal")
-  converted_by_leader_id    String?  @map("converted_by_leader_id")
-  converted_by_leader_name  String?  @map("converted_by_leader_name")
-  engagement_level          Int      @default(50) @map("engagement_level")
-  visual_no_carro           Boolean  @default(false) @map("visual_no_carro")
-  visual_na_residencia      Boolean  @default(false) @map("visual_na_residencia")
-  tags                      String[] @default([])
-  notes                     String?  @db.Text
-  interactions              Json[]   @default([])
-  latitude                  Float?
-  longitude                 Float?
-  status                    ContactStatus @default(ACTIVE)
-  
+  id                       String        @id @default(uuid())
+  full_name                String        @map("full_name")
+  phone                    String?
+  email                    String?
+  cep                      String?
+  city                     String?
+  neighborhood             String?
+  address_street           String?       @map("address_street")
+  address_number           String?       @map("address_number")
+  complement               String?       @map("complement")
+  state                    String?       @map("state")
+  electoral_zone           String?       @map("electoral_zone")
+  electoral_section        String?       @map("electoral_section")
+  voting_location          String?       @map("voting_location")
+  position                 String?
+  segment                  String?
+  support_intent           String?       @map("support_intent") // apoiador, indeciso, contrario, lideranca_potencial
+  contact_authorized       Boolean       @default(true) @map("contact_authorized")
+  is_leader                Boolean       @default(false) @map("is_leader")
+  vote_goal                Int           @default(0) @map("vote_goal")
+  converted_by_leader_id   String?       @map("converted_by_leader_id")
+  converted_by_leader_name String?       @map("converted_by_leader_name")
+  engagement_level         Int           @default(50) @map("engagement_level")
+  visual_no_carro          Boolean       @default(false) @map("visual_no_carro")
+  visual_na_residencia     Boolean       @default(false) @map("visual_na_residencia")
+  tags                     String[]      @default([])
+  notes                    String?       @db.Text
+  interactions             Json[]        @default([])
+  latitude                 Float?
+  longitude                Float?
+  status                   ContactStatus @default(ACTIVE)
+
   // Audit
-  created_by_leader_id      String?  @map("created_by_leader_id")
-  created_by_leader_name    String?  @map("created_by_leader_name")
-  created_by_user_id        String?  @map("created_by_user_id")
-  assigned_to_id            String?  @map("assigned_to_id")
-  assigned_to_name          String?  @map("assigned_to_name")
+  created_by_leader_id   String? @map("created_by_leader_id")
+  created_by_leader_name String? @map("created_by_leader_name")
+  created_by_user_id     String? @map("created_by_user_id")
+  assigned_to_id         String? @map("assigned_to_id")
+  assigned_to_name       String? @map("assigned_to_name")
 
   // Foundation V2
-  organization_id           String?  @map("organization_id")
-  campaign_id               String?  @map("campaign_id")
+  organization_id String? @map("organization_id")
+  campaign_id     String? @map("campaign_id")
 
-  org       Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  campaign  Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  org      Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
 
   // Timestamps
-  created_at                DateTime @default(now()) @map("created_at")
-  updated_at                DateTime @updatedAt @map("updated_at")
-  deleted_at                DateTime? @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  demands                   Demand[]
+  demands Demand[]
 
   @@index([full_name])
   @@index([city])
@@ -357,33 +368,33 @@ enum ContactStatus {
 // =============================================
 
 model Leader {
-  id                 String        @id @default(uuid())
+  id                 String       @id @default(uuid())
   name               String
   phone              String?
   email              String?
   city               String?
   neighborhood       String?
-  electoral_zone     String?       @map("electoral_zone")
-  supporters_count   Int           @default(0) @map("supporters_count")
-  political_strength String?       @map("political_strength") // low, medium, high, very_high
-  monthly_goal       Int           @default(0) @map("monthly_goal")
-  conversions        Int           @default(0)
-  actions_completed  Int           @default(0) @map("actions_completed")
+  electoral_zone     String?      @map("electoral_zone")
+  supporters_count   Int          @default(0) @map("supporters_count")
+  political_strength String?      @map("political_strength") // low, medium, high, very_high
+  monthly_goal       Int          @default(0) @map("monthly_goal")
+  conversions        Int          @default(0)
+  actions_completed  Int          @default(0) @map("actions_completed")
   segment            String?
-  notes              String?       @db.Text
-  photo_url          String?       @map("photo_url")
+  notes              String?      @db.Text
+  photo_url          String?      @map("photo_url")
   latitude           Float?
   longitude          Float?
-  status             LeaderStatus  @default(ACTIVE)
-  
+  status             LeaderStatus @default(ACTIVE)
+
   // Timestamps
-  created_at         DateTime      @default(now()) @map("created_at")
-  updated_at         DateTime      @updatedAt @map("updated_at")
-  deleted_at         DateTime?     @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  missions           Mission[]
-  gamification       GamificationProfile?
+  missions     Mission[]
+  gamification GamificationProfile?
 
   @@index([name])
   @@index([city])
@@ -401,51 +412,51 @@ enum LeaderStatus {
 // =============================================
 
 model Demand {
-  id                     String       @id @default(uuid())
-  title                  String
-  protocol               String?      @unique
-  type                   DemandType
-  description            String?      @db.Text
-  requester_name         String?      @map("requester_name")
-  requester_phone        String?      @map("requester_phone")
-  requester_email        String?      @map("requester_email")
-  cep                    String?      @map("cep")
-  address                String?
-  city                   String?
-  neighborhood           String?
-  latitude               Float?
-  longitude              Float?
-  priority               DemandPriority @default(MEDIUM)
-  status                 DemandStatus  @default(OPEN)
-  responsible            String?
-  due_date               DateTime?    @map("due_date")
-  closed_date            DateTime?    @map("closed_date")
-  photo_url              String?      @map("photo_url")
-  
+  id              String         @id @default(uuid())
+  title           String
+  protocol        String?        @unique
+  type            DemandType
+  description     String?        @db.Text
+  requester_name  String?        @map("requester_name")
+  requester_phone String?        @map("requester_phone")
+  requester_email String?        @map("requester_email")
+  cep             String?        @map("cep")
+  address         String?
+  city            String?
+  neighborhood    String?
+  latitude        Float?
+  longitude       Float?
+  priority        DemandPriority @default(MEDIUM)
+  status          DemandStatus   @default(OPEN)
+  responsible     String?
+  due_date        DateTime?      @map("due_date")
+  closed_date     DateTime?      @map("closed_date")
+  photo_url       String?        @map("photo_url")
+
   // Relations
-  supporter_id           String?      @map("supporter_id")
-  supporter_name         String?      @map("supporter_name")
-  created_by_leader_id   String?      @map("created_by_leader_id")
-  created_by_leader_name String?      @map("created_by_leader_name")
-  created_by_user_id     String?      @map("created_by_user_id")
+  supporter_id           String? @map("supporter_id")
+  supporter_name         String? @map("supporter_name")
+  created_by_leader_id   String? @map("created_by_leader_id")
+  created_by_leader_name String? @map("created_by_leader_name")
+  created_by_user_id     String? @map("created_by_user_id")
 
   // Foundation V2
-  organization_id        String?      @map("organization_id")
-  campaign_id            String?      @map("campaign_id")
+  organization_id String? @map("organization_id")
+  campaign_id     String? @map("campaign_id")
 
-  org                    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  campaign               Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  org      Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
 
   // History
-  history                Json[]       @default([])
-  
+  history Json[] @default([])
+
   // Timestamps
-  created_at             DateTime     @default(now()) @map("created_at")
-  updated_at             DateTime     @updatedAt @map("updated_at")
-  deleted_at             DateTime?    @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  contact                Contact?     @relation(fields: [supporter_id], references: [id])
+  contact Contact? @relation(fields: [supporter_id], references: [id])
 
   @@index([status])
   @@index([type])
@@ -491,50 +502,50 @@ enum DemandStatus {
 // =============================================
 
 model Mission {
-  id                   String         @id @default(uuid())
+  id                   String          @id @default(uuid())
   title                String
-  description          String?        @db.Text
+  description          String?         @db.Text
   type                 MissionType
   neighborhood         String?
   city                 String?
-  leader_id            String?        @map("leader_id")
-  leader_name          String?        @map("leader_name")
+  leader_id            String?         @map("leader_id")
+  leader_name          String?         @map("leader_name")
   deadline             DateTime?
   priority             MissionPriority @default(MEDIUM)
-  points               Int            @default(30)
-  status               MissionStatus  @default(PENDING)
-  evidence             String?        @db.Text
-  evidence_url         String?        @map("evidence_url")
-  completed_date       DateTime?      @map("completed_date")
-  notified_at          DateTime?      @map("notified_at")
-  reminded_at          DateTime?      @map("reminded_at")
-  congratulated_at     DateTime?      @map("congratulated_at")
-  parent_mission_id    String?        @map("parent_mission_id")
-  is_group_mission     Boolean        @default(false) @map("is_group_mission")
-  assignment_type      String?        @map("assignment_type") // individual, neighborhood_group, segment_group, all, custom_filters
-  assignment_filters   Json?          @map("assignment_filters")
-  total_recipients     Int            @default(0) @map("total_recipients")
-  completed_recipients Int            @default(0) @map("completed_recipients")
+  points               Int             @default(30)
+  status               MissionStatus   @default(PENDING)
+  evidence             String?         @db.Text
+  evidence_url         String?         @map("evidence_url")
+  completed_date       DateTime?       @map("completed_date")
+  notified_at          DateTime?       @map("notified_at")
+  reminded_at          DateTime?       @map("reminded_at")
+  congratulated_at     DateTime?       @map("congratulated_at")
+  parent_mission_id    String?         @map("parent_mission_id")
+  is_group_mission     Boolean         @default(false) @map("is_group_mission")
+  assignment_type      String?         @map("assignment_type") // individual, neighborhood_group, segment_group, all, custom_filters
+  assignment_filters   Json?           @map("assignment_filters")
+  total_recipients     Int             @default(0) @map("total_recipients")
+  completed_recipients Int             @default(0) @map("completed_recipients")
   segment              String?
-  checklist            Json[]         @default([])
-  
+  checklist            Json[]          @default([])
+
   // Audit
-  created_by_user_id   String?        @map("created_by_user_id")
+  created_by_user_id String? @map("created_by_user_id")
 
   // Foundation V2
-  organization_id      String?        @map("organization_id")
-  campaign_id          String?        @map("campaign_id")
+  organization_id String? @map("organization_id")
+  campaign_id     String? @map("campaign_id")
 
-  org                  Organization?  @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  campaign             Campaign?      @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  org      Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
 
   // Timestamps
-  created_at           DateTime       @default(now()) @map("created_at")
-  updated_at           DateTime       @updatedAt @map("updated_at")
-  deleted_at           DateTime?      @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  leader               Leader?        @relation(fields: [leader_id], references: [id])
+  leader Leader? @relation(fields: [leader_id], references: [id])
 
   @@index([status])
   @@index([leader_id])
@@ -576,37 +587,37 @@ enum MissionStatus {
 // =============================================
 
 model GamificationProfile {
-  id                    String   @id @default(uuid())
-  leader_id             String   @unique @map("leader_id")
-  leader_name           String   @map("leader_name")
+  id                    String    @id @default(uuid())
+  leader_id             String    @unique @map("leader_id")
+  leader_name           String    @map("leader_name")
   neighborhood          String?
   city                  String?
-  total_points          Int      @default(0) @map("total_points")
-  current_level         String   @default("semente") // semente, mobilizador, lideranca_local, coordenador_territorial, referencia_esperancar
-  badges                String[] @default([])
-  missions_completed    Int      @default(0) @map("missions_completed")
-  missions_pending      Int      @default(0) @map("missions_pending")
-  missions_overdue      Int      @default(0) @map("missions_overdue")
-  supporters_registered Int      @default(0) @map("supporters_registered")
-  leaders_converted     Int      @default(0) @map("leaders_converted")
-  visual_carros         Int      @default(0) @map("visual_carros")
-  visual_residencias    Int      @default(0) @map("visual_residencias")
-  demands_resolved      Int      @default(0) @map("demands_resolved")
-  vote_goal             Int      @default(0) @map("vote_goal")
-  votes_achieved        Int      @default(0) @map("votes_achieved")
-  weekly_points         Int      @default(0) @map("weekly_points")
-  monthly_points        Int      @default(0) @map("monthly_points")
+  total_points          Int       @default(0) @map("total_points")
+  current_level         String    @default("semente") // semente, mobilizador, lideranca_local, coordenador_territorial, referencia_esperancar
+  badges                String[]  @default([])
+  missions_completed    Int       @default(0) @map("missions_completed")
+  missions_pending      Int       @default(0) @map("missions_pending")
+  missions_overdue      Int       @default(0) @map("missions_overdue")
+  supporters_registered Int       @default(0) @map("supporters_registered")
+  leaders_converted     Int       @default(0) @map("leaders_converted")
+  visual_carros         Int       @default(0) @map("visual_carros")
+  visual_residencias    Int       @default(0) @map("visual_residencias")
+  demands_resolved      Int       @default(0) @map("demands_resolved")
+  vote_goal             Int       @default(0) @map("vote_goal")
+  votes_achieved        Int       @default(0) @map("votes_achieved")
+  weekly_points         Int       @default(0) @map("weekly_points")
+  monthly_points        Int       @default(0) @map("monthly_points")
   last_level_up_at      DateTime? @map("last_level_up_at")
   last_activity_at      DateTime? @map("last_activity_at")
   week_start            DateTime? @map("week_start")
   month_start           DateTime? @map("month_start")
-  
+
   // Timestamps
-  created_at            DateTime @default(now()) @map("created_at")
-  updated_at            DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  leader                Leader   @relation(fields: [leader_id], references: [id], onDelete: Cascade)
+  leader Leader @relation(fields: [leader_id], references: [id], onDelete: Cascade)
 
   @@index([total_points])
   @@index([current_level])
@@ -618,44 +629,45 @@ model GamificationProfile {
 // =============================================
 
 model Campaign {
-  id                     String         @id @default(uuid())
+  id                     String            @id @default(uuid())
   name                   String
-  type                   CampaignType   @default(MUNICIPAL)
+  type                   CampaignType      @default(MUNICIPAL)
   year                   Int?
   position               CampaignPosition?
-  candidate_name         String?        @map("candidate_name")
+  candidate_name         String?           @map("candidate_name")
   party                  String?
   coalition              String?
-  vote_goal              Int            @default(0) @map("vote_goal")
-  current_votes_estimate Int            @default(0) @map("current_votes_estimate")
-  budget                 Float          @default(0)
-  status                 CampaignStatus @default(PLANNING)
-  start_date             DateTime?      @map("start_date")
-  end_date               DateTime?      @map("end_date")
+  vote_goal              Int               @default(0) @map("vote_goal")
+  current_votes_estimate Int               @default(0) @map("current_votes_estimate")
+  budget                 Float             @default(0)
+  status                 CampaignStatus    @default(PLANNING)
+  start_date             DateTime?         @map("start_date")
+  end_date               DateTime?         @map("end_date")
 
   // Foundation V2
-  organization_id        String?        @map("organization_id")
-  settings               Json?          @default("{}")
-  created_by             String?
+  organization_id String? @map("organization_id")
+  settings        Json?   @default("{}")
+  created_by      String?
 
-  organization           Organization?  @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  active_users           User[]         @relation("ActiveCampaign")
-  memberships            Membership[]
-  teams                  Team[]
-  invitations            Invitation[]
-  contacts               Contact[]
-  demands                Demand[]
-  missions               Mission[]
-  audit_logs             AuditLog[]
-  events                 InternalEvent[]
+  organization Organization?   @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  active_users User[]          @relation("ActiveCampaign")
+  memberships  Membership[]
+  teams        Team[]
+  invitations  Invitation[]
+  contacts     Contact[]
+  demands      Demand[]
+  missions     Mission[]
+  audit_logs   AuditLog[]
+  events       InternalEvent[]
 
   // Timestamps
-  created_at             DateTime       @default(now()) @map("created_at")
-  updated_at             DateTime       @updatedAt @map("updated_at")
-  deleted_at             DateTime?      @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  whatsapp_logs          WhatsAppLog[]
+  whatsapp_logs WhatsAppLog[]
+  Notification  Notification[]
 
   @@index([status])
   @@index([year])
@@ -690,29 +702,29 @@ enum CampaignStatus {
 // =============================================
 
 model StrategicAction {
-  id             String              @id @default(uuid())
+  id             String                @id @default(uuid())
   title          String
-  description    String?             @db.Text
-  type           StrategicActionType @default(EVENT)
+  description    String?               @db.Text
+  type           StrategicActionType   @default(EVENT)
   city           String?
   neighborhood   String?
-  start_date     DateTime?           @map("start_date")
-  end_date       DateTime?           @map("end_date")
+  start_date     DateTime?             @map("start_date")
+  end_date       DateTime?             @map("end_date")
   responsible    String?
-  goal           String?             @db.Text
-  expected_reach Int                 @default(0) @map("expected_reach")
-  actual_reach   Int                 @default(0) @map("actual_reach")
+  goal           String?               @db.Text
+  expected_reach Int                   @default(0) @map("expected_reach")
+  actual_reach   Int                   @default(0) @map("actual_reach")
   status         StrategicActionStatus @default(PLANNED)
-  budget         Float               @default(0)
-  notes          String?             @db.Text
-  
+  budget         Float                 @default(0)
+  notes          String?               @db.Text
+
   // Audit
-  created_by_user_id String?         @map("created_by_user_id")
-  
+  created_by_user_id String? @map("created_by_user_id")
+
   // Timestamps
-  created_at     DateTime            @default(now()) @map("created_at")
-  updated_at     DateTime            @updatedAt @map("updated_at")
-  deleted_at     DateTime?           @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   @@index([status])
   @@index([type])
@@ -740,24 +752,34 @@ enum StrategicActionStatus {
 // =============================================
 
 model Notification {
-  id         String           @id @default(uuid())
-  user_id    String           @map("user_id")
-  title      String
-  message    String           @db.Text
-  type       NotificationType @default(INFO)
-  link       String?
-  entity_id  String?          @map("entity_id")
-  read       Boolean          @default(false)
-  
-  // Timestamps
-  created_at DateTime         @default(now()) @map("created_at")
-  updated_at DateTime         @updatedAt @map("updated_at")
+  id              String           @id @default(uuid())
+  organization_id String?          @map("organization_id")
+  campaign_id     String?          @map("campaign_id")
+  event_id        String?          @map("event_id")
+  user_id         String           @map("user_id")
+  title           String
+  message         String           @db.Text
+  type            NotificationType @default(INFO)
+  entity_type     String?          @map("entity_type")
+  entity_id       String?          @map("entity_id")
+  action_url      String?          @map("action_url")
+  metadata        Json?
+  read_at         DateTime?        @map("read_at")
+  expires_at      DateTime?        @map("expires_at")
+  created_at      DateTime         @default(now()) @map("created_at")
 
-  // Relations
-  user       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  org      Organization?  @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign Campaign?      @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  event    InternalEvent? @relation(fields: [event_id], references: [id], onDelete: SetNull)
 
+  @@unique([event_id, user_id, type])
   @@index([user_id])
-  @@index([read])
+  @@index([organization_id])
+  @@index([campaign_id])
+  @@index([event_id])
+  @@index([read_at])
+  @@index([created_at])
   @@map("notifications")
 }
 
@@ -770,34 +792,54 @@ enum NotificationType {
   INFO
 }
 
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  organization_id String?  @map("organization_id")
+  user_id         String   @map("user_id")
+  event_name      String   @map("event_name")
+  in_app          Boolean  @default(true) @map("in_app")
+  email           Boolean  @default(false)
+  whatsapp        Boolean  @default(false)
+  created_at      DateTime @default(now()) @map("created_at")
+  updated_at      DateTime @updatedAt @map("updated_at")
+
+  org  Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, user_id, event_name])
+  @@index([user_id])
+  @@index([event_name])
+  @@map("notification_preferences")
+}
+
 // =============================================
 // AUDIT LOG
 // =============================================
 
 model AuditLog {
-  id              String       @id @default(uuid())
-  organization_id String?     @map("organization_id")
-  campaign_id     String?     @map("campaign_id")
-  user_id         String?      @map("user_id")
+  id              String        @id @default(uuid())
+  organization_id String?       @map("organization_id")
+  campaign_id     String?       @map("campaign_id")
+  user_id         String?       @map("user_id")
   user_name       String?
   action          String
   entity          String
-  entity_id       String?      @map("entity_id")
+  entity_id       String?       @map("entity_id")
   entity_label    String?
   changes         Json?
-  ip_address      String?      @map("ip_address")
-  user_agent      String?      @map("user_agent")
+  ip_address      String?       @map("ip_address")
+  user_agent      String?       @map("user_agent")
   module          String?
   severity        AuditSeverity @default(INFO)
   metadata        Json?
 
   // Timestamps
-  created_at      DateTime     @default(now()) @map("created_at")
+  created_at DateTime @default(now()) @map("created_at")
 
   // Relations
-  org             Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
-  campaign        Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
-  user            User?         @relation(fields: [user_id], references: [id])
+  org      Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  campaign Campaign?     @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  user     User?         @relation(fields: [user_id], references: [id])
 
   @@index([entity])
   @@index([action])
@@ -819,24 +861,24 @@ enum AuditSeverity {
 // =============================================
 
 model ElectoralData {
-  id               String   @id @default(uuid())
-  city             String
-  neighborhood     String
-  electoral_zone   String?  @map("electoral_zone")
+  id                String  @id @default(uuid())
+  city              String
+  neighborhood      String
+  electoral_zone    String? @map("electoral_zone")
   electoral_section String? @map("electoral_section")
-  voting_location  String?  @map("voting_location")
-  year             Int?
-  position         String?
-  candidate_name   String?  @map("candidate_name")
-  votes            Int      @default(0)
-  total_voters     Int      @default(0) @map("total_voters")
-  latitude         Float?
-  longitude        Float?
-  heat_level       String?  @map("heat_level") // cold, warm, hot
-  
+  voting_location   String? @map("voting_location")
+  year              Int?
+  position          String?
+  candidate_name    String? @map("candidate_name")
+  votes             Int     @default(0)
+  total_voters      Int     @default(0) @map("total_voters")
+  latitude          Float?
+  longitude         Float?
+  heat_level        String? @map("heat_level") // cold, warm, hot
+
   // Timestamps
-  created_at       DateTime @default(now()) @map("created_at")
-  updated_at       DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([city])
   @@index([neighborhood])
@@ -849,7 +891,7 @@ model ElectoralData {
 // =============================================
 
 model TSECandidate {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   ano             Int
   uf              String
   municipio       String?
@@ -858,11 +900,11 @@ model TSECandidate {
   nome            String
   partido         String?
   situacao        String?
-  tse_resource_id String?  @map("tse_resource_id")
-  
+  tse_resource_id String? @map("tse_resource_id")
+
   // Timestamps
-  created_at      DateTime @default(now()) @map("created_at")
-  updated_at      DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@unique([ano, uf, numero])
   @@index([uf])
@@ -871,71 +913,71 @@ model TSECandidate {
 }
 
 model TSEDataSourceMap {
-  id               String   @id @default(uuid())
+  id               String  @id @default(uuid())
   ano              Int
   uf               String
-  dataset_tipo     String   @map("dataset_tipo")
-  fonte_url        String   @map("fonte_url")
-  formato          String   @default("zip")
-  status           String   @default("nao_verificado")
-  tamanho_estimado Int      @default(0) @map("tamanho_estimado")
+  dataset_tipo     String  @map("dataset_tipo")
+  fonte_url        String  @map("fonte_url")
+  formato          String  @default("zip")
+  status           String  @default("nao_verificado")
+  tamanho_estimado Int     @default(0) @map("tamanho_estimado")
   observacao       String?
-  
+
   // Timestamps
-  created_at       DateTime @default(now()) @map("created_at")
-  updated_at       DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@unique([ano, uf, dataset_tipo])
   @@map("tse_data_source_maps")
 }
 
 model TSEElectorateProfile {
-  id            String   @id @default(uuid())
-  ano           Int
-  uf            String
-  municipio     String?
-  zona          String?
-  secao         String?
-  genero        String?
-  faixa_etaria  String?  @map("faixa_etaria")
-  escolaridade  String?
-  quantidade    Int      @default(0)
-  
+  id           String  @id @default(uuid())
+  ano          Int
+  uf           String
+  municipio    String?
+  zona         String?
+  secao        String?
+  genero       String?
+  faixa_etaria String? @map("faixa_etaria")
+  escolaridade String?
+  quantidade   Int     @default(0)
+
   // Timestamps
-  created_at    DateTime @default(now()) @map("created_at")
-  updated_at    DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([ano, uf])
   @@map("tse_electorate_profiles")
 }
 
 model TSEImportJob {
-  id                        String   @id @default(uuid())
-  ano                       Int
-  uf                        String
-  municipio                 String?
-  dataset_tipo              String   @map("dataset_tipo")
-  file_url                  String   @map("file_url")
-  csv_cache_url             String?  @map("csv_cache_url")
-  status                    String   @default("pendente")
-  progresso                 Int      @default(0)
-  total_linhas_arquivo      Int      @default(0) @map("total_linhas_arquivo")
-  linhas_processadas        Int      @default(0) @map("linhas_processadas")
-  registros_importados      Int      @default(0) @map("registros_importados")
-  registros_duplicados      Int      @default(0) @map("registros_duplicados")
-  linha_offset              Int      @default(0) @map("linha_offset")
-  velocidade_registros_segundo Int   @default(0) @map("velocidade_registros_segundo")
-  tempo_estimado_segundos   Int      @default(0) @map("tempo_estimado_segundos")
-  inicio                    DateTime?
-  fim                       DateTime?
-  ultima_atividade          DateTime? @map("ultima_atividade")
-  erro                      String?
-  etapa                     String   @default("baixando")
-  tamanho_arquivo_mb        Float    @default(0) @map("tamanho_arquivo_mb")
-  
+  id                           String    @id @default(uuid())
+  ano                          Int
+  uf                           String
+  municipio                    String?
+  dataset_tipo                 String    @map("dataset_tipo")
+  file_url                     String    @map("file_url")
+  csv_cache_url                String?   @map("csv_cache_url")
+  status                       String    @default("pendente")
+  progresso                    Int       @default(0)
+  total_linhas_arquivo         Int       @default(0) @map("total_linhas_arquivo")
+  linhas_processadas           Int       @default(0) @map("linhas_processadas")
+  registros_importados         Int       @default(0) @map("registros_importados")
+  registros_duplicados         Int       @default(0) @map("registros_duplicados")
+  linha_offset                 Int       @default(0) @map("linha_offset")
+  velocidade_registros_segundo Int       @default(0) @map("velocidade_registros_segundo")
+  tempo_estimado_segundos      Int       @default(0) @map("tempo_estimado_segundos")
+  inicio                       DateTime?
+  fim                          DateTime?
+  ultima_atividade             DateTime? @map("ultima_atividade")
+  erro                         String?
+  etapa                        String    @default("baixando")
+  tamanho_arquivo_mb           Float     @default(0) @map("tamanho_arquivo_mb")
+
   // Timestamps
-  created_at                DateTime @default(now()) @map("created_at")
-  updated_at                DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([ano, uf])
@@ -943,62 +985,62 @@ model TSEImportJob {
 }
 
 model TSEPollingPlace {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   ano           Int
   uf            String
   municipio     String?
   zona          String?
   secao         String?
-  local_votacao String?  @map("local_votacao")
+  local_votacao String? @map("local_votacao")
   endereco      String?
   bairro        String?
-  
+
   // Timestamps
-  created_at    DateTime @default(now()) @map("created_at")
-  updated_at    DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([ano, uf])
   @@map("tse_polling_places")
 }
 
 model TSESyncStatus {
-  id                      String   @id @default(uuid())
-  ano                     Int
-  uf                      String
-  tipo_dataset            String   @map("tipo_dataset")
-  status                  String   @default("nao_importado")
-  total_linhas            Int      @default(0) @map("total_linhas")
+  id                        String    @id @default(uuid())
+  ano                       Int
+  uf                        String
+  tipo_dataset              String    @map("tipo_dataset")
+  status                    String    @default("nao_importado")
+  total_linhas              Int       @default(0) @map("total_linhas")
   data_ultima_sincronizacao DateTime? @map("data_ultima_sincronizacao")
-  fonte_url               String?  @map("fonte_url")
-  mensagem_erro           String?  @map("mensagem_erro")
-  
+  fonte_url                 String?   @map("fonte_url")
+  mensagem_erro             String?   @map("mensagem_erro")
+
   // Timestamps
-  created_at              DateTime @default(now()) @map("created_at")
-  updated_at              DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@unique([ano, uf, tipo_dataset])
   @@map("tse_sync_status")
 }
 
 model TSEVoteResult {
-  id                String   @id @default(uuid())
-  ano               Int
-  turno             Int      @default(1)
-  uf                String
-  municipio         String?
-  codigo_municipio  String?  @map("codigo_municipio")
-  zona              String?
-  secao             String?
-  cargo             String
-  numero_candidato  String?  @map("numero_candidato")
-  nome_candidato    String?  @map("nome_candidato")
-  partido           String?
-  votos             Int      @default(0)
-  local_votacao     String?  @map("local_votacao")
-  
+  id               String  @id @default(uuid())
+  ano              Int
+  turno            Int     @default(1)
+  uf               String
+  municipio        String?
+  codigo_municipio String? @map("codigo_municipio")
+  zona             String?
+  secao            String?
+  cargo            String
+  numero_candidato String? @map("numero_candidato")
+  nome_candidato   String? @map("nome_candidato")
+  partido          String?
+  votos            Int     @default(0)
+  local_votacao    String? @map("local_votacao")
+
   // Timestamps
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@index([ano, uf])
   @@index([cargo])
@@ -1011,26 +1053,26 @@ model TSEVoteResult {
 // =============================================
 
 model WhatsAppLog {
-  id               String        @id @default(uuid())
-  campaign_id      String?       @map("campaign_id")
-  recipient_name   String?       @map("recipient_name")
-  recipient_phone  String        @map("recipient_phone")
-  recipient_type   String?       @map("recipient_type") // apoiador, lideranca, equipe, outro
-  template_name    String?       @map("template_name")
-  message_content  String?       @map("message_content")
-  status           WhatsAppStatus @default(SENT)
-  sent_by_id       String?       @map("sent_by_id")
-  sent_by_name     String?       @map("sent_by_name")
-  error_message    String?       @map("error_message")
-  metadata         Json?
-  
+  id              String         @id @default(uuid())
+  campaign_id     String?        @map("campaign_id")
+  recipient_name  String?        @map("recipient_name")
+  recipient_phone String         @map("recipient_phone")
+  recipient_type  String?        @map("recipient_type") // apoiador, lideranca, equipe, outro
+  template_name   String?        @map("template_name")
+  message_content String?        @map("message_content")
+  status          WhatsAppStatus @default(SENT)
+  sent_by_id      String?        @map("sent_by_id")
+  sent_by_name    String?        @map("sent_by_name")
+  error_message   String?        @map("error_message")
+  metadata        Json?
+
   // Timestamps
-  created_at       DateTime      @default(now()) @map("created_at")
-  updated_at       DateTime      @updatedAt @map("updated_at")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   // Relations
-  campaign         Campaign?     @relation(fields: [campaign_id], references: [id])
-  sent_by          User?         @relation("SentBy", fields: [sent_by_id], references: [id])
+  campaign Campaign? @relation(fields: [campaign_id], references: [id])
+  sent_by  User?     @relation("SentBy", fields: [sent_by_id], references: [id])
 
   @@index([campaign_id])
   @@index([sent_by_id])
@@ -1051,23 +1093,23 @@ enum WhatsAppStatus {
 // =============================================
 
 model File {
-  id           String   @id @default(uuid())
-  filename     String
+  id            String  @id @default(uuid())
+  filename      String
   original_name String  @map("original_name")
-  mime_type    String   @map("mime_type")
-  size         Int
-  path         String
-  url          String?
-  provider     String   @default("local") // local, minio, s3, r2
-  uploaded_by  String?  @map("uploaded_by")
-  
+  mime_type     String  @map("mime_type")
+  size          Int
+  path          String
+  url           String?
+  provider      String  @default("local") // local, minio, s3, r2
+  uploaded_by   String? @map("uploaded_by")
+
   // Timestamps
-  created_at   DateTime @default(now()) @map("created_at")
-  updated_at   DateTime @updatedAt @map("updated_at")
-  deleted_at   DateTime? @map("deleted_at")
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+  deleted_at DateTime? @map("deleted_at")
 
   // Relations
-  user         User?    @relation(fields: [uploaded_by], references: [id])
+  user User? @relation(fields: [uploaded_by], references: [id])
 
   @@index([uploaded_by])
   @@map("files")
@@ -1078,11 +1120,11 @@ model File {
 // =============================================
 
 model SystemConfig {
-  id         String   @id @default(uuid())
-  key        String   @unique
-  value      Json
+  id          String  @id @default(uuid())
+  key         String  @unique
+  value       Json
   description String?
-  
+
   // Timestamps
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @updatedAt @map("updated_at")

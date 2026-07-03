@@ -57,7 +57,7 @@ export class EventsService {
     const [data, total] = await Promise.all([
       this.prisma.internalEvent.findMany({
         where,
-        orderBy: { created_at: 'desc' },
+        orderBy: { occurred_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
         include: { user: { select: { id: true, full_name: true, email: true, avatar_url: true } } },
