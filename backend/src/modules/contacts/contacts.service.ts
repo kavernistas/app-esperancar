@@ -21,6 +21,48 @@ export class ContactsService {
     private events: EventsService,
   ) {}
 
+  private async syncLeaderFromContact(contact: any) {
+    if (!contact?.is_leader) {
+      return;
+    }
+
+    const existing = await this.prisma.leader.findFirst({
+      where: {
+        deleted_at: null,
+        OR: [
+          contact.phone ? { phone: contact.phone } : undefined,
+          contact.email ? { email: contact.email } : undefined,
+          { name: contact.full_name },
+        ].filter(Boolean) as any,
+      },
+    });
+
+    const data: any = {
+      name: contact.full_name,
+      phone: contact.phone,
+      email: contact.email,
+      city: contact.city,
+      neighborhood: contact.neighborhood,
+      electoral_zone: contact.electoral_zone,
+      segment: contact.segment,
+      notes: contact.notes,
+      latitude: contact.latitude,
+      longitude: contact.longitude,
+      status: contact.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+    };
+
+    if (existing) {
+      return this.prisma.leader.update({
+        where: { id: existing.id },
+        data,
+      });
+    }
+
+    return this.prisma.leader.create({
+      data,
+    });
+  }
+
   async findAll(query: ListContactDto, userId?: string) {
     const {
       page = 1, limit = 50, search, sortBy = 'created_at', sortOrder = 'desc',
