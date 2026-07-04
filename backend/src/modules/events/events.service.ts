@@ -23,13 +23,6 @@ export class EventsService {
 
   async publish(event: EventData): Promise<string | null> {
     try {
-      const payload = {
-        ...(event.data || {}),
-        title: event.title,
-        description: event.description,
-        entity_label: event.entityLabel,
-      };
-
       const result = await this.prisma.internalEvent.create({
         data: {
           organization_id: event.organizationId ?? null,
@@ -39,7 +32,12 @@ export class EventsService {
           event_version: 1,
           aggregate_type: event.entityType ?? null,
           aggregate_id: event.entityId ?? null,
-          payload,
+          payload: {
+            ...(event.data || {}),
+            title: event.title,
+            description: event.description,
+            entity_label: event.entityLabel,
+          },
           metadata: event.metadata || {},
           correlation_id: event.correlationId ?? null,
           request_id: event.requestId ?? null,
@@ -53,22 +51,12 @@ export class EventsService {
     }
   }
 
-  /** @deprecated Use publish. */
   async emit(event: EventData): Promise<string | null> {
     return this.publish(event);
   }
 
   async list(organizationId: string, params: any = {}) {
-    const {
-      page = 1,
-      limit = 50,
-      type,
-      event_name,
-      userId,
-      entityType,
-      entityId,
-      campaignId,
-    } = params;
+    const { page = 1, limit = 50, type, event_name, userId, entityType, entityId, campaignId } = params;
 
     const where: any = {
       organization_id: organizationId,
@@ -85,29 +73,12 @@ export class EventsService {
         orderBy: { occurred_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        include: {
-          user: {
-            select: {
-              id: true,
-              full_name: true,
-              email: true,
-              avatar_url: true,
-            },
-          },
-        },
+        include: { user: { select: { id: true, full_name: true, email: true, avatar_url: true } } },
       }),
       this.prisma.internalEvent.count({ where }),
     ]);
 
-    return {
-      data,
-      meta: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / Number(limit)),
-      },
-    };
+    return { data, meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
   }
 
   async listAudit(organizationId: string, params: any = {}) {
@@ -126,27 +97,11 @@ export class EventsService {
         orderBy: { created_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        include: {
-          user: {
-            select: {
-              id: true,
-              full_name: true,
-              email: true,
-            },
-          },
-        },
+        include: { user: { select: { id: true, full_name: true, email: true } } },
       }),
       this.prisma.auditLog.count({ where }),
     ]);
 
-    return {
-      data,
-      meta: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / Number(limit)),
-      },
-    };
+    return { data, meta: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
   }
 }
