@@ -4,7 +4,7 @@ import { PrismaService } from '@/common/prisma.service';
 export interface EventData {
   organizationId?: string | null;
   campaignId?: string | null;
-  userId?: string;
+  userId?: string | null;
   type: string;
   title?: string;
   description?: string;
@@ -12,6 +12,9 @@ export interface EventData {
   entityId?: string;
   entityLabel?: string;
   data?: any;
+  metadata?: any;
+  correlationId?: string;
+  requestId?: string;
 }
 
 @Injectable()
@@ -20,37 +23,59 @@ export class EventsService {
 
   async publish(event: EventData): Promise<string | null> {
     try {
-      const result = await this.prisma.internalEvent.create({
-        organization_id: event.organizationId,
-        campaign_id: event.campaignId,
-        user_id: event.userId,
-        type: event.type,
+      const payload = {
+        ...(event.data || {}),
         title: event.title,
         description: event.description,
-        entity_type: event.entityType,
-        entity_id: event.entityId,
         entity_label: event.entityLabel,
-        ...(event.data || {}),
+      };
+
+      const result = await this.prisma.internalEvent.create({
+        data: {
+          organization_id: event.organizationId ?? null,
+          campaign_id: event.campaignId ?? null,
+          user_id: event.userId ?? null,
+          event_name: event.type,
+          event_version: 1,
+          aggregate_type: event.entityType ?? null,
+          aggregate_id: event.entityId ?? null,
+          payload,
+          metadata: event.metadata || {},
+          correlation_id: event.correlationId ?? null,
+          request_id: event.requestId ?? null,
+        },
       });
+
       return result.id ?? null;
-    } catch (e) {
-      console.error('Event publish failed:', e.message);
+    } catch (e: any) {
+      console.error('Event publish failed:', e?.message || e);
       return null;
     }
   }
 
-  /** @deprecated Use `publish` – kept only for backward compatibility. */
+  /** @deprecated Use publish. */
   async emit(event: EventData): Promise<string | null> {
     return this.publish(event);
   }
 
   async list(organizationId: string, params: any = {}) {
-    const { page = 1, limit = 50, type, userId, entityType, campaignId } = params;
+    const {
+      page = 1,
+      limit = 50,
+      type,
+      event_name,
+      userId,
+      entityType,
+      entityId,
+      campaignId,
+    } = params;
+
     const where: any = {
       organization_id: organizationId,
-      ...(type ? { type } : {}),
+      ...(type || event_name ? { event_name: event_name || type } : {}),
       ...(userId ? { user_id: userId } : {}),
-      ...(entityType ? { entity_type: entityType } : {}),
+      ...(entityType ? { aggregate_type: entityType } : {}),
+      ...(entityId ? { aggregate_id: entityId } : {}),
       ...(campaignId ? { campaign_id: campaignId } : {}),
     };
 
@@ -60,7 +85,16 @@ export class EventsService {
         orderBy: { occurred_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        include: { user: { select: { id: true, full_name: true, email: true, avatar_url: true } } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+              avatar_url: true,
+            },
+          },
+        },
       }),
       this.prisma.internalEvent.count({ where }),
     ]);
@@ -78,6 +112,7 @@ export class EventsService {
 
   async listAudit(organizationId: string, params: any = {}) {
     const { page = 1, limit = 50, action, entityType, userId } = params;
+
     const where: any = {
       organization_id: organizationId,
       ...(action ? { action } : {}),
@@ -91,7 +126,15 @@ export class EventsService {
         orderBy: { created_at: 'desc' },
         skip: (Number(page) - 1) * Number(limit),
         take: Number(limit),
-        include: { user: { select: { id: true, full_name: true, email: true } } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+            },
+          },
+        },
       }),
       this.prisma.auditLog.count({ where }),
     ]);
