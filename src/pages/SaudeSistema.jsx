@@ -12,6 +12,7 @@ Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
   RefreshCw, BellRing, HardDrive, FileText
 } from "lucide-react";
 import { normalizeList } from "@/lib/normalizeList";
+import * as whatsappApi from '@/api/whatsapp';
 
 // ============================================================
 // SAÚDE DO SISTEMA — Dashboard de observabilidade

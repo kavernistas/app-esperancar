@@ -20,6 +20,13 @@ import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as contactsApi from "@/api/contacts";
 import { normalizeList } from "@/lib/normalizeList";
+
+const normalizeCep = (cep) => {
+  if (!cep) return undefined;
+  const digits = String(cep).replace(/\D/g, "").slice(0, 8);
+  return digits || undefined;
+};
+
 const normalizeContactStatus = (status) => {
   if (!status) return undefined;
   const value = String(status).toUpperCase();
@@ -63,6 +70,9 @@ const sanitizeContactPayload = (contact) => {
     payload.status = normalizeContactStatus(payload.status);
     if (!payload.status) delete payload.status;
   }
+
+  payload.cep = normalizeCep(payload.cep);
+  if (!payload.cep) delete payload.cep;
 
   return payload;
 };
