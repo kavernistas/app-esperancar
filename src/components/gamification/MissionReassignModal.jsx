@@ -5,17 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Users, MapPin, Tag } from "lucide-react";
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 export default function MissionReassignModal({ open, onClose, mission, leaders, onReassign }) {
   const [mode, setMode] = useState("individual");
   const [targetLeader, setTargetLeader] = useState("");

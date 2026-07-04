@@ -23,6 +23,7 @@ import {
   Trash2, Download, Send, Loader2, Moon, Sun, Target,
   Save
 } from "lucide-react";
+import { normalizeList } from "@/lib/normalizeList";
 
 // ============================================================
 // CONFIGURAÇÕES — Página completa com todas funções operacionais

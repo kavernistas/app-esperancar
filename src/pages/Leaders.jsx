@@ -26,17 +26,7 @@ import LeaderCard from "@/components/leaders/LeaderCard";
 import LeaderForm from "@/components/leaders/LeaderForm";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as leadersApi from '@/api/leaders';
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 const exportLeadersCSV = (leaders) => {
   const headers = ["Nome","Telefone","Email","Cidade","Bairro","Zona","Força Política","Apoiadores","Conversões","Meta Mensal","Status","Segmento"];
   const rows = normalizeList(leaders).map(l => [

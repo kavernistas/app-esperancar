@@ -7,18 +7,9 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 import {
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-  Link2, Users, UserCheck, ClipboardList, Target, Phone, MapPin, Loader2, BarChart3
+Link2, Users, UserCheck, ClipboardList, Target, Phone, MapPin, Loader2, BarChart3
 } from "lucide-react";
+import { normalizeList } from "@/lib/normalizeList";
 
 export default function IntegracaoCRMPanel({ syncStatuses, filters }) {
   const [crmData, setCrmData] = useState(null);

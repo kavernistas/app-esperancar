@@ -26,17 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DemandCard from "@/components/demands/DemandCard";
 import DemandForm from "@/components/demands/DemandForm";
 import * as demandsApi from '@/api/demands';
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 const exportDemandsCSV = (demands) => {
   const headers = ["Título","Tipo","Descrição","Solicitante","Telefone","Email","Cidade","Bairro","Prioridade","Status","Responsável","Prazo"];
   const rows = normalizeList(demands).map(d => [

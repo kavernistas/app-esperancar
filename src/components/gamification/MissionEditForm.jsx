@@ -6,17 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Lock } from "lucide-react";
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 const RULES = {
   pending: { canEditAll: true, label: "Pode editar tudo" },
   in_progress: { canEditAll: false, editableFields: ["deadline","description","priority","checklist","evidence","attachments"], label: "Edição limitada" },

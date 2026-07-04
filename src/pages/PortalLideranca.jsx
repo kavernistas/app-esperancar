@@ -27,15 +27,7 @@ import {
   Home, UserPlus, Users, ClipboardList, Target, Trophy,
   Sparkles, BarChart3, Send, Plus, X, Star
 } from "lucide-react";
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
+import { normalizeList } from "@/lib/normalizeList";
 export default function PortalLideranca() {
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("painel");

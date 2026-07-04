@@ -24,17 +24,7 @@ import {
 
 import * as contactsApi from '@/api/contacts';
 import {
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-  AlertCircle,
+AlertCircle,
   CheckCircle2,
   Eye,
   Info,
@@ -46,6 +36,7 @@ const normalizeList = (value) => {
   Users,
   Zap,
 } from "lucide-react";
+import { normalizeList } from "@/lib/normalizeList";
 
 const STEPS = { COMPOSE: "compose", PREVIEW: "preview", SENDING: "sending", DONE: "done" };
 

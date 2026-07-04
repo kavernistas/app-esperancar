@@ -13,19 +13,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-  Users, MapPin, Tag, Send, X, Eye, Filter, Plus,
+Users, MapPin, Tag, Send, X, Eye, Filter, Plus,
   ListChecks
 } from "lucide-react";
+import { normalizeList } from "@/lib/normalizeList";
 
 const SEGMENTS = [
   "Juventude", "Mulheres", "Saúde", "Educação", "Cultura", "Esporte",

@@ -17,17 +17,7 @@ import WhatsAppMissionModal from "@/components/gamification/WhatsAppMissionModal
 import * as gamificationApi from '@/api/gamification';
 import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 export default function Gamification() {
   const [missions, setMissions] = useState([]);
   const [profiles, setProfiles] = useState([]);

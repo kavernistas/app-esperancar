@@ -19,17 +19,7 @@ import ContactDetailSheet from "@/components/contacts/ContactDetailSheet";
 import TSEImportModal from "@/components/integrations/TSEImportModal";
 import WhatsAppModal from "@/components/integrations/WhatsAppModal";
 import * as contactsApi from "@/api/contacts";
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 const normalizeContactStatus = (status) => {
   if (!status) return undefined;
   const value = String(status).toUpperCase();

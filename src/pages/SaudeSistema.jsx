@@ -7,20 +7,11 @@ import { Button } from "@/components/ui/button";
 import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
 import {
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-  Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
+Activity, CheckCircle2, AlertTriangle, XCircle, Clock,
   Loader2, Zap, Server, Database, Phone,
   RefreshCw, BellRing, HardDrive, FileText
 } from "lucide-react";
+import { normalizeList } from "@/lib/normalizeList";
 
 // ============================================================
 // SAÚDE DO SISTEMA — Dashboard de observabilidade

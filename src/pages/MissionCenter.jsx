@@ -13,17 +13,7 @@ import {
 } from "lucide-react";
 import moment from "moment";
 import * as missionsApi from '@/api/missions';
-
-const normalizeList = (value) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.data?.data)) return value.data.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.results)) return value.results;
-  return [];
-};
-
-
+import { normalizeList } from "@/lib/normalizeList";
 const STATUS_CONFIG = {
   pending: { label: "Pendente", icon: Clock, color: "text-blue-500 bg-blue-50" },
   in_progress: { label: "Em Andamento", icon: ArrowUpDown, color: "text-amber-500 bg-amber-50" },
