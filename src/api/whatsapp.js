@@ -4,6 +4,10 @@
 import api from './client';
 import * as whatsappApi from '@/api/whatsapp';
 
+export async function send(payload) {
+  return api.post('/whatsapp/send', payload);
+}
+
 export async function sendMessage(phone, message, options = {}) {
   return api.post('/whatsapp/send-single', { phone, message, ...options });
 }

@@ -1,7 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as authApi from '@/api/auth';
-import { getAccessToken, clearTokens } from '@/api/client';
+import { base44 } from '@/api/base44Client';
 
 const AuthContext = createContext();
 
@@ -9,9 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -22,22 +18,15 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       setAuthError(null);
 
-      const token = getAccessToken();
-      if (token) {
+      const authenticated = await base44.auth.isAuthenticated();
+      if (authenticated) {
         try {
-          const response = await authApi.getMe();
-          // Normalizar resposta: { data: { data: user } } ou { data: user } ou user direto
-          const currentUser =
-            response?.data?.data ??
-            response?.data ??
-            response;
+          const currentUser = await base44.auth.me();
           setUser(currentUser);
-          setIsAuthenticated(Boolean(currentUser));
+          setIsAuthenticated(true);
         } catch (e) {
-          clearTokens();
           setUser(null);
           setIsAuthenticated(false);
-          setAuthError({ type: 'auth_required', message: 'Sessao expirada — faca login novamente' });
         }
       } else {
         setUser(null);
@@ -45,46 +34,30 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      clearTokens();
       setUser(null);
       setIsAuthenticated(false);
-      setAuthError({ type: 'auth_required', message: 'Autenticacao necessaria' });
     } finally {
       setIsLoadingAuth(false);
     }
   };
 
   const login = async (email, password) => {
-    try {
-      setIsLoadingAuth(true);
-      setAuthError(null);
-      const userData = await authApi.login(email, password);
-      setUser(userData);
-      setIsAuthenticated(true);
-      return userData;
-    } catch (error) {
-      setAuthError({ type: 'login_failed', message: error.message });
-      throw error;
-    } finally {
-      setIsLoadingAuth(false);
-    }
+    // Base44 platform handles login via its own login page
+    base44.auth.redirectToLogin(window.location.pathname);
   };
 
   const logout = () => {
-    authApi.logout();
-    setUser(null);
-    setIsAuthenticated(false);
-    navigate('/');
+    base44.auth.logout(window.location.origin);
   };
 
   const updateProfile = async (data) => {
-    const updated = await authApi.updateProfile(data);
+    const updated = await base44.auth.updateMe(data);
     setUser(updated);
     return updated;
   };
 
   const navigateToLogin = () => {
-    navigate('/login');
+    base44.auth.redirectToLogin(window.location.pathname);
   };
 
   return (
@@ -93,7 +66,6 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isLoadingAuth,
       isLoading: isLoadingAuth,
-      isLoadingPublicSettings,
       authError,
       login,
       logout,

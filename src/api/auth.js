@@ -1,40 +1,33 @@
 // src/api/auth.js
-// Auth API
+// Auth API — migrated to Base44 platform auth
 
-import api, { setTokens, clearTokens, getAccessToken } from './client';
+import { base44 } from '@/api/base44Client';
+import { clearTokens, getAccessToken } from './client';
 
 export async function login(email, password) {
-  const response = await api.post('/auth/login', { email, password });
-  setTokens({
-    accessToken: response.accessToken,
-    refreshToken: response.refreshToken,
-  });
-  return response.user;
+  // Base44 platform handles login via its own login page
+  base44.auth.redirectToLogin(window.location.pathname);
 }
 
 export async function refreshToken(refreshTokenValue) {
-  const response = await api.post('/auth/refresh', { refreshToken: refreshTokenValue });
-  setTokens({
-    accessToken: response.accessToken,
-    refreshToken: response.refreshToken,
-  });
-  return response;
+  // Not needed — Base44 SDK manages token refresh internally
+  return null;
 }
 
 export async function logout() {
   try {
-    await api.post('/auth/logout', {});
+    await base44.auth.logout();
   } finally {
     clearTokens();
   }
 }
 
 export async function updateProfile(data) {
-  return api.patch('/auth/me', data);
+  return await base44.auth.updateMe(data);
 }
 
 export async function getMe() {
-  return api.get('/auth/me');
+  return await base44.auth.me();
 }
 
 export function isAuthenticated() {
