@@ -122,10 +122,11 @@ export default function Campaigns() {
   });
 
   // Stats
-  const activeCampaigns = campaigns.filter((c) => c.status === "ACTIVE" || c.status === "active").length;
-  const totalVoteGoal = campaigns.reduce((sum, c) => sum + (c.vote_goal || 0), 0);
-  const totalCurrentVotes = campaigns.reduce((sum, c) => sum + (c.current_votes_estimate || 0), 0);
-  const totalBudget = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
+  const campaignList = campaigns || [];
+  const activeCampaigns = campaignList.filter((c) => c.status === "ACTIVE" || c.status === "active").length;
+  const totalVoteGoal = campaignList.reduce((sum, c) => sum + (c.vote_goal || 0), 0);
+  const totalCurrentVotes = campaignList.reduce((sum, c) => sum + (c.current_votes_estimate || 0), 0);
+  const totalBudget = campaignList.reduce((sum, c) => sum + (c.budget || 0), 0);
 
   if (isLoading) {
     return (
@@ -167,7 +168,7 @@ export default function Campaigns() {
             <FileText className="w-4 h-4" />
             <span className="text-sm">Total</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{campaigns.length}</p>
+          <p className="text-2xl font-bold text-slate-900">{campaignList.length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 border">
           <div className="flex items-center gap-2 text-slate-500 mb-1">
@@ -195,14 +196,14 @@ export default function Campaigns() {
       </div>
 
       {/* Campaigns Grid */}
-      {campaigns.length === 0 ? (
+      {campaignList.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border">
           <FileText className="w-12 h-12 mx-auto text-slate-300 mb-4" />
           <p className="text-slate-500">Nenhuma campanha cadastrada</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {campaigns.map((campaign) => {
+          {campaignList.map((campaign) => {
             const progress =
               campaign.vote_goal > 0
                 ? Math.min(100, (campaign.current_votes_estimate / campaign.vote_goal) * 100)
