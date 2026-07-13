@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Lightbulb, Loader2 } from "lucide-react";
+import * as sofiaApi from "@/api/sofia";
 
 export default function SofiaPortal({ user, stats }) {
   const [suggestion, setSuggestion] = useState(null);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Loader2, Share2, AlertTriangle } from "lucide-react";
+import * as electoralApi from "@/api/electoral";
 
 export default function ExportActions({ data, filters, isSynced }) {
   const [exportingPDF, setExportingPDF] = useState(false);

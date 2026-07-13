@@ -1,0 +1,210 @@
+{
+  "name": "Survey",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da pesquisa"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o metodol\u00f3gica"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Status da pesquisa"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "quantitative",
+        "qualitative",
+        "mixed"
+      ],
+      "default": "mixed",
+      "description": "Tipo de pesquisa"
+    },
+    "sampling_method": {
+      "type": "string",
+      "enum": [
+        "stratified",
+        "conglomerate",
+        "convenience",
+        "random"
+      ],
+      "default": "stratified",
+      "description": "M\u00e9todo de amostragem"
+    },
+    "target_sample_size": {
+      "type": "number",
+      "default": 0,
+      "description": "Tamanho alvo da amostra"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "likert",
+              "multiple_choice",
+              "open",
+              "audio",
+              "scale",
+              "yes_no"
+            ],
+            "default": "multiple_choice"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "sociological_axis": {
+            "type": "string",
+            "enum": [
+              "capital_cultural",
+              "religious",
+              "social_network",
+              "political_perception",
+              "thematic_adherence",
+              "vote_intention",
+              "demographic",
+              "sentiment"
+            ]
+          },
+          "branch_logic": {
+            "type": "object",
+            "properties": {
+              "conditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "if_answer": {
+                      "type": "string"
+                    },
+                    "skip_to": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "default": []
+              }
+            }
+          },
+          "scale_min": {
+            "type": "number",
+            "default": 1
+          },
+          "scale_max": {
+            "type": "number",
+            "default": 5
+          },
+          "scale_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "default": [],
+      "description": "Question\u00e1rio metodol\u00f3gico"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "lideranca"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

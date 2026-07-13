@@ -1,0 +1,193 @@
+{
+  "name": "SurveyResponse",
+  "type": "object",
+  "properties": {
+    "survey_id": {
+      "type": "string",
+      "description": "ID da pesquisa"
+    },
+    "survey_title": {
+      "type": "string"
+    },
+    "interviewer_id": {
+      "type": "string"
+    },
+    "interviewer_name": {
+      "type": "string"
+    },
+    "respondent_profile": {
+      "type": "object",
+      "properties": {
+        "age_range": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "education": {
+          "type": "string"
+        },
+        "income_range": {
+          "type": "string"
+        },
+        "religion": {
+          "type": "string"
+        },
+        "neighborhood": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "has_internet": {
+          "type": "boolean"
+        },
+        "has_sanitation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "question_text": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "audio_url": {
+            "type": "string"
+          },
+          "sociological_axis": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "geo_lat": {
+      "type": "number"
+    },
+    "geo_lng": {
+      "type": "number"
+    },
+    "timestamp_start": {
+      "type": "string"
+    },
+    "timestamp_end": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_sync",
+        "synced",
+        "flagged",
+        "approved",
+        "rejected"
+      ],
+      "default": "synced"
+    },
+    "audio_consent": {
+      "type": "boolean",
+      "default": false
+    },
+    "quality_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "volatility_index": {
+      "type": "number"
+    },
+    "vote_intention": {
+      "type": "string"
+    },
+    "sentiment_markers": {
+      "type": "object",
+      "properties": {
+        "medo": {
+          "type": "number"
+        },
+        "esperanca": {
+          "type": "number"
+        },
+        "ressentimento": {
+          "type": "number"
+        },
+        "indignacao": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "survey_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "lideranca"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

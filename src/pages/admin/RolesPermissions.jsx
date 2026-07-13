@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ALL_PERMISSIONS, ALL_ROLES } from "@/api/permissions";
+import { ALL_PERMISSIONS, ALL_ROLES, ROLE_PERMISSIONS } from "@/api/permissions";
 
 export default function RolesPermissions() {
   return (
@@ -20,7 +20,6 @@ export default function RolesPermissions() {
               <TableRow key={perm}>
                 <TableCell className="text-xs font-mono">{perm}</TableCell>
                 {ALL_ROLES.filter(r => r !== "USER").map(r => {
-                  const { ROLE_PERMISSIONS } = require("@/api/permissions");
                   const has = ROLE_PERMISSIONS[r]?.includes(perm);
                   return <TableCell key={r}>{has ? <Badge className="bg-emerald-100 text-emerald-700">✓</Badge> : <span className="text-slate-300">—</span>}</TableCell>;
                 })}

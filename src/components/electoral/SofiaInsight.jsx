@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import * as sofiaApi from "@/api/sofia";
 
 export default function SofiaInsight({ tseData, filters, isSynced }) {
   const [analysis, setAnalysis] = useState(null);

@@ -15,6 +15,7 @@ import * as filesApi from '@/api/files';
 import * as missionsApi from '@/api/missions';
 import * as demandsApi from '@/api/demands';
 import * as contactsApi from '@/api/contacts';
+import * as whatsappApi from '@/api/whatsapp';
 import {
   User, Shield, Key, Link2, Bot, FileText,
   Settings, Palette, Clock, Languages,

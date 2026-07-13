@@ -18,6 +18,7 @@ import * as gamificationApi from '@/api/gamification';
 import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
 import { normalizeList } from "@/lib/normalizeList";
+import * as whatsappApi from '@/api/whatsapp';
 export default function Gamification() {
   const [missions, setMissions] = useState([]);
   const [profiles, setProfiles] = useState([]);

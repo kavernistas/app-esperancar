@@ -27,7 +27,8 @@ import {
   ExternalLink,
   Gauge,
   Wallet,
-  Crosshair
+  Crosshair,
+  ClipboardCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,23 +47,6 @@ export default function Layout({ children, currentPageName }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const { canAccessPage, isLideranca } = useAccessControl();
   const { user, logout, isLoading } = useAuth();
-
-  // Redirecionar para login se não estiver autenticado
-  if (!isLoading && !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Mostrar loading enquanto carrega
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FA]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#7AC943] rounded-full animate-spin"></div>
-          <p className="text-sm text-slate-500 font-medium">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Carregar notificacoes
   useEffect(() => {
@@ -126,6 +110,7 @@ export default function Layout({ children, currentPageName }) {
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
     { name: "OKRs", page: "OKRs", icon: Crosshair },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
+    { name: "Pesquisa de Campo", page: "PesquisaCampo", icon: ClipboardCheck },
     { name: "Financeiro", page: "Financeiro", icon: Wallet },
     { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
@@ -142,6 +127,23 @@ export default function Layout({ children, currentPageName }) {
       window.location.href = "/PortalLideranca";
     }
   }, [isLideranca, currentPageName]);
+
+  // Redirecionar para login se não estiver autenticado
+  if (!isLoading && !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Mostrar loading enquanto carrega
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[#F7F8FA]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#7AC943] rounded-full animate-spin"></div>
+          <p className="text-sm text-slate-500 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogout = () => {
     logout();

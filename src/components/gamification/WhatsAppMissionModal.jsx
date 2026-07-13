@@ -7,6 +7,7 @@ import { Send, Loader2, CheckCircle2 } from "lucide-react";
 
 import moment from "moment";
 import * as missionsApi from '@/api/missions';
+import * as whatsappApi from '@/api/whatsapp';
 
 const TEMPLATES = {
   new_mission: `Olá, {{nome}}! 🌟 Nova missão no Esperançar:
