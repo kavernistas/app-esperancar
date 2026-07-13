@@ -121,7 +121,7 @@ export default function ElectoralMap() {
   }, [contacts, filterBairro, filterZona, filterSecao, filterLeaderId]);
 
   const filteredLeaders = useMemo(() => {
-    let result = leadersRaw.filter(l => l.latitude && l.longitude);
+    let result = normalizeList(leadersRaw).filter(l => l.latitude && l.longitude);
     if (filterBairro) result = result.filter(l => l.neighborhood === filterBairro);
     if (filterZona) result = result.filter(l => l.electoral_zone === filterZona);
     return result;
@@ -136,7 +136,7 @@ export default function ElectoralMap() {
 
   // --- Electoral data: neighborhood aggregation ---
   const neighborhoodStats = useMemo(() => {
-    return electoralData.reduce((acc, item) => {
+    return normalizeList(electoralData).reduce((acc, item) => {
       const key = item.neighborhood || "Sem Bairro";
       if (!acc[key]) {
         acc[key] = {
@@ -154,14 +154,14 @@ export default function ElectoralMap() {
   // --- Extract filter options from data ---
   const bairros = useMemo(() => [...new Set([
     ...normalizeList(contacts).map(c => c.neighborhood),
-    ...leadersRaw.map(l => l.neighborhood),
+    ...normalizeList(leadersRaw).map(l => l.neighborhood),
     ...normalizeList(demands).map(d => d.neighborhood),
     ...Object.keys(neighborhoodStats),
   ].filter(Boolean))].sort(), [contacts, leadersRaw, demands, neighborhoodStats]);
 
   const zonas = useMemo(() => [...new Set([
     ...normalizeList(contacts).map(c => c.electoral_zone),
-    ...leadersRaw.map(l => l.electoral_zone),
+    ...normalizeList(leadersRaw).map(l => l.electoral_zone),
   ].filter(Boolean))].sort(), [contacts, leadersRaw]);
 
   const secoes = useMemo(() => [...new Set(
@@ -169,7 +169,7 @@ export default function ElectoralMap() {
   )].sort(), [contacts]);
 
   const leadersForFilter = useMemo(() => [
-    ...leadersRaw.map(l => ({ id: l.id, name: l.name })),
+    ...normalizeList(leadersRaw).map(l => ({ id: l.id, name: l.name })),
     ...normalizeList(contacts).filter(c => c.is_leader).map(c => ({ id: c.id, name: c.full_name })),
   ], [leadersRaw, contacts]);
 
@@ -181,7 +181,7 @@ export default function ElectoralMap() {
       if (!map[c.neighborhood]) map[c.neighborhood] = { contacts: 0, leaders: 0, demands: 0 };
       map[c.neighborhood].contacts++;
     });
-    leadersRaw.forEach(l => {
+    normalizeList(leadersRaw).forEach(l => {
       if (!l.neighborhood) return;
       if (!map[l.neighborhood]) map[l.neighborhood] = { contacts: 0, leaders: 0, demands: 0 };
       map[l.neighborhood].leaders++;
@@ -195,8 +195,8 @@ export default function ElectoralMap() {
   }, [contacts, leadersRaw, demands]);
 
   // Stats
-  const totalVotes = electoralData.reduce((s, d) => s + (d.votes || 0), 0);
-  const totalVoters = electoralData.reduce((s, d) => s + (d.total_voters || 0), 0);
+  const totalVotes = normalizeList(electoralData).reduce((s, d) => s + (d.votes || 0), 0);
+  const totalVoters = normalizeList(electoralData).reduce((s, d) => s + (d.total_voters || 0), 0);
   const uniqueNeighborhoods = Object.keys(neighborhoodStats).length;
 
   // Get all neighborhood entries merged for ranking
