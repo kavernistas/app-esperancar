@@ -14,6 +14,9 @@ import PortalLideranca from './pages/PortalLideranca';
 import Configuracoes from './pages/Configuracoes';
 import SaudeSistema from './pages/SaudeSistema';
 import Login from './pages/Login';
+import WarRoom from './pages/WarRoom';
+import Financeiro from './pages/Financeiro';
+import OKRs from './pages/OKRs';
 import { RouteGuard } from '@/lib/AccessControl';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -103,6 +106,21 @@ const AuthenticatedApp = () => {
       <Route path="/SaudeSistema" element={
         <LayoutWrapper currentPageName="SaudeSistema">
           <RouteGuard pageName="SaudeSistema"><SaudeSistema /></RouteGuard>
+        </LayoutWrapper>
+      } />
+      <Route path="/WarRoom" element={
+        <LayoutWrapper currentPageName="WarRoom">
+          <RouteGuard pageName="WarRoom"><WarRoom /></RouteGuard>
+        </LayoutWrapper>
+      } />
+      <Route path="/Financeiro" element={
+        <LayoutWrapper currentPageName="Financeiro">
+          <RouteGuard pageName="Financeiro"><Financeiro /></RouteGuard>
+        </LayoutWrapper>
+      } />
+      <Route path="/OKRs" element={
+        <LayoutWrapper currentPageName="OKRs">
+          <RouteGuard pageName="OKRs"><OKRs /></RouteGuard>
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

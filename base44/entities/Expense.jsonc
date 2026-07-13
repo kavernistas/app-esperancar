@@ -1,0 +1,106 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "ID da campanha vinculada"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "material",
+        "eventos",
+        "digital",
+        "equipe",
+        "logistica",
+        "outros"
+      ],
+      "default": "outros",
+      "description": "Categoria da despesa"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da despesa"
+    },
+    "amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor em R$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da despesa"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Fornecedor"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL do documento/recibo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "paid",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Status da despesa"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "category",
+    "description",
+    "amount",
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

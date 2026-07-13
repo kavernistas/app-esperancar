@@ -24,7 +24,10 @@ import {
   AlertTriangle,
   CheckCheck,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Gauge,
+  Wallet,
+  Crosshair
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,6 +115,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const allNavigation = [
+    { name: "War Room", page: "WarRoom", icon: Gauge },
     { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: LayoutDashboard },
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },
@@ -120,7 +124,9 @@ export default function Layout({ children, currentPageName }) {
     { name: "Gamificação", page: "Gamification", icon: Gamepad2 },
     { name: "Mapa Territorial", page: "ElectoralMap", icon: Map },
     { name: "Planejamento", page: "StrategicPlanning", icon: Target },
+    { name: "OKRs", page: "OKRs", icon: Crosshair },
     { name: "Campanhas", page: "Campaigns", icon: FileText },
+    { name: "Financeiro", page: "Financeiro", icon: Wallet },
     { name: "Portal da Liderança", page: "PortalLideranca", icon: UserCheck },
     { name: "Relatórios", page: "Reports", icon: BarChart3 },
     { name: "Saúde do Sistema", page: "SaudeSistema", icon: Activity },

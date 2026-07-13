@@ -1,0 +1,129 @@
+{
+  "name": "OKR",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "ID da campanha vinculada"
+    },
+    "objective": {
+      "type": "string",
+      "description": "Objetivo principal"
+    },
+    "period": {
+      "type": "string",
+      "description": "Per\u00edodo (ex: Q3 2026)"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Progresso geral (0-100)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "archived"
+      ],
+      "default": "active",
+      "description": "Status do OKR"
+    },
+    "key_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "target": {
+            "type": "number",
+            "default": 100
+          },
+          "current": {
+            "type": "number",
+            "default": 0
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Resultados-chave"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID do respons\u00e1vel"
+    },
+    "owner_name": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Prazo final"
+    }
+  },
+  "required": [
+    "objective"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "lideranca"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

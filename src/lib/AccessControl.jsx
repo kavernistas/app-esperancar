@@ -35,7 +35,7 @@ const ROLE_PERMISSIONS = {
       "inteligencia", "contacts", "leaders", "demands", "missions",
       "gamification", "electoral_map", "strategic_planning", "campaigns",
       "electoral_intelligence", "reports", "configuracoes", "diagnostico_tse",
-      "portal_lideranca", "saude_sistema"
+      "portal_lideranca", "saude_sistema", "financeiro", "okrs"
     ],
     canEdit: true,
     canExport: true,
@@ -45,7 +45,7 @@ const ROLE_PERMISSIONS = {
   coordenador: {
     modules: [
       "inteligencia", "contacts", "leaders", "demands", "missions",
-      "gamification", "reports", "portal_lideranca"
+      "gamification", "reports", "portal_lideranca", "financeiro", "okrs"
     ],
     canEdit: true,
     canExport: true,
@@ -116,6 +116,9 @@ const PAGE_TO_MODULE = {
   Configuracoes: "configuracoes",
   PortalLideranca: "portal_lideranca",
   SaudeSistema: "saude_sistema",
+  WarRoom: "inteligencia",
+  Financeiro: "financeiro",
+  OKRs: "okrs",
 };
 
 /**
