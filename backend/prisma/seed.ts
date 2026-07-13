@@ -71,14 +71,20 @@ async function main() {
     },
   });
 
-  // Admin user (senha padrao: Admin@2026)
-  const passwordHash = await bcrypt.hash('Admin@2026', 12);
+  // Admin user — credenciais via variaveis de ambiente
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) {
+    console.error('Defina ADMIN_EMAIL e ADMIN_PASSWORD nas variaveis de ambiente antes de executar o seed.');
+    process.exit(1);
+  }
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
   
   await prisma.user.upsert({
-    where: { email: 'admin@esperancar.app' },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: 'admin@esperancar.app',
+      email: adminEmail,
       password_hash: passwordHash,
       full_name: 'Administrador',
       role: Role.ADMIN,
@@ -90,7 +96,7 @@ async function main() {
   });
 
   console.log('Seed completed successfully!');
-  console.log('Admin user: admin@esperancar.app / Admin@2026');
+  console.log('Admin user created from environment variables.');
 }
 
 main()
