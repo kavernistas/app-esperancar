@@ -77,35 +77,51 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "coordenador"
-          ]
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
         }
-      }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "coordenador",
-            "lideranca"
-          ]
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "lideranca"
+          }
         }
-      }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "coordenador"
-          ]
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
         }
-      }
+      ]
     },
     "delete": {
       "user_condition": {

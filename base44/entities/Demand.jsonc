@@ -142,15 +142,23 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "coordenador",
-            "lideranca"
-          ]
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "coordenador"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "lideranca"
+          }
         }
-      }
+      ]
     },
     "read": {
       "$or": [
