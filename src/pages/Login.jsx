@@ -7,7 +7,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('dralanrobertoferreira@gmail.com');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('Admin@2026');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
@@ -86,6 +86,15 @@ export default function Login() {
               'Entrar'
             )}
           </Button>
+
+          <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+            <p className="text-xs text-slate-500">
+              <strong>Senha padrão:</strong> Admin@2026
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Acesse e altere a senha em Configurações → Segurança.
+            </p>
+          </div>
         </form>
 
         <p className="text-center text-slate-500 text-xs mt-6">
