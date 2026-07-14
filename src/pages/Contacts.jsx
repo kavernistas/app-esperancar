@@ -140,12 +140,7 @@ export default function Contacts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => {
-      const payload = sanitizeContactPayload(data);
-      payload.status = normalizeContactStatus(payload.status);
-      if (!payload.status) delete payload.status;
-      return contactsApi.updateContact(id, payload);
-    },
+    mutationFn: ({ id, data }) => contactsApi.updateContact(id, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contact", updated?.id] });

@@ -1,74 +1,30 @@
-// src/api/missions.js — Missions API with normalized response unwrapping
+// src/api/missions.js — Missions API (Base44 SDK)
+import { base44 } from "@/api/base44Client";
+import { extractOpts, buildFilter, safeList } from "@/lib/base44Api";
 
-import api from './client';
-import { normalizeList } from "@/lib/normalizeList";
-
-// Extract paginated { data: [...], meta: {...} } response without mutating value
-function unwrapPaginated(response) {
-  // response may be already unwrapped by api client from raw { data: { data, meta } }
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response.data) && response.meta) {
-      // Already structured { data: [...], meta: {...} }
-      return { data: response.data, meta: response.meta };
-    }
-    if (Array.isArray(response)) {
-      // Client unwrapped the array out of { data } — return as-is, meta unknown
-      return { data: response, meta: null };
-    }
-  }
-  return { data: Array.isArray(response) ? response : [], meta: null };
-}
-
-// Extract single entity { data: {...} }
-function unwrapEntity(response) {
-  if (response && typeof response === 'object' && !Array.isArray(response)) {
-    if ('data' in response && response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      return response.data;
-    }
-  }
-  return response;
-}
-
-export async function listMissions(params = {}) {
-  const raw = await api.get('/missions', params);
-  return unwrapPaginated(raw);
+export async function listMissions(params = {}, sortArg) {
+  const { sort, limit } = extractOpts(params, sortArg);
+  const filter = buildFilter(params);
+  return safeList(base44.entities.Mission.filter(filter, sort, limit));
 }
 
 export async function getMission(id) {
-  const raw = await api.get(`/missions/${id}`);
-  return unwrapEntity(raw);
+  return await base44.entities.Mission.get(id);
 }
 
 export async function createMission(data) {
-  const raw = await api.post('/missions', data);
-  return unwrapEntity(raw);
+  return await base44.entities.Mission.create(data);
 }
 
 export async function updateMission(id, data) {
-  const raw = await api.patch(`/missions/${id}`, data);
-  return unwrapEntity(raw);
+  return await base44.entities.Mission.update(id, data);
 }
 
 export async function deleteMission(id) {
-  return api.delete(`/missions/${id}`);
+  return await base44.entities.Mission.delete(id);
 }
 
-/**
- * Criar múltiplas missões em lote (sub-missões de missão em grupo)
- */
+/** Criar múltiplas missões em lote */
 export async function bulkCreate(missions) {
-  const results = [];
-  for (const m of missions) {
-    try {
-      const created = await createMission(m);
-      results.push({ success: true, data: created });
-    } catch (e) {
-      results.push({ success: false, error: e.message, data: m });
-    }
-  }
-  const failures = results.filter(r => !r.success);
-  if (failures.length === normalizeList(missions).length) {
-    throw new Error(`Falha ao criar ${failures.length} missões`);
-  }
-  return { data: results, created: results.filter(r => r.success).length, failed: failures.length };
+  return await base44.entities.Mission.bulkCreate(missions);
 }

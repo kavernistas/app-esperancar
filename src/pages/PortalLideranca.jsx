@@ -134,7 +134,12 @@ export default function PortalLideranca() {
 
   // Handlers
   const handleSaveSupporter = async (data) => {
-    await contactsApi.createContact(data);
+    try {
+      await contactsApi.createContact(data);
+    } catch (e) {
+      alert("Erro ao cadastrar apoiador: " + (e?.message || "tente novamente"));
+      throw e;
+    }
     // Trigger gamification for supporter registration
     try {
       const res = await gamificationApi.run({
