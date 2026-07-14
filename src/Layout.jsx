@@ -25,7 +25,6 @@ import {
   CheckCheck,
   Clock,
   ExternalLink,
-  Gauge,
   Wallet,
   Crosshair,
   ClipboardCheck
@@ -99,7 +98,6 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const allNavigation = [
-    { name: "War Room", page: "WarRoom", icon: Gauge },
     { name: "Central de Inteligência", page: "InteligenciaEleitoral", icon: LayoutDashboard },
     { name: "Contatos", page: "Contacts", icon: Users },
     { name: "Lideranças", page: "Leaders", icon: UserCheck },

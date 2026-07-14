@@ -15,7 +15,7 @@ import {
   Globe, Sparkles, Activity, Zap, PieChart, Building2, ShieldAlert,
   Lightbulb, GitCompare, FileSpreadsheet, FileDown, Link2,
   Star, CheckCircle2, AlertTriangle, Phone, Play,
-  LayoutDashboard, Clock
+  LayoutDashboard, Clock, Gauge
 } from "lucide-react";
 
 import SyncStatusBanner from "@/components/electoral/SyncStatusBanner";
@@ -27,6 +27,10 @@ import SofiaInsight from "@/components/electoral/SofiaInsight";
 import ExportActions from "@/components/electoral/ExportActions";
 import ComparativoPanel from "@/components/electoral/ComparativoPanel";
 import MapaVotos from "@/components/electoral/MapaVotos";
+import KpiCard from "@/components/warroom/KpiCard";
+import AlertPanel from "@/components/warroom/AlertPanel";
+import SofiaBriefing from "@/components/warroom/SofiaBriefing";
+import DailyPlan from "@/components/warroom/DailyPlan";
 import * as gamificationApi from '@/api/gamification';
 import * as missionsApi from '@/api/missions';
 import * as demandsApi from '@/api/demands';
@@ -61,6 +65,7 @@ const ENGAGEMENT_BANDS = [
   { min: 81, max: 100, label: "81–100%", color: "bg-blue-600" },
 ];
 
+const ABA_WAR_ROOM = "war_room";
 const ABA_VISAO_GERAL = "visao_geral";
 const ABA_TERRITORIOS = "territorios";
 const ABA_LIDERANCAS = "liderancas";
@@ -71,6 +76,7 @@ const ABA_ELEITORAL = "eleitoral";
 const ABA_SOFIA = "sofia";
 
 const MODULOS = [
+  { id: ABA_WAR_ROOM, label: "War Room", icon: Gauge, desc: "Central de comando — KPIs, alertas e plano do dia" },
   { id: ABA_VISAO_GERAL, label: "Visão Geral", icon: LayoutDashboard, desc: "KPIs, engajamento, lideranças que precisam de atenção" },
   { id: ABA_TERRITORIOS, label: "Territórios", icon: MapPin, desc: "Cobertura, bairros, demandas por região" },
   { id: ABA_LIDERANCAS, label: "Lideranças", icon: UserCheck, desc: "Ativas, performance, região" },
@@ -109,7 +115,7 @@ export default function CentralInteligencia() {
   const [crmData, setCrmData] = useState(null);
   const [crmLoading, setCrmLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState(ABA_VISAO_GERAL);
+  const [activeTab, setActiveTab] = useState(ABA_WAR_ROOM);
 
   const loadSyncStatus = useCallback(async () => {
     try {
@@ -139,6 +145,7 @@ export default function CentralInteligencia() {
       const overdueMissions = normalizeList(missions).filter(m => (m.status || "").toUpperCase() === "OVERDUE");
       const openDemands = normalizeList(demands).filter(d => ["OPEN", "IN_PROGRESS"].includes((d.status || "").toUpperCase()));
       const resolvedDemands = normalizeList(demands).filter(d => (d.status || "").toUpperCase() === "RESOLVED");
+      const criticalDemands = normalizeList(demands).filter(d => ["URGENT", "HIGH"].includes((d.priority || "").toUpperCase()));
 
       // Engagement distribution
       const engagementDist = ENGAGEMENT_BANDS.map(band => ({
@@ -190,8 +197,9 @@ export default function CentralInteligencia() {
       setCrmData({
         leaders: { total: normalizeList(leaders).length, active: activeLeaders.length, inactive: normalizeList(leaders).length - activeLeaders.length },
         missions: { total: normalizeList(missions).length, completed: completedMissions.length, pending: pendingMissions.length, overdue: overdueMissions.length },
+        missionsRaw: normalizeList(missions),
         contacts: { total: normalizeList(contacts).length },
-        demands: { total: normalizeList(demands).length, open: openDemands.length, resolved: resolvedDemands.length },
+        demands: { total: normalizeList(demands).length, open: openDemands.length, resolved: resolvedDemands.length, critical: criticalDemands.length },
         gamification: gamificationProfiles || [],
         topGamification,
         contactsByNeighborhood,
@@ -297,9 +305,53 @@ export default function CentralInteligencia() {
         </div>
       )}
 
-      {crmLoading && activeTab !== ABA_ELEITORAL && activeTab !== ABA_SOFIA && (
+      {crmLoading && activeTab !== ABA_ELEITORAL && activeTab !== ABA_SOFIA && activeTab !== ABA_WAR_ROOM && (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-600 rounded-full animate-spin" /></div>
       )}
+
+      {/* ================================================================ */}
+      {/* ABA WAR ROOM — Central de Comando Executiva                       */}
+      {/* ================================================================ */}
+      {activeTab === ABA_WAR_ROOM && !crmLoading && crmData && (() => {
+        const wrStats = {
+          totalContacts: crmData.contacts.total,
+          activeMissions: crmData.missions.pending,
+          overdueMissions: crmData.missions.overdue,
+          criticalDemands: crmData.demands.critical,
+          openDemands: crmData.demands.open,
+          totalLeaders: crmData.leaders.active,
+        };
+        const wrAlerts = [];
+        if (wrStats.overdueMissions > 0) {
+          wrAlerts.push({ severity: "warning", title: `${wrStats.overdueMissions} missões atrasadas`, message: "Equipes de campo com prazo vencido" });
+        }
+        if (wrStats.criticalDemands > 0) {
+          wrAlerts.push({ severity: "critical", title: `${wrStats.criticalDemands} demandas críticas`, message: "Requerem atenção imediata" });
+        }
+        if (wrStats.totalLeaders > 0 && wrStats.totalLeaders < 5) {
+          wrAlerts.push({ severity: "warning", title: "Poucas lideranças ativas", message: `${wrStats.totalLeaders} lideranças ativas cadastradas` });
+        }
+        if (wrStats.openDemands > 10) {
+          wrAlerts.push({ severity: "info", title: `${wrStats.openDemands} demandas em aberto`, message: "Volume alto de demandas pendentes" });
+        }
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard label="Contatos Totais" value={wrStats.totalContacts} icon={Users} color="blue" subtitle="Base de apoiadores" />
+              <KpiCard label="Missões Ativas" value={wrStats.activeMissions} icon={Target} color="purple" subtitle={`${wrStats.overdueMissions} atrasadas`} />
+              <KpiCard label="Demandas Críticas" value={wrStats.criticalDemands} icon={AlertTriangle} color="red" subtitle={`${wrStats.openDemands} em aberto`} />
+              <KpiCard label="Lideranças Ativas" value={wrStats.totalLeaders} icon={UserCheck} color="green" subtitle="Coordenadores de território" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <AlertPanel alerts={wrAlerts} />
+              </div>
+              <DailyPlan missions={crmData.missionsRaw || []} />
+            </div>
+            <SofiaBriefing stats={wrStats} />
+          </div>
+        );
+      })()}
 
       {/* ================================================================ */}
       {/* ABA 0: VISÃO GERAL (Dashboard + CRM Dashboard)                    */}
