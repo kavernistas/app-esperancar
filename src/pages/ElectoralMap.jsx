@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaflet";
 import {
   MapPin, Users, UserCheck, ClipboardList, Filter, X,
-  Thermometer, ChevronDown, ChevronUp, Phone, Star, Vote
+  Thermometer, ChevronDown, ChevronUp, Phone, Star, Vote, Loader2
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -22,6 +22,9 @@ import * as demandsApi from '@/api/demands';
 import * as leadersApi from '@/api/leaders';
 import * as contactsApi from '@/api/contacts';
 import { normalizeList } from "@/lib/normalizeList";
+import { geocodeAddress } from "@/lib/geocode";
+import { updateContact } from "@/api/contacts";
+import { updateDemand } from "@/api/demands";
 // Fix default marker
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -86,6 +89,9 @@ export default function ElectoralMap() {
   // Side panel tab
   const [sideTab, setSideTab] = useState("ranking");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [geocodingProgress, setGeocodingProgress] = useState(null);
+  const queryClient = useQueryClient();
+  const backfillRan = useRef(false);
 
   // --- Data ---
   const { data: electoralData = [], isLoading: loadingElectoral } = useQuery({
@@ -109,6 +115,70 @@ export default function ElectoralMap() {
   });
 
   const isLoading = loadingElectoral || loadingContacts || loadingLeaders || loadingDemands;
+
+  // --- Auto-geocode backfill: ensure every contact/demand with an address appears on the map ---
+  useEffect(() => {
+    if (backfillRan.current) return;
+    if (loadingContacts || loadingDemands) return;
+
+    const needsGeocode = (item) =>
+      (!item.latitude || !item.longitude) &&
+      (item.address || item.address_street || item.neighborhood || item.city);
+
+    const pendingContacts = normalizeList(contacts).filter(needsGeocode);
+    const pendingDemands = normalizeList(demands).filter(needsGeocode);
+    const total = pendingContacts.length + pendingDemands.length;
+    if (total === 0) return;
+
+    backfillRan.current = true;
+    let cancelled = false;
+    let done = 0;
+    setGeocodingProgress({ done: 0, total });
+
+    (async () => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      for (const c of pendingContacts) {
+        if (cancelled) return;
+        const coords = await geocodeAddress({
+          street: c.address || c.address_street,
+          neighborhood: c.neighborhood,
+          city: c.city,
+        });
+        if (coords) {
+          queryClient.setQueryData(["contacts"], (old = []) =>
+            normalizeList(old).map((x) => (x.id === c.id ? { ...x, ...coords } : x))
+          );
+          try { await updateContact(c.id, coords); } catch (_) {}
+        }
+        done++;
+        setGeocodingProgress({ done, total });
+        await sleep(1100);
+      }
+
+      for (const d of pendingDemands) {
+        if (cancelled) return;
+        const coords = await geocodeAddress({
+          street: d.address,
+          neighborhood: d.neighborhood,
+          city: d.city,
+        });
+        if (coords) {
+          queryClient.setQueryData(["demands"], (old = []) =>
+            normalizeList(old).map((x) => (x.id === d.id ? { ...x, ...coords } : x))
+          );
+          try { await updateDemand(d.id, coords); } catch (_) {}
+        }
+        done++;
+        setGeocodingProgress({ done, total });
+        await sleep(1100);
+      }
+
+      setGeocodingProgress(null);
+    })();
+
+    return () => { cancelled = true; };
+  }, [contacts, demands, loadingContacts, loadingDemands, queryClient]);
 
   // --- Apply CRM filters (all contacts matching territorial criteria) ---
   const filteredContacts = useMemo(() => {
@@ -245,6 +315,12 @@ export default function ElectoralMap() {
         <p className="text-slate-500 text-sm mt-0.5">
           Camadas eleitorais e CRM integradas — filtre por bairro, zona, seção e liderança
         </p>
+        {geocodingProgress && (
+          <div className="mt-2 inline-flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Geocodificando endereços... {geocodingProgress.done}/{geocodingProgress.total}
+          </div>
+        )}
       </div>
 
       {/* ===== STATS BAR ===== */}
