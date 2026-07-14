@@ -36,8 +36,8 @@ async function fetchCEP(cep) {
 export default function CadastrarApoiador({ onSave, user }) {
   const [tagInput, setTagInput] = useState("");
   const [form, setForm] = useState({
-    full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "",
-    electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso",
+    full_name: "", phone: "", email: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "",
+    electoral_zone: "", electoral_section: "", voting_location: "", position: "", segment: "", support_intent: "indeciso",
     contact_authorized: true, is_leader: false, vote_goal: 0,
     visual_no_carro: false, visual_na_residencia: false,
     tags: [],
@@ -107,7 +107,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      setForm({ full_name: "", phone: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, tags: [], notes: "", latitude: null, longitude: null });
+      setForm({ full_name: "", phone: "", email: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", voting_location: "", position: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, tags: [], notes: "", latitude: null, longitude: null });
     }, 1500);
   };
 
@@ -121,7 +121,7 @@ export default function CadastrarApoiador({ onSave, user }) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Nome + Telefone */}
+          {/* Nome + Telefone + Email */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Nome completo *</Label>
@@ -131,6 +131,18 @@ export default function CadastrarApoiador({ onSave, user }) {
               <Label className="text-xs">Telefone / WhatsApp</Label>
               <Input value={form.phone} onChange={e => handleChange("phone", e.target.value)} placeholder="(00) 00000-0000" className="h-9 text-sm" />
             </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <Label className="text-xs">Email</Label>
+            <Input type="email" value={form.email} onChange={e => handleChange("email", e.target.value)} placeholder="email@exemplo.com" className="h-9 text-sm" />
+          </div>
+
+          {/* Cargo / Função */}
+          <div>
+            <Label className="text-xs">Cargo / Função</Label>
+            <Input value={form.position} onChange={e => handleChange("position", e.target.value)} placeholder="Ex: Presidente da associação" className="h-9 text-sm" />
           </div>
 
           {/* CEP + auto preenchimento */}
@@ -221,6 +233,10 @@ export default function CadastrarApoiador({ onSave, user }) {
               <Label className="text-xs">Seção Eleitoral</Label>
               <Input value={form.electoral_section} onChange={e => handleChange("electoral_section", e.target.value)} placeholder="Seção" className="h-9 text-sm" />
             </div>
+          </div>
+          <div>
+            <Label className="text-xs">Local de Votação</Label>
+            <Input value={form.voting_location} onChange={e => handleChange("voting_location", e.target.value)} placeholder="Nome do local de votação" className="h-9 text-sm" />
           </div>
 
           {/* Liderança toggle + Meta de Voto */}
