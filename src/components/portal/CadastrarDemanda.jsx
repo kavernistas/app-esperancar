@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Save, Loader2, Camera } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
+import { geocodeAddress } from "@/lib/geocode";
 import * as filesApi from '@/api/files';
 
 const DEMAND_TYPES = [
@@ -53,8 +54,16 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
     if (!required) return;
     setSaving(true);
     const supporter = contacts?.find(c => c.id === form.supporter_id);
+    let finalData = { ...form };
+    // Geocode on save if no coordinates but address info exists
+    if ((!finalData.latitude || !finalData.longitude) && (finalData.address || finalData.neighborhood)) {
+      const coords = await geocodeAddress({ street: finalData.address, neighborhood: finalData.neighborhood });
+      if (coords) {
+        finalData = { ...finalData, latitude: coords.latitude, longitude: coords.longitude };
+      }
+    }
     await onSave({
-      ...form,
+      ...finalData,
       protocol: generateProtocol(),
       status: "open",
       created_by_leader_id: user?.id,

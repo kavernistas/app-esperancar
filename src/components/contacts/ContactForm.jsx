@@ -22,6 +22,7 @@ import {
 import { X, Save, Loader2, Search, MapPin, Car, Home, Target, Star } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
 import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
+import { geocodeAddress } from "@/lib/geocode";
 
 const SUPPORT_OPTIONS = [
   { value: "apoiador", label: "Apoiador" },
@@ -94,16 +95,25 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         return;
       }
       const merge = (newVal, oldVal) => (newVal && String(newVal).trim() ? newVal : oldVal);
+      const newStreet = merge(data.street, formData.address_street);
+      const newNeighborhood = merge(data.neighborhood, formData.neighborhood);
+      const newCity = merge(data.city, formData.city);
+      const newState = merge(data.state, formData.state);
       setFormData((prev) => ({
         ...prev,
         cep: data.cep || normalizeCep(cepInput),
-        address_street: merge(data.street, prev.address_street),
+        address_street: newStreet,
         complement: merge(data.complement, prev.complement),
-        neighborhood: merge(data.neighborhood, prev.neighborhood),
-        city: merge(data.city, prev.city),
-        state: merge(data.state, prev.state),
+        neighborhood: newNeighborhood,
+        city: newCity,
+        state: newState,
         address_number: prev.address_number || "",
       }));
+      // Auto-geocode the address so the contact appears on the territorial map
+      const coords = await geocodeAddress({ street: newStreet, neighborhood: newNeighborhood, city: newCity, state: newState });
+      if (coords) {
+        setFormData((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+      }
     } catch (e) {
       setCepError("Erro ao consultar CEP — preencha manualmente.");
     } finally {
@@ -190,9 +200,17 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
     handleChange("tags", formData.tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    let finalData = { ...formData };
+    // Geocode on save if no coordinates but address info exists
+    if ((!finalData.latitude || !finalData.longitude) && (finalData.address_street || finalData.neighborhood || finalData.city)) {
+      const coords = await geocodeAddress({ street: finalData.address_street, neighborhood: finalData.neighborhood, city: finalData.city, state: finalData.state });
+      if (coords) {
+        finalData = { ...finalData, latitude: coords.latitude, longitude: coords.longitude };
+      }
+    }
+    onSave(finalData);
   };
 
   return (

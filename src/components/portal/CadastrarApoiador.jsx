@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Save, Loader2, CheckCircle, Search, Car, Home, Target, Star, Tags, X } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
+import { geocodeAddress } from "@/lib/geocode";
 
 const SEGMENTS = ["Jovem", "Mulher", "Idoso", "Trabalhador", "Empresário", "Estudante", "Religioso", "Comunitário", "Outros"];
 const SUPPORT_OPTIONS = [
@@ -74,12 +75,20 @@ export default function CadastrarApoiador({ onSave, user }) {
     const result = await fetchCEP(cepToSearch);
     setCepLoading(false);
     if (result) {
+      const newStreet = result.address_street || form.address_street;
+      const newNeighborhood = result.neighborhood || form.neighborhood;
+      const newCity = result.city || form.city;
       setForm(p => ({
         ...p,
-        address_street: result.address_street || p.address_street,
-        neighborhood: result.neighborhood || p.neighborhood,
-        city: result.city || p.city,
+        address_street: newStreet,
+        neighborhood: newNeighborhood,
+        city: newCity,
       }));
+      // Auto-geocode so the supporter appears on the territorial map
+      const coords = await geocodeAddress({ street: newStreet, neighborhood: newNeighborhood, city: newCity });
+      if (coords) {
+        setForm(p => ({ ...p, latitude: coords.latitude, longitude: coords.longitude }));
+      }
     } else {
       setCepError("CEP não encontrado");
     }
@@ -97,11 +106,19 @@ export default function CadastrarApoiador({ onSave, user }) {
     e.preventDefault();
     if (!required) return;
     setSaving(true);
+    let finalData = { ...form };
+    // Geocode on save if no coordinates but address info exists
+    if ((!finalData.latitude || !finalData.longitude) && (finalData.address_street || finalData.neighborhood || finalData.city)) {
+      const coords = await geocodeAddress({ street: finalData.address_street, neighborhood: finalData.neighborhood, city: finalData.city });
+      if (coords) {
+        finalData = { ...finalData, latitude: coords.latitude, longitude: coords.longitude };
+      }
+    }
     await onSave({
-      ...form,
-      cep: form.cep?.replace(/\D/g, ""),
-      segment: form.tags[0] || "",
-      vote_goal: form.is_leader ? (form.vote_goal || 0) : 0,
+      ...finalData,
+      cep: finalData.cep?.replace(/\D/g, ""),
+      segment: finalData.tags[0] || "",
+      vote_goal: finalData.is_leader ? (finalData.vote_goal || 0) : 0,
       created_by_leader_id: user?.id,
       created_by_leader_name: user?.full_name || user?.email,
     });
