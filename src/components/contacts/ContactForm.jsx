@@ -19,9 +19,16 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { X, Save, Loader2, Search, MapPin } from "lucide-react";
+import { X, Save, Loader2, Search, MapPin, Car, Home, Target, Star } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
 import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
+
+const SUPPORT_OPTIONS = [
+  { value: "apoiador", label: "Apoiador" },
+  { value: "indeciso", label: "Indeciso" },
+  { value: "contrario", label: "Contrário" },
+  { value: "lideranca_potencial", label: "Liderança Potencial" },
+];
 
 export default function ContactForm({ open, onOpenChange, contact, onSave, isLoading }) {
   const [formData, setFormData] = useState({
@@ -40,7 +47,12 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
     voting_location: "",
     position: "",
     is_leader: false,
+    vote_goal: 0,
     engagement_level: 50,
+    support_intent: "indeciso",
+    contact_authorized: true,
+    visual_no_carro: false,
+    visual_na_residencia: false,
     tags: [],
     notes: "",
     status: "active",
@@ -113,6 +125,11 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         address_number: contact.address_number || "",
         complement: contact.complement || "",
         state: contact.state || "",
+        support_intent: contact.support_intent || "indeciso",
+        contact_authorized: contact.contact_authorized !== undefined ? contact.contact_authorized : true,
+        vote_goal: contact.vote_goal || 0,
+        visual_no_carro: contact.visual_no_carro || false,
+        visual_na_residencia: contact.visual_na_residencia || false,
       });
       setCepInput(formatCep(contact.cep || ""));
     } else {
@@ -132,7 +149,12 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
         voting_location: "",
         position: "",
         is_leader: false,
+        vote_goal: 0,
         engagement_level: 50,
+        support_intent: "indeciso",
+        contact_authorized: true,
+        visual_no_carro: false,
+        visual_na_residencia: false,
         tags: [],
         notes: "",
         status: "active",
@@ -386,6 +408,21 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
               />
             </div>
 
+            <div>
+              <Label htmlFor="support_intent">Intenção de Apoio</Label>
+              <Select
+                value={formData.support_intent}
+                onValueChange={(value) => handleChange("support_intent", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <Label>É Liderança?</Label>
@@ -396,6 +433,21 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
                 onCheckedChange={(checked) => handleChange("is_leader", checked)}
               />
             </div>
+
+            {formData.is_leader && (
+              <div>
+                <Label htmlFor="vote_goal">Meta de Votos</Label>
+                <Input
+                  id="vote_goal"
+                  type="number"
+                  value={formData.vote_goal || ""}
+                  onChange={(e) => handleChange("vote_goal", parseInt(e.target.value) || 0)}
+                  placeholder="Ex: 50"
+                  min="0"
+                />
+                <p className="text-xs text-slate-500 mt-1">Quantos votos essa liderança se compromete a trazer?</p>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -409,6 +461,35 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
                 step={5}
                 className="py-2"
               />
+            </div>
+          </div>
+
+          {/* Visuais de Campanha */}
+          <div className="space-y-4">
+            <h3 className="font-medium text-sm text-slate-700">Visuais de Campanha</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={formData.visual_no_carro}
+                  onCheckedChange={(checked) => handleChange("visual_no_carro", checked)}
+                />
+                <Label className="flex items-center gap-1.5">
+                  <Car className="w-4 h-4 text-blue-500" />
+                  Adesivo no carro
+                </Label>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={formData.visual_na_residencia}
+                  onCheckedChange={(checked) => handleChange("visual_na_residencia", checked)}
+                />
+                <Label className="flex items-center gap-1.5">
+                  <Home className="w-4 h-4 text-green-500" />
+                  Bandeira/adesivo na residência
+                </Label>
+              </div>
             </div>
           </div>
 
@@ -442,22 +523,33 @@ export default function ContactForm({ open, onOpenChange, contact, onSave, isLoa
             </div>
           </div>
 
-          {/* Status */}
-          <div>
-            <Label>Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => handleChange("status", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="inactive">Inativo</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Status + Autorização */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => handleChange("status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={formData.contact_authorized}
+                  onCheckedChange={(checked) => handleChange("contact_authorized", checked)}
+                />
+                <Label>Autoriza contato</Label>
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

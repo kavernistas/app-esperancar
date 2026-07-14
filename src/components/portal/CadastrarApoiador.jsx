@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Save, Loader2, CheckCircle, Search, Car, Home, Target, Star, Tags, X } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
@@ -40,6 +41,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     electoral_zone: "", electoral_section: "", voting_location: "", position: "", segment: "", support_intent: "indeciso",
     contact_authorized: true, is_leader: false, vote_goal: 0,
     visual_no_carro: false, visual_na_residencia: false,
+    engagement_level: 50, status: "active",
     tags: [],
     notes: "", latitude: null, longitude: null,
   });
@@ -107,7 +109,7 @@ export default function CadastrarApoiador({ onSave, user }) {
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
-      setForm({ full_name: "", phone: "", email: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", voting_location: "", position: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0, visual_no_carro: false, visual_na_residencia: false, tags: [], notes: "", latitude: null, longitude: null });
+      setForm({ full_name: "", phone: "", email: "", cep: "", city: "", neighborhood: "", address_street: "", address_number: "", electoral_zone: "", electoral_section: "", voting_location: "", position: "", segment: "", support_intent: "indeciso", contact_authorized: true, is_leader: false, vote_goal: 0,     visual_no_carro: false, visual_na_residencia: false, engagement_level: 50, status: "active", tags: [], notes: "", latitude: null, longitude: null });
     }, 1500);
   };
 
@@ -292,6 +294,34 @@ export default function CadastrarApoiador({ onSave, user }) {
                   Bandeira/adesivo na residência
                 </Label>
               </div>
+            </div>
+          </div>
+
+          {/* Engajamento + Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Nível de Engajamento</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Slider
+                  value={[form.engagement_level]}
+                  onValueChange={(v) => handleChange("engagement_level", v[0])}
+                  max={100}
+                  step={5}
+                  className="flex-1"
+                />
+                <span className="text-xs font-medium text-blue-600 w-8">{form.engagement_level}%</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={v => handleChange("status", v)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
