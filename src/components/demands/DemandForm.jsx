@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { Save, Loader2, Search, MapPin } from "lucide-react";
+import { Save, Loader2, Search, MapPin, UserCheck } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
 import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
 
@@ -36,7 +36,7 @@ const DEMAND_TYPES = [
   { value: "other", label: "Outros" },
 ];
 
-export default function DemandForm({ open, onOpenChange, demand, onSave, isLoading }) {
+export default function DemandForm({ open, onOpenChange, demand, onSave, isLoading, contacts = [], user = null }) {
   const [formData, setFormData] = useState({
     title: "",
     type: "other",
@@ -44,6 +44,10 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     requester_name: "",
     requester_phone: "",
     requester_email: "",
+    supporter_id: "",
+    supporter_name: "",
+    created_by_leader_id: "",
+    created_by_leader_name: "",
     cep: "",
     address: "",
     city: "",
@@ -111,6 +115,10 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         requester_name: "",
         requester_phone: "",
         requester_email: "",
+        supporter_id: "",
+        supporter_name: "",
+        created_by_leader_id: "",
+        created_by_leader_name: "",
         cep: "",
         address: "",
         city: "",
@@ -131,9 +139,36 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleContactSelect = (contactId) => {
+    if (!contactId) {
+      handleChange("supporter_id", "");
+      handleChange("supporter_name", "");
+      return;
+    }
+    const contact = contacts.find(c => c.id === contactId);
+    if (contact) {
+      setFormData(prev => ({
+        ...prev,
+        supporter_id: contact.id,
+        supporter_name: contact.full_name,
+        requester_name: contact.full_name || prev.requester_name,
+        requester_phone: contact.phone || prev.requester_phone,
+        requester_email: contact.email || prev.requester_email,
+        neighborhood: contact.neighborhood || prev.neighborhood,
+        city: contact.city || prev.city,
+        latitude: contact.latitude || prev.latitude,
+        longitude: contact.longitude || prev.longitude,
+      }));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      created_by_leader_id: formData.created_by_leader_id || user?.id || "",
+      created_by_leader_name: formData.created_by_leader_name || user?.full_name || user?.email || "",
+    });
   };
 
   return (
@@ -212,6 +247,31 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
           {/* Requester Info */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-slate-700">Solicitante</h3>
+            {contacts.length > 0 && (
+              <div>
+                <Label htmlFor="supporter_id" className="flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-500" />
+                  Vincular a Contato
+                </Label>
+                <Select
+                  value={formData.supporter_id || ""}
+                  onValueChange={(value) => handleContactSelect(value === "_none_" ? "" : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar contato da base..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none_">Nenhum</SelectItem>
+                    {contacts.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name}{c.neighborhood ? ` — ${c.neighborhood}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400 mt-1">Ao vincular, os dados do contato preenchem automaticamente o solicitante.</p>
+              </div>
+            )}
             <div>
               <Label htmlFor="requester_name">Nome</Label>
               <Input

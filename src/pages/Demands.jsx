@@ -26,6 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DemandCard from "@/components/demands/DemandCard";
 import DemandForm from "@/components/demands/DemandForm";
 import * as demandsApi from '@/api/demands';
+import * as contactsApi from '@/api/contacts';
+import { useAuth } from '@/lib/AuthContext';
 import { normalizeList } from "@/lib/normalizeList";
 const exportDemandsCSV = (demands) => {
   const headers = ["Título","Tipo","Descrição","Solicitante","Telefone","Email","Cidade","Bairro","Prioridade","Status","Responsável","Prazo"];
@@ -52,9 +54,14 @@ export default function Demands() {
 
   const queryClient = useQueryClient();
 
+  const { user } = useAuth();
   const { data: demands = [], isLoading } = useQuery({
     queryKey: ["demands"],
     queryFn: () => demandsApi.listDemands({ sort: "-created_at", limit: 500 }),
+  });
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => contactsApi.listContacts({ sort: "-created_at", limit: 500 }),
   });
 
   const createMutation = useMutation({
@@ -289,6 +296,8 @@ export default function Demands() {
         demand={editingDemand}
         onSave={handleSave}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        contacts={normalizeList(contacts)}
+        user={user}
       />
 
       {/* Delete Dialog */}
