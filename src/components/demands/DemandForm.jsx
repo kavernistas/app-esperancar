@@ -20,6 +20,7 @@ import {
 import { Save, Loader2, Search, MapPin, UserCheck } from "lucide-react";
 import LocationPicker from "@/components/ui/LocationPicker";
 import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
+import { geocodeAddress } from "@/lib/geocode";
 
 const DEMAND_TYPES = [
   { value: "health", label: "Saúde" },
@@ -76,13 +77,21 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
         return;
       }
       const merge = (n, o) => (n && String(n).trim() ? n : o);
+      const newAddress = merge(data.street, formData.address);
+      const newNeighborhood = merge(data.neighborhood, formData.neighborhood);
+      const newCity = merge(data.city, formData.city);
       setFormData((prev) => ({
         ...prev,
         cep: data.cep || normalizeCep(cepInput),
-        address: merge(data.street, prev.address),
-        neighborhood: merge(data.neighborhood, prev.neighborhood),
-        city: merge(data.city, prev.city),
+        address: newAddress,
+        neighborhood: newNeighborhood,
+        city: newCity,
       }));
+      // Geocode the address to get coordinates
+      const coords = await geocodeAddress({ street: newAddress, neighborhood: newNeighborhood, city: newCity, state: data.state });
+      if (coords) {
+        setFormData((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+      }
     } catch (e) {
       setCepError("Erro ao consultar CEP.");
     } finally {
@@ -162,13 +171,21 @@ export default function DemandForm({ open, onOpenChange, demand, onSave, isLoadi
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave({
+    let finalData = {
       ...formData,
       created_by_leader_id: formData.created_by_leader_id || user?.id || "",
       created_by_leader_name: formData.created_by_leader_name || user?.full_name || user?.email || "",
-    });
+    };
+    // If no coordinates but address exists, geocode before saving
+    if ((!finalData.latitude || !finalData.longitude) && (finalData.address || finalData.neighborhood || finalData.city)) {
+      const coords = await geocodeAddress({ street: finalData.address, neighborhood: finalData.neighborhood, city: finalData.city });
+      if (coords) {
+        finalData = { ...finalData, latitude: coords.latitude, longitude: coords.longitude };
+      }
+    }
+    onSave(finalData);
   };
 
   return (

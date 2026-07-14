@@ -124,18 +124,25 @@ export default function ElectoralMap() {
   const geoContacts = useMemo(() => filteredContacts.filter(c => c.latitude && c.longitude), [filteredContacts]);
 
   const filteredLeaders = useMemo(() => {
-    let result = normalizeList(leadersRaw).filter(l => l.latitude && l.longitude);
+    let result = normalizeList(leadersRaw);
     if (filterBairro) result = result.filter(l => l.neighborhood === filterBairro);
     if (filterZona) result = result.filter(l => l.electoral_zone === filterZona);
+    if (filterLeaderId) result = result.filter(l => l.id === filterLeaderId);
     return result;
-  }, [leadersRaw, filterBairro, filterZona]);
+  }, [leadersRaw, filterBairro, filterZona, filterLeaderId]);
+
+  // Only leaders with coordinates can appear as map markers
+  const geoLeaders = useMemo(() => filteredLeaders.filter(l => l.latitude && l.longitude), [filteredLeaders]);
 
   const filteredDemands = useMemo(() => {
-    let result = normalizeList(demands).filter(d => d.latitude && d.longitude);
+    let result = normalizeList(demands);
     if (filterBairro) result = result.filter(d => d.neighborhood === filterBairro);
     if (filterLeaderId) result = result.filter(d => d.created_by_leader_id === filterLeaderId);
     return result;
   }, [demands, filterBairro, filterLeaderId]);
+
+  // Only demands with coordinates can appear as map markers
+  const geoDemands = useMemo(() => filteredDemands.filter(d => d.latitude && d.longitude), [filteredDemands]);
 
   // --- Electoral data: neighborhood aggregation ---
   const neighborhoodStats = useMemo(() => {
@@ -247,7 +254,7 @@ export default function ElectoralMap() {
           { icon: Users, label: "Eleitores", value: totalVoters.toLocaleString(), color: "text-emerald-600", bg: "bg-emerald-50" },
           { icon: MapPin, label: "Bairros Mapeados", value: uniqueNeighborhoods, color: "text-purple-600", bg: "bg-purple-50" },
           { icon: UserCheck, label: "Contatos", value: normalizeList(contacts).length, color: "text-blue-600", bg: "bg-blue-50" },
-          { icon: ClipboardList, label: "Demandas Geo", value: normalizeList(demands).filter(d => d.latitude && d.longitude).length, color: "text-orange-600", bg: "bg-orange-50" },
+          { icon: ClipboardList, label: "Demandas", value: normalizeList(demands).length, color: "text-orange-600", bg: "bg-orange-50" },
         ].map((s, i) => (
           <Card key={i} className={`border-slate-200 ${s.bg} border-none`}>
             <CardContent className="p-3">
@@ -363,7 +370,7 @@ export default function ElectoralMap() {
                     </Badge>
                   )}
                   <span className="text-[10px] text-slate-400 self-center ml-1">
-                    {geoContacts.length + filteredLeaders.length + filteredDemands.length} itens no mapa
+                    {geoContacts.length + geoLeaders.length + geoDemands.length} itens no mapa
                   </span>
                 </div>
               )}
@@ -429,7 +436,7 @@ export default function ElectoralMap() {
                   ))}
 
                   {/* Leader markers */}
-                  {showLeaders && filteredLeaders.map(l => (
+                  {showLeaders && geoLeaders.map(l => (
                     <Marker key={`ld-${l.id}`} position={[l.latitude, l.longitude]} icon={leaderIcon}
                       eventHandlers={{ click: () => setSelectedItem({ type: "leader", data: l }) }}
                     >
@@ -446,7 +453,7 @@ export default function ElectoralMap() {
                   ))}
 
                   {/* Demand markers */}
-                  {showDemands && filteredDemands.map(d => (
+                  {showDemands && geoDemands.map(d => (
                     <Marker key={`dm-${d.id}`} position={[d.latitude, d.longitude]} icon={demandIcon}
                       eventHandlers={{ click: () => setSelectedItem({ type: "demand", data: d }) }}
                     >
@@ -494,6 +501,7 @@ export default function ElectoralMap() {
               <TabsTrigger value="ranking" className="text-[11px] h-7 flex-1">Bairros</TabsTrigger>
               <TabsTrigger value="contatos" className="text-[11px] h-7 flex-1">Contatos</TabsTrigger>
               <TabsTrigger value="liderancas" className="text-[11px] h-7 flex-1">Lideranças</TabsTrigger>
+              <TabsTrigger value="demandas" className="text-[11px] h-7 flex-1">Demandas</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -578,7 +586,12 @@ export default function ElectoralMap() {
                 {filteredLeaders.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-8">Nenhuma liderança nos filtros atuais</p>
                 ) : (
-                  filteredLeaders.slice(0, 20).map(l => (
+                  <>
+                  <div className="px-3 py-2 border-b border-slate-100 text-[10px] text-slate-400 flex justify-between">
+                    <span>{filteredLeaders.length} lideranças</span>
+                    <span>{geoLeaders.length} no mapa</span>
+                  </div>
+                  {filteredLeaders.slice(0, 50).map(l => (
                     <button
                       key={l.id}
                       onClick={() => setSelectedItem({ type: "leader", data: l })}
@@ -593,12 +606,56 @@ export default function ElectoralMap() {
                           <div className="flex items-center gap-2 text-[10px] text-slate-400">
                             {l.neighborhood && <span>{l.neighborhood}</span>}
                             <span>{l.supporters_count || 0} apoiadores</span>
+                            {(!l.latitude || !l.longitude) && <span className="text-amber-500 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />sem coords</span>}
                           </div>
                         </div>
                         <Badge className={`text-[9px] ${l.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{l.status}</Badge>
                       </div>
                     </button>
-                  ))
+                  ))}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* DEMANDS LIST */}
+          {sideTab === "demandas" && (
+            <Card className="border-slate-200">
+              <CardContent className="p-0 max-h-[420px] overflow-y-auto">
+                {filteredDemands.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-8">Nenhuma demanda nos filtros atuais</p>
+                ) : (
+                  <>
+                  <div className="px-3 py-2 border-b border-slate-100 text-[10px] text-slate-400 flex justify-between">
+                    <span>{filteredDemands.length} demandas</span>
+                    <span>{geoDemands.length} no mapa</span>
+                  </div>
+                  {filteredDemands.slice(0, 50).map(d => (
+                    <button
+                      key={d.id}
+                      onClick={() => setSelectedItem({ type: "demand", data: d })}
+                      className={`w-full text-left p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors ${
+                        selectedItem?.data?.id === d.id ? "bg-orange-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                          <ClipboardList className="w-3.5 h-3.5 text-orange-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-slate-700 truncate">{d.title}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                            {d.neighborhood && <span>{d.neighborhood}</span>}
+                            {demandTypeLabels[d.type] && <Badge className="text-[9px] bg-slate-100 text-slate-600">{demandTypeLabels[d.type]}</Badge>}
+                            {(!d.latitude || !d.longitude) && <span className="text-amber-500 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />sem coords</span>}
+                          </div>
+                        </div>
+                        <Badge className={`text-[9px] ${d.status === "open" ? "bg-amber-100 text-amber-700" : d.status === "resolved" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{d.status}</Badge>
+                      </div>
+                    </button>
+                  ))}
+                  </>
                 )}
               </CardContent>
             </Card>

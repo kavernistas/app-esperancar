@@ -12,6 +12,14 @@
     "email": {
       "type": "string"
     },
+    "cep": {
+      "type": "string",
+      "description": "CEP para autopreenchimento"
+    },
+    "address": {
+      "type": "string",
+      "description": "Endere\u00e7o"
+    },
     "city": {
       "type": "string"
     },
@@ -21,6 +29,14 @@
     },
     "electoral_zone": {
       "type": "string"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Latitude para geolocaliza\u00e7\u00e3o"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Longitude para geolocaliza\u00e7\u00e3o"
     },
     "supporters_count": {
       "type": "number",

@@ -17,16 +17,23 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Search, MapPin } from "lucide-react";
+import LocationPicker from "@/components/ui/LocationPicker";
+import { fetchCep, formatCep, normalizeCep, isCepComplete, cancelPendingCep } from "@/lib/cep";
+import { geocodeAddress } from "@/lib/geocode";
 
 export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoading }) {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
+    cep: "",
+    address: "",
     city: "",
     neighborhood: "",
     electoral_zone: "",
+    latitude: null,
+    longitude: null,
     supporters_count: 0,
     political_strength: "medium",
     monthly_goal: 0,
@@ -37,17 +44,72 @@ export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoadi
     status: "active",
   });
 
+  const [cepInput, setCepInput] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState(null);
+
+  const handleCepChange = (value) => setCepInput(formatCep(value));
+
+  const runCepLookup = async () => {
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const data = await fetchCep(cepInput);
+      if (!data) {
+        setCepError("CEP não encontrado.");
+        return;
+      }
+      const merge = (n, o) => (n && String(n).trim() ? n : o);
+      const newAddress = merge(data.street, formData.address);
+      const newNeighborhood = merge(data.neighborhood, formData.neighborhood);
+      const newCity = merge(data.city, formData.city);
+      setFormData((prev) => ({
+        ...prev,
+        cep: data.cep || normalizeCep(cepInput),
+        address: newAddress,
+        neighborhood: newNeighborhood,
+        city: newCity,
+      }));
+      const coords = await geocodeAddress({ street: newAddress, neighborhood: newNeighborhood, city: newCity, state: data.state });
+      if (coords) {
+        setFormData((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+      }
+    } catch (e) {
+      setCepError("Erro ao consultar CEP.");
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const handleCepBlur = async () => {
+    if (!isCepComplete(cepInput)) return;
+    await runCepLookup();
+  };
+
+  useEffect(() => () => cancelPendingCep(), []);
+
   useEffect(() => {
     if (leader) {
-      setFormData(leader);
+      setFormData({
+        ...leader,
+        cep: leader.cep || "",
+        address: leader.address || "",
+        latitude: leader.latitude || null,
+        longitude: leader.longitude || null,
+      });
+      setCepInput(formatCep(leader.cep || ""));
     } else {
       setFormData({
         name: "",
         phone: "",
         email: "",
+        cep: "",
+        address: "",
         city: "",
         neighborhood: "",
         electoral_zone: "",
+        latitude: null,
+        longitude: null,
         supporters_count: 0,
         political_strength: "medium",
         monthly_goal: 0,
@@ -57,6 +119,8 @@ export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoadi
         photo_url: "",
         status: "active",
       });
+      setCepInput("");
+      setCepError(null);
     }
   }, [leader, open]);
 
@@ -64,9 +128,16 @@ export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoadi
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    let finalData = { ...formData };
+    if ((!finalData.latitude || !finalData.longitude) && (finalData.address || finalData.neighborhood || finalData.city)) {
+      const coords = await geocodeAddress({ street: finalData.address, neighborhood: finalData.neighborhood, city: finalData.city });
+      if (coords) {
+        finalData = { ...finalData, latitude: coords.latitude, longitude: coords.longitude };
+      }
+    }
+    onSave(finalData);
   };
 
   return (
@@ -118,6 +189,32 @@ export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoadi
           {/* Location */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-slate-700">Região de Atuação</h3>
+            <div>
+              <Label htmlFor="cep">CEP</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="cep"
+                  value={cepInput}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" size="icon" onClick={runCepLookup} disabled={cepLoading || !isCepComplete(cepInput)}>
+                  {cepLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                </Button>
+              </div>
+              {cepError && <p className="text-[10px] text-red-500 mt-1">{cepError}</p>}
+            </div>
+            <div>
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+                placeholder="Rua, avenida..."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="city">Cidade</Label>
@@ -146,6 +243,23 @@ export default function LeaderForm({ open, onOpenChange, leader, onSave, isLoadi
                 onChange={(e) => handleChange("electoral_zone", e.target.value)}
                 placeholder="Zona"
               />
+            </div>
+            <div>
+              <LocationPicker
+                value={{ latitude: formData.latitude, longitude: formData.longitude }}
+                onChange={({ latitude, longitude }) => {
+                  handleChange("latitude", latitude);
+                  handleChange("longitude", longitude);
+                }}
+                height={200}
+                placeholder="Buscar endereço da liderança..."
+              />
+              {formData.latitude && formData.longitude && (
+                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                  <MapPin className="w-3 h-3" />
+                  {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </p>
+              )}
             </div>
           </div>
 
