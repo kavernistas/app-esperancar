@@ -110,15 +110,18 @@ export default function ElectoralMap() {
 
   const isLoading = loadingElectoral || loadingContacts || loadingLeaders || loadingDemands;
 
-  // --- Apply CRM filters ---
+  // --- Apply CRM filters (all contacts matching territorial criteria) ---
   const filteredContacts = useMemo(() => {
-    let result = normalizeList(contacts).filter(c => c.latitude && c.longitude);
+    let result = normalizeList(contacts);
     if (filterBairro) result = result.filter(c => c.neighborhood === filterBairro);
     if (filterZona) result = result.filter(c => c.electoral_zone === filterZona);
     if (filterSecao) result = result.filter(c => c.electoral_section === filterSecao);
     if (filterLeaderId) result = result.filter(c => c.created_by_leader_id === filterLeaderId);
     return result;
   }, [contacts, filterBairro, filterZona, filterSecao, filterLeaderId]);
+
+  // Only contacts with coordinates can appear as map markers
+  const geoContacts = useMemo(() => filteredContacts.filter(c => c.latitude && c.longitude), [filteredContacts]);
 
   const filteredLeaders = useMemo(() => {
     let result = normalizeList(leadersRaw).filter(l => l.latitude && l.longitude);
@@ -243,7 +246,7 @@ export default function ElectoralMap() {
           { icon: Vote, label: "Votos Totais", value: totalVotes.toLocaleString(), color: "text-blue-600", bg: "bg-blue-50" },
           { icon: Users, label: "Eleitores", value: totalVoters.toLocaleString(), color: "text-emerald-600", bg: "bg-emerald-50" },
           { icon: MapPin, label: "Bairros Mapeados", value: uniqueNeighborhoods, color: "text-purple-600", bg: "bg-purple-50" },
-          { icon: UserCheck, label: "Contatos Geo", value: normalizeList(contacts).filter(c => c.latitude && c.longitude).length, color: "text-blue-600", bg: "bg-blue-50" },
+          { icon: UserCheck, label: "Contatos", value: normalizeList(contacts).length, color: "text-blue-600", bg: "bg-blue-50" },
           { icon: ClipboardList, label: "Demandas Geo", value: normalizeList(demands).filter(d => d.latitude && d.longitude).length, color: "text-orange-600", bg: "bg-orange-50" },
         ].map((s, i) => (
           <Card key={i} className={`border-slate-200 ${s.bg} border-none`}>
@@ -360,7 +363,7 @@ export default function ElectoralMap() {
                     </Badge>
                   )}
                   <span className="text-[10px] text-slate-400 self-center ml-1">
-                    {filteredContacts.length + filteredLeaders.length + filteredDemands.length} itens no mapa
+                    {geoContacts.length + filteredLeaders.length + filteredDemands.length} itens no mapa
                   </span>
                 </div>
               )}
@@ -408,7 +411,7 @@ export default function ElectoralMap() {
                   })}
 
                   {/* Contact markers */}
-                  {showContacts && filteredContacts.map(c => (
+                  {showContacts && geoContacts.map(c => (
                     <Marker key={`ct-${c.id}`} position={[c.latitude, c.longitude]} icon={contactIcon}
                       eventHandlers={{ click: () => setSelectedItem({ type: "contact", data: c }) }}
                     >
@@ -535,7 +538,12 @@ export default function ElectoralMap() {
                 {filteredContacts.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-8">Nenhum contato nos filtros atuais</p>
                 ) : (
-                  filteredContacts.slice(0, 20).map(c => (
+                  <>
+                  <div className="px-3 py-2 border-b border-slate-100 text-[10px] text-slate-400 flex justify-between">
+                    <span>{filteredContacts.length} contatos</span>
+                    <span>{geoContacts.length} no mapa</span>
+                  </div>
+                  {filteredContacts.slice(0, 50).map(c => (
                     <button
                       key={c.id}
                       onClick={() => setSelectedItem({ type: "contact", data: c })}
@@ -550,11 +558,14 @@ export default function ElectoralMap() {
                           <div className="flex items-center gap-2 text-[10px] text-slate-400">
                             {c.neighborhood && <span>{c.neighborhood}</span>}
                             {c.support_intent && <Badge className={`text-[9px] ${intentColors[c.support_intent] || ""}`}>{intentLabels[c.support_intent] || c.support_intent}</Badge>}
+                            {(!c.latitude || !c.longitude) && <span className="text-amber-500 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5" />sem coords</span>}
                           </div>
                         </div>
                       </div>
                     </button>
-                  ))
+                  ))}
+                  {filteredContacts.length > 50 && <p className="text-[10px] text-slate-400 text-center py-2">+{filteredContacts.length - 50} contatos...</p>}
+                  </>
                 )}
               </CardContent>
             </Card>
