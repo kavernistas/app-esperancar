@@ -254,21 +254,12 @@ export default function CentralInteligencia() {
         <div className="absolute bottom-0 left-10 w-48 h-48 bg-[#7AC943]/3 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className="bg-white/10 text-white/80 border-white/10 text-[11px] font-normal">
-                  <Sparkles className="w-3 h-3 mr-1 text-[#7AC943]" />Esperançar
-                </Badge>
-                <span className="text-white/20 text-sm">·</span>
-                <span className="text-[11px] text-[#7AC943]/80 font-medium tracking-wide uppercase">CRM Político</span>
-                <span className="text-white/20 text-sm">·</span>
-                <span className="text-[11px] text-amber-300/70 font-medium">Sofia IA</span>
-              </div>
-              <h1 className="text-xl lg:text-2xl font-bold tracking-tight">Central de Inteligência Territorial</h1>
-              <p className="text-slate-400 text-xs lg:text-sm">
-                Gestão Territorial · Mobilização · Inteligência Eleitoral · Análises Sofia IA
-              </p>
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-white/10 text-white/80 border-white/10 text-[11px] font-normal">
+                <Sparkles className="w-3 h-3 mr-1 text-[#7AC943]" />Esperançar
+              </Badge>
+              <h1 className="text-lg lg:text-2xl font-bold tracking-tight">Central de Inteligência Territorial</h1>
             </div>
             <RouterLink to="/DiagnosticoTSE">
               <Button variant="outline" size="sm" className="bg-white/5 text-white border-white/15 hover:bg-white/10 hover:border-white/25 text-xs h-8">
@@ -277,18 +268,18 @@ export default function CentralInteligencia() {
             </RouterLink>
           </div>
 
-          <div className="flex flex-wrap gap-1">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mb-1 scrollbar-thin">
             {MODULOS.map(mod => (
               <button
                 key={mod.id}
                 onClick={() => setActiveTab(mod.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                   activeTab === mod.id
                     ? "bg-[#7AC943] text-[#0A2540] shadow-sm shadow-[#7AC943]/25"
                     : "text-slate-400 hover:text-white hover:bg-white/8"
                 }`}
               >
-                <mod.icon className="w-3.5 h-3.5" />
+                <mod.icon className="w-3.5 h-3.5 flex-shrink-0" />
                 {mod.label}
               </button>
             ))}
