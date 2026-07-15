@@ -38,7 +38,7 @@ const MISSION_TYPES = [
 ];
 
 const RECURRENCE_OPTIONS = [
-  { value: "", label: "Única" },
+  { value: "_none_", label: "Única" },
   { value: "daily", label: "Diária" },
   { value: "weekly", label: "Semanal" },
   { value: "biweekly", label: "Quinzenal" },
@@ -398,7 +398,7 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
           {/* Recurrence */}
           <div>
             <Label>Recorrência</Label>
-            <Select value={recurrence} onValueChange={setRecurrence}>
+            <Select value={recurrence || "_none_"} onValueChange={v => setRecurrence(v === "_none_" ? "" : v)}>
               <SelectTrigger className="text-sm"><SelectValue placeholder="Única" /></SelectTrigger>
               <SelectContent>
                 {RECURRENCE_OPTIONS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
