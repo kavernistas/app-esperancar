@@ -147,6 +147,9 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
+    const selectedLeaderObj = assignmentType === "individual"
+      ? normalizeList(leaders).find(l => l.id === selectedLeader)
+      : null;
     const baseData = {
       title: title.trim(),
       description,
@@ -160,6 +163,11 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
       completed_recipients: 0,
       checklist,
       created_by_name: "Admin",
+      leader_id: assignmentType === "individual" ? (selectedLeaderObj?.id || "") : "",
+      leader_name: assignmentType === "individual" ? (selectedLeaderObj?.name || "") : "",
+      neighborhood: assignmentType === "individual" ? (selectedLeaderObj?.neighborhood || "") : "",
+      city: assignmentType === "individual" ? (selectedLeaderObj?.city || "") : "",
+      segment: assignmentType === "individual" ? (selectedLeaderObj?.segment || "") : "",
       history: [{ date: new Date().toISOString(), action: "Criação", user_name: "Admin", field: "all", old_value: "", new_value: "Missão criada", justification: "" }],
     };
 

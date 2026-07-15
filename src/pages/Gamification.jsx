@@ -19,6 +19,7 @@ import * as missionsApi from '@/api/missions';
 import * as leadersApi from '@/api/leaders';
 import { normalizeList } from "@/lib/normalizeList";
 import * as whatsappApi from '@/api/whatsapp';
+import { base44 } from "@/api/base44Client";
 export default function Gamification() {
   const [missions, setMissions] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -44,7 +45,35 @@ export default function Gamification() {
       ]);
       setMissions(Array.isArray(missionsData) ? missionsData : []);
       setProfiles(Array.isArray(profilesData) ? profilesData : []);
-      setLeaders(Array.isArray(leadersData) ? leadersData : []);
+
+      const leaderRecords = Array.isArray(leadersData) ? leadersData : [];
+
+      // Integrar com usuários reais (role "lideranca") — o Portal usa user.id como leader_id
+      let mergedLeaders = leaderRecords;
+      try {
+        const usersData = await base44.entities.User.filter({ role: "lideranca" }, "full_name", 200);
+        const users = Array.isArray(usersData) ? usersData : [];
+        if (users.length > 0) {
+          mergedLeaders = users.map(u => {
+            const match = leaderRecords.find(l => l.email && l.email.toLowerCase() === (u.email || "").toLowerCase());
+            return {
+              id: u.id,
+              name: u.full_name || u.email,
+              email: u.email,
+              neighborhood: match?.neighborhood || "",
+              city: match?.city || "",
+              segment: match?.segment || "",
+              phone: match?.phone || "",
+              supporters_count: match?.supporters_count || 0,
+              status: match?.status || "active",
+            };
+          });
+        }
+      } catch (e) {
+        // Coordenadores podem não ter permissão para listar usuários — manter Leader records
+        console.warn("Não foi possível carregar usuários liderança, usando registros de Leader:", e);
+      }
+      setLeaders(mergedLeaders);
     } catch (e) { console.error("Erro ao carregar dados:", e); }
     setLoading(false);
   }, []);
