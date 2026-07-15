@@ -129,10 +129,10 @@ export default function CadastrarDemanda({ onSave, user, contacts }) {
           </div>
           <div>
             <Label className="text-xs">Vínculo com Apoiador</Label>
-            <Select value={form.supporter_id} onValueChange={v => handleChange("supporter_id", v)}>
+            <Select value={form.supporter_id || "_none_"} onValueChange={v => handleChange("supporter_id", v === "_none_" ? null : v)}>
               <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Nenhum" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={null}>Nenhum</SelectItem>
+                <SelectItem value="_none_">Nenhum</SelectItem>
                 {(contacts || []).map(c => <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>)}
               </SelectContent>
             </Select>

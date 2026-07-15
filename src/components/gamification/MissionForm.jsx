@@ -349,10 +349,10 @@ export default function MissionForm({ open, onClose, onSubmit, leaders = [] }) {
                 </div>
                 <div>
                   <Label className="text-xs">Bairro</Label>
-                  <Select value={filterNeighborhood} onValueChange={setFilterNeighborhood}>
+                  <Select value={filterNeighborhood || "_all_"} onValueChange={v => setFilterNeighborhood(v === "_all_" ? null : v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Todos" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={null}>Todos</SelectItem>
+                      <SelectItem value="_all_">Todos</SelectItem>
                       {neighborhoods.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                     </SelectContent>
                   </Select>

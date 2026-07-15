@@ -359,40 +359,40 @@ export default function ElectoralMap() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <div>
                   <Label className="text-[10px] text-slate-500 mb-0.5 block">Bairro</Label>
-                  <Select value={filterBairro} onValueChange={setFilterBairro}>
+                  <Select value={filterBairro || "_all_"} onValueChange={v => setFilterBairro(v === "_all_" ? null : v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                     <SelectContent className="max-h-48">
-                      <SelectItem value={null}>Todos os bairros</SelectItem>
+                      <SelectItem value="_all_">Todos os bairros</SelectItem>
                       {bairros.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label className="text-[10px] text-slate-500 mb-0.5 block">Zona Eleitoral</Label>
-                  <Select value={filterZona} onValueChange={setFilterZona}>
+                  <Select value={filterZona || "_all_"} onValueChange={v => setFilterZona(v === "_all_" ? null : v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={null}>Todas as zonas</SelectItem>
+                      <SelectItem value="_all_">Todas as zonas</SelectItem>
                       {zonas.map(z => <SelectItem key={z} value={z}>Zona {z}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label className="text-[10px] text-slate-500 mb-0.5 block">Seção Eleitoral</Label>
-                  <Select value={filterSecao} onValueChange={setFilterSecao}>
+                  <Select value={filterSecao || "_all_"} onValueChange={v => setFilterSecao(v === "_all_" ? null : v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={null}>Todas as seções</SelectItem>
+                      <SelectItem value="_all_">Todas as seções</SelectItem>
                       {secoes.map(s => <SelectItem key={s} value={s}>Seção {s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label className="text-[10px] text-slate-500 mb-0.5 block">Liderança</Label>
-                  <Select value={filterLeaderId} onValueChange={setFilterLeaderId}>
+                  <Select value={filterLeaderId || "_all_"} onValueChange={v => setFilterLeaderId(v === "_all_" ? null : v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                     <SelectContent className="max-h-48">
-                      <SelectItem value={null}>Todas as lideranças</SelectItem>
+                      <SelectItem value="_all_">Todas as lideranças</SelectItem>
                       {leadersForFilter.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
